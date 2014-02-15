@@ -1,0 +1,18 @@
+cmake_minimum_required(VERSION 2.8)
+
+project(CppNestedContainer)
+
+include_directories(
+  ${PROJECT_SOURCE_DIR}/includes/
+  ${PROJECT_SOURCE_DIR}/src/
+  ${PROJECT_SOURCE_DIR}/test/
+  ${PROJECT_BINARY_DIR}/includes/
+  ${PROJECT_BINARY_DIR}/src/
+  ${PROJECT_BINARY_DIR}/test/
+)
+
+# C++11
+list(APPEND CMAKE_CXX_FLAGS "-std=c++11")
+
+add_subdirectory(src)
+add_subdirectory(test)
