@@ -32,7 +32,10 @@ class basic_container final {
     , unsigned_integer
   };
 
-  union value {
+  union value final {
+    value() {}
+    ~value() {}
+
     map_type dict_;
     array_type array_;
     str_type str_;
@@ -44,13 +47,77 @@ class basic_container final {
   value_type type_ = value_type::null;
   value value_;
 
+  void switch_to_type(value_type type) {
+    if (type == type_) return;
+    switch (type_) {
+      case value_type::null:
+        break; 
+      case value_type::dictionary:
+        value_.dict_.~map_type();
+        break;
+      case value_type::array:
+        value_.array_.~array_type();
+        break;
+      case value_type::string:
+        value_.str_.~str_type();
+        break;
+      case value_type::floating:
+        break;
+      case value_type::integer:
+        break;
+      case value_type::unsigned_integer:
+        break;
+      default:
+        break;
+    }
+    switch (type) {
+      case value_type::null:
+        break; 
+      case value_type::dictionary:
+        new (&value_.dict_) map_type();
+        break;
+      case value_type::array:
+        new (&value_.array_) array_type();
+        break;
+      case value_type::string:
+        new (&value_.str_) str_type();
+        break;
+      case value_type::floating:
+        value_.float_ = 0;
+        break;
+      case value_type::integer:
+        value_.int_ = 0;
+        break;
+      case value_type::unsigned_integer:
+        value_.uint_ = 0;
+        break;
+      default:
+        break;
+    }
+    type_ = type;
+  }
+
  public:
-  basic_container() = default;
+  basic_container() {};
+  //template <typename T> 
+
+
+  ~basic_container() { switch_to_type(value_type::null); }  // virtual not needed, this class is final
   basic_container(basic_container const&) = default;
+
   basic_container(basic_container&&) = default;
 
-  //basic_container(str_type const& 
+  basic_container(str_type const& str) { switch_to_type(value_type::string); value_.str_ = str; }
+  basic_container(str_type&& str) { switch_to_type(value_type::string); value_.str_ = std::move(str); }
 
+  basic_container(float_type const& val) : type_(value_type::floating) { value_.float_ = val; }
+  basic_container(float_type&& val) : type_(value_type::floating) { value_.float_ = std::move(val); }
+
+  basic_container(int_type const& val) : type_(value_type::integer) { value_.int_ = val; }
+  basic_container(int_type&& val) : type_(value_type::integer) { value_.int_ = std::move(val); }
+
+  basic_container(uint_type const& val) : type_(value_type::unsigned_integer) { value_.uint_ = val; }
+  basic_container(uint_type&& val) : type_(value_type::unsigned_integer) { value_.uint_ = std::move(val); }
 
   inline bool is_null() const { return value_type::null == type_; }
   inline bool is_dictionary() const { return value_type::dictionary == type_; }
