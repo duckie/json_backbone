@@ -7,16 +7,6 @@ namespace nested_container {
 extern template class basic_container<>;
 }
 
-union U {
-  U() {}
-  std::map<std::string, U>* m;
-  std::list<U> v;
-  std::string s;
-  float f;
-  int i;
-  unsigned int ui;
-};
-
 int main(void) {
   using nested_container::container;
   {
@@ -28,9 +18,6 @@ int main(void) {
     container c5(4u);
   }
   
-  std::cout << sizeof(U) << std::endl;
-  std::cout << sizeof(float*) << std::endl;
-
   return 0;
 }
 

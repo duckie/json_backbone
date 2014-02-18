@@ -3,6 +3,7 @@
 
 #include <map>
 #include <vector>
+#include <type_traits>
 
 namespace nested_container {
 
@@ -10,15 +11,22 @@ template <typename key_type, typename value_type> using std_map_default_allocato
 template <typename value_type> using std_vector_default_allocators = std::vector<value_type>;
 
 template <
-  class key_type = std::string
-  , class str_type = std::string
-  , typename int_type = int
-  , typename uint_type = unsigned int
-  , typename float_type = float
+  class T_key_type = std::string
+  , class T_str_type = std::string
+  , typename T_int_type = int
+  , typename T_uint_type = unsigned int
+  , typename T_float_type = float
   , template <typename inner_key_type, class this_type> class map_type_template = std_map_default_allocators
   , template <typename this_type> class array_type_template = std_vector_default_allocators
   >
 class basic_container final {
+ public:
+  // Public type declarations
+  using key_type = T_key_type;
+  using str_type = T_str_type;
+  using int_type = T_int_type;
+  using uint_type = T_uint_type;
+  using float_type = T_float_type;
   using map_type = map_type_template<key_type, basic_container>;
   using array_type = array_type_template<basic_container>;
 
@@ -30,14 +38,16 @@ class basic_container final {
     , floating
     , integer
     , unsigned_integer
+    , boolean
   };
 
+ private:
   union value final {
     value() {}
     ~value() {}
 
-    map_type dict_;
-    array_type array_;
+    map_type* dict_;
+    array_type* array_;
     str_type str_;
     float_type float_;
     int_type int_;
@@ -53,10 +63,10 @@ class basic_container final {
       case value_type::null:
         break; 
       case value_type::dictionary:
-        value_.dict_.~map_type();
+        delete value_.dict_;
         break;
       case value_type::array:
-        value_.array_.~array_type();
+        delete value_.array_;
         break;
       case value_type::string:
         value_.str_.~str_type();
@@ -74,10 +84,10 @@ class basic_container final {
       case value_type::null:
         break; 
       case value_type::dictionary:
-        new (&value_.dict_) map_type();
+        value_.dict_ = new map_type;
         break;
       case value_type::array:
-        new (&value_.array_) array_type();
+        value_.array_ = new array_type;
         break;
       case value_type::string:
         new (&value_.str_) str_type();
@@ -97,10 +107,22 @@ class basic_container final {
     type_ = type;
   }
 
+  template <typename T> struct type_traits { 
+    static constexpr value_type type_value() {
+      return std::is_same<int_type, T>::value ? value_type::integer : 
+        std::is_same<uint_type, T>::value ? value_type::unsigned_integer : 
+        std::is_same<float_type, T>::value ? value_type::floating : 
+        std::is_same<str_type, T>::value ? value_type::string: 
+        std::is_same<array_type, T>::value ? value_type::array:
+        std::is_same<map_type, T>::value ? value_type::dictionary:
+        value_type::null;
+    }
+  };
+
+  basic_container(value_type type) { switch_to_type(type); }
  public:
   basic_container() {};
-  //template <typename T> 
-
+  template <typename T> basic_container() { switch_to_type(type_traits<T>::type_value()); }
 
   ~basic_container() { switch_to_type(value_type::null); }  // virtual not needed, this class is final
   basic_container(basic_container const&) = default;
