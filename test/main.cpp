@@ -17,6 +17,12 @@ int main(void) {
     container c4(4);
     container c5(4u);
   }
+
+  {
+    container c1 = container::make<std::string>();
+    std::cout << c1.is_int() << std::endl;
+    std::cout << c1.is_string() << std::endl;
+  }
   
   return 0;
 }

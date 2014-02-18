@@ -108,13 +108,22 @@ class basic_container final {
   }
 
   template <typename T> struct type_traits { 
+    template<typename A, typename B> using eq = std::is_same<A,B>;
+    static_assert(eq<int_type, T>::value 
+        || eq<uint_type, T>::value 
+        || eq<float_type, T>::value 
+        || eq<str_type, T>::value 
+        || eq<array_type, T>::value 
+        || eq<map_type, T>::value
+        , "Type must be one of container's internal types");
+
     static constexpr value_type type_value() {
-      return std::is_same<int_type, T>::value ? value_type::integer : 
-        std::is_same<uint_type, T>::value ? value_type::unsigned_integer : 
-        std::is_same<float_type, T>::value ? value_type::floating : 
-        std::is_same<str_type, T>::value ? value_type::string: 
-        std::is_same<array_type, T>::value ? value_type::array:
-        std::is_same<map_type, T>::value ? value_type::dictionary:
+      return eq<int_type, T>::value ? value_type::integer : 
+        eq<uint_type, T>::value ? value_type::unsigned_integer : 
+        eq<float_type, T>::value ? value_type::floating : 
+        eq<str_type, T>::value ? value_type::string: 
+        eq<array_type, T>::value ? value_type::array:
+        eq<map_type, T>::value ? value_type::dictionary:
         value_type::null;
     }
   };
@@ -122,12 +131,45 @@ class basic_container final {
   basic_container(value_type type) { switch_to_type(type); }
  public:
   basic_container() {};
-  template <typename T> basic_container() { switch_to_type(type_traits<T>::type_value()); }
+  template <typename T> static basic_container make() { 
+    basic_container c;
+    c.switch_to_type(type_traits<T>::type_value());
+    return c;
+  }
+
+  basic_container(basic_container const& c) {
+    switch_to_type(c.type_);
+    switch (type_) {
+      case value_type::null:
+        break; 
+      case value_type::dictionary:
+        //*value_.dict_ = *c.value_.dict_;
+        break;
+      case value_type::array:
+        //*value_.array_ = *c.value_.array_;
+        break;
+      case value_type::string:
+        value_.str_ = c.value_.str_;
+        break;
+      case value_type::floating:
+        value_.float_ = c.value_.float_;
+        break;
+      case value_type::integer:
+        value_.int_ = c.value_.int_;
+        break;
+      case value_type::unsigned_integer:
+        value_.uint_ = c.value_.uint_;
+        break;
+      default:
+        break;
+    }
+  }
+
+
+  basic_container(basic_container&&) {
+  }
 
   ~basic_container() { switch_to_type(value_type::null); }  // virtual not needed, this class is final
-  basic_container(basic_container const&) = default;
-
-  basic_container(basic_container&&) = default;
 
   basic_container(str_type const& str) { switch_to_type(value_type::string); value_.str_ = str; }
   basic_container(str_type&& str) { switch_to_type(value_type::string); value_.str_ = std::move(str); }
