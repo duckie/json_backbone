@@ -19,9 +19,12 @@ int main(void) {
   }
 
   {
-    container c1 = container::make<std::string>();
+    container c1 = container::init<std::string>();
     std::cout << c1.is_int() << std::endl;
     std::cout << c1.is_string() << std::endl;
+
+    std::string const roger("Marcel");
+    container c2(roger);
   }
   
   return 0;
