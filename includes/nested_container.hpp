@@ -75,6 +75,7 @@ class basic_container final {
   template<typename A, typename B> using eq = std::is_same<A,B>;
 
   template <typename T> struct type_proxy {};
+  template <bool Value> struct bool_proxy {};
 
   template <typename T> struct is_from_container {
     static bool constexpr value = eq<Int, T>::value 
@@ -128,33 +129,33 @@ class basic_container final {
     }
   }
 
-  // Compile tume initializers
-  template <typename T> void init_member() { init_member(type_proxy<T>()); }
-  void init_member(type_proxy<std::nullptr_t>) {}
-  void init_member(type_proxy<Map>) { value_.dict_ = new Map; }
-  void init_member(type_proxy<Array>) { value_.array_ = new Array; }
-  void init_member(type_proxy<String>) { new (&value_.str_) String; }
-  void init_member(type_proxy<Float>) { value_.float_ = 0.f; }
-  void init_member(type_proxy<Int>) { value_.int_ = 0; }
-  void init_member(type_proxy<UInt>) { value_.uint_ = 0u; }
+  // Compile time initializers
+  template <typename T> inline void init_member() { init_member(type_proxy<T>()); }
+  inline void init_member(type_proxy<std::nullptr_t>) {}
+  inline void init_member(type_proxy<Map>) { value_.dict_ = new Map; }
+  inline void init_member(type_proxy<Array>) { value_.array_ = new Array; }
+  inline void init_member(type_proxy<String>) { new (&value_.str_) String; }
+  inline void init_member(type_proxy<Float>) { value_.float_ = 0.f; }
+  inline void init_member(type_proxy<Int>) { value_.int_ = 0; }
+  inline void init_member(type_proxy<UInt>) { value_.uint_ = 0u; }
 
   // Init with value - move
-  void init_member(std::nullptr_t&&) {}
-  void init_member(Map&& v) { value_.dict_ = new Map(std::move(v)); }
-  void init_member(Array&& v) { value_.array_ = new Array(std::move(v)); }
-  void init_member(String&& v) { new (&value_.str_) String(std::move(v)); }
-  void init_member(Float&& v) { value_.float_ = v; }
-  void init_member(Int&& v) { value_.int_ = v; }
-  void init_member(UInt&& v) { value_.uint_ = v; }
+  inline void init_member(std::nullptr_t&&) {}
+  inline void init_member(Map&& v) { value_.dict_ = new Map(std::move(v)); }
+  inline void init_member(Array&& v) { value_.array_ = new Array(std::move(v)); }
+  inline void init_member(String&& v) { new (&value_.str_) String(std::move(v)); }
+  inline void init_member(Float&& v) { value_.float_ = v; }
+  inline void init_member(Int&& v) { value_.int_ = v; }
+  inline void init_member(UInt&& v) { value_.uint_ = v; }
 
   // Init with value - copy
-  void init_member(std::nullptr_t const&) {}
-  void init_member(Map const& v) { value_.dict_ = new Map(v); }
-  void init_member(Array const& v) { value_.array_ = new Array(v); }
-  void init_member(String const& v) { new (&value_.str_) String(v); }
-  void init_member(Float const& v) { value_.float_ = v; }
-  void init_member(Int const& v) { value_.int_ = v; }
-  void init_member(UInt const& v) { value_.uint_ = v; }
+  inline void init_member(std::nullptr_t const&) {}
+  inline void init_member(Map const& v) { value_.dict_ = new Map(v); }
+  inline void init_member(Array const& v) { value_.array_ = new Array(v); }
+  inline void init_member(String const& v) { new (&value_.str_) String(v); }
+  inline void init_member(Float const& v) { value_.float_ = v; }
+  inline void init_member(Int const& v) { value_.int_ = v; }
+  inline void init_member(UInt const& v) { value_.uint_ = v; }
 
   // Runtime version
   void init_member(value_type target_type) {
@@ -184,9 +185,9 @@ class basic_container final {
     }
   }
 
-  // When target time is known at compilation
+  // When target type is known at compilation
   template <typename T> void switch_to_type() {
-    value_type constexpr target_type = type_traits<T>::value_type;
+    value_type constexpr target_type = type_traits<T>::type_value();
     if (target_type == type_) return;
     clear();
     init_member<T>();
@@ -207,6 +208,38 @@ class basic_container final {
 
   template <typename T> basic_container(type_proxy<typename type_traits<T>::pure_type>, T&& arg) : type_(type_traits<T>::type_value()) { 
     init_member(std::forward<T>(arg));
+  }
+
+  // Accessors
+  template <typename T> inline T* ptr_to() { return ptr_to(type_proxy<T>()); }
+  inline Map* ptr_to(type_proxy<Map>) { return value_.dict_; }
+  inline Array* ptr_to(type_proxy<Array>) { return value_.array_; }
+  inline String* ptr_to(type_proxy<String>) { return &value_.str_; }
+  inline Float* ptr_to(type_proxy<Float>) { return &value_.float_; }
+  inline Int* ptr_to(type_proxy<Int>) { return &value_.int_; }
+  inline UInt* ptr_to(type_proxy<UInt>) { return &value_.uint_; }
+
+  template <typename T> inline T& ref_to() { return ref_to(type_proxy<T>()); }
+  inline Map& ref_to(type_proxy<Map>) { return *value_.dict_; }
+  inline Array& ref_to(type_proxy<Array>) { return *value_.array_; }
+  inline String& ref_to(type_proxy<String>) { return value_.str_; }
+  inline Float& ref_to(type_proxy<Float>) { return value_.float_; }
+  inline Int& ref_to(type_proxy<Int>) { return value_.int_; }
+  inline UInt& ref_to(type_proxy<UInt>) { return value_.uint_; }
+
+  template <typename T> basic_container& private_at(bool_proxy<T>, Key const&);
+
+  // Accessors for when Key != size_t
+  template<> basic_container& private_at(bool_proxy<false>, typename std::enable_if<eq<Key,size_t>::value,Key const&>::type key) {
+    if (value_type::dictionary != type_) switch_to_type<Map>();
+    return value_.dict_->operator[](key);
+  }
+
+  // Accessors for when Key == size_t
+  template <> basic_container& private_at (bool_proxy<true>, typename std::enable_if<eq<Key,size_t>::value,Key const&>::type key) {
+    if (value_type::dictionary != type_ && value_type::array != type_) switch_to_type<Map>();
+    if (value_type::array == type_) return value_.array_->operator[](key);
+    return value_.dict_->operator[](key);
   }
 
  public:
@@ -305,6 +338,19 @@ class basic_container final {
   inline bool is_float() const { return value_type::floating == type_; }
   inline bool is_int() const { return value_type::integer == type_; }
   inline bool is_uint() const { return value_type::unsigned_integer == type_; }
+
+  template <typename T> T const* get() const { 
+    return type_traits<T>::type_value() == type_ ? ptr_to<T>() : nullptr;
+  }
+
+  basic_container& operator[] (Key const& key) {
+    return private_at(bool_proxy<eq<Key,size_t>::value>(), key);
+  }
+  
+  basic_container& operator[] (typename std::enable_if<!eq<Key,size_t>::value, size_t>::type index) {
+    if (value_type::array != type_) switch_to_type<Array>();
+    return value_.array_->operator[](index);
+  }
 };
 
 using container = basic_container<>;
