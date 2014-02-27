@@ -75,7 +75,6 @@ class basic_container final {
   template<typename A, typename B> using eq = std::is_same<A,B>;
 
   template <typename T> struct type_proxy {};
-  template <bool Value> struct bool_proxy {};
 
   template <typename T> struct is_from_container {
     static bool constexpr value = eq<Int, T>::value 
@@ -227,20 +226,20 @@ class basic_container final {
   inline Int& ref_to(type_proxy<Int>) { return value_.int_; }
   inline UInt& ref_to(type_proxy<UInt>) { return value_.uint_; }
 
-  template <typename T> basic_container& private_at(bool_proxy<T>, Key const&);
-
-  // Accessors for when Key != size_t
-  template<> basic_container& private_at(bool_proxy<false>, typename std::enable_if<eq<Key,size_t>::value,Key const&>::type key) {
-    if (value_type::dictionary != type_) switch_to_type<Map>();
-    return value_.dict_->operator[](key);
-  }
-
-  // Accessors for when Key == size_t
-  template <> basic_container& private_at (bool_proxy<true>, typename std::enable_if<eq<Key,size_t>::value,Key const&>::type key) {
-    if (value_type::dictionary != type_ && value_type::array != type_) switch_to_type<Map>();
-    if (value_type::array == type_) return value_.array_->operator[](key);
-    return value_.dict_->operator[](key);
-  }
+  //template <bool T> basic_container& private_at(bool_proxy<T>, Key const&);
+//
+  //// Accessors for when Key != size_t
+  //template<> basic_container& private_at(bool_proxy<false>, typename std::enable_if<eq<Key,size_t>::value,Key const&>::type key) {
+    //if (value_type::dictionary != type_) switch_to_type<Map>();
+    //return value_.dict_->operator[](key);
+  //}
+//
+  //// Accessors for when Key == size_t
+  //template <> basic_container& private_at (bool_proxy<true>, typename std::enable_if<eq<Key,size_t>::value,Key const&>::type key) {
+    //if (value_type::dictionary != type_ && value_type::array != type_) switch_to_type<Map>();
+    //if (value_type::array == type_) return value_.array_->operator[](key);
+    //return value_.dict_->operator[](key);
+  //}
 
  public:
   basic_container() {};
@@ -343,15 +342,31 @@ class basic_container final {
     return type_traits<T>::type_value() == type_ ? ptr_to<T>() : nullptr;
   }
 
-  basic_container& operator[] (Key const& key) {
-    return private_at(bool_proxy<eq<Key,size_t>::value>(), key);
-  }
-  
-  basic_container& operator[] (typename std::enable_if<!eq<Key,size_t>::value, size_t>::type index) {
-    if (value_type::array != type_) switch_to_type<Array>();
-    return value_.array_->operator[](index);
-  }
+  template <typename T> basic_container& operator[](T);
 };
+
+//basic_container& operator[] (Key const& key) {
+  //if (value_type::dictionary != type_) switch_to_type<Map>();
+  //return value_.dict_->operator[](key);
+//}
+//
+//basic_container& operator[] (typename std::enable_if<!eq<Key,size_t>::value, size_t>::type index) {
+  //if (value_type::array != type_) switch_to_type<Array>();
+  //return value_.array_->operator[](index);
+//}
+template <
+  class Key = std::string
+  , class String = std::string
+  , typename Int = int
+  , typename UInt = unsigned int
+  , typename Float = float
+  , template <typename InnerKey, class This> class MapTemplate = std_map_default_allocators
+  , template <typename This> class ArrayTemplate = std_vector_default_allocators
+  >
+basic_container<Key, String, Int, UInt, MapTemplate, ArrayTemplate<This> >&
+basic_container<Key, String, Int, UInt, MapTemplate, ArrayTemplate>::operator[](Key const&) {
+  return *this;
+}
 
 using container = basic_container<>;
 };  // namespace nested_container
