@@ -26,7 +26,7 @@ template <typename key_type, typename value_type> using std_map_default_allocato
 template <typename value_type> using std_vector_default_allocators = std::vector<value_type>;
 
 template <
-  class Key = std::string
+  typename Key = std::string
   , class String = std::string
   , typename Int = int
   , typename UInt = unsigned int
@@ -304,20 +304,21 @@ class basic_container final {
 
   // Specifying those without a template is mandatory
   // All have the same code, only signature changes;
-  basic_container(std::nullptr_t&& arg)       : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
-  basic_container(Map&& arg)                  : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
-  basic_container(Array&& arg)                : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
-  basic_container(String&& arg)               : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
-  basic_container(Float&& arg)                : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
-  basic_container(Int&& arg)                  : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
-  basic_container(UInt&& arg)                 : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
-  basic_container(std::nullptr_t const& arg)  : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
-  basic_container(Map const& arg)             : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
-  basic_container(Array const& arg)           : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
-  basic_container(String const& arg)          : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
-  basic_container(Float const& arg)           : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
-  basic_container(Int const& arg)             : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
-  basic_container(UInt const& arg)            : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
+  //basic_container(std::nullptr_t&& arg)       : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
+  //basic_container(Map&& arg)                  : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
+  //basic_container(Array&& arg)                : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
+  //basic_container(String&& arg)               : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
+  //basic_container(Float&& arg)                : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
+  //basic_container(Int&& arg)                  : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
+  //basic_container(UInt&& arg)                 : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
+  //basic_container(std::nullptr_t const& arg)  : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
+  //basic_container(Map const& arg)             : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
+  //basic_container(Array const& arg)           : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
+  //basic_container(String const& arg)          : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
+  //basic_container(Float const& arg)           : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
+  //basic_container(Int const& arg)             : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
+  //basic_container(UInt const& arg)            : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
+  template <typename T> basic_container(T arg) : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
 
   ~basic_container() { clear(); }  // virtual not needed, this class is final
 
@@ -333,7 +334,7 @@ class basic_container final {
   inline bool is_null() const { return value_type::null == type_; }
   inline bool is_dictionary() const { return value_type::dictionary == type_; }
   inline bool is_array() const { return value_type::array == type_; }
-  inline bool is_string() const { return value_type::string == type_; }
+  bool is_string() const { return value_type::string == type_; }
   inline bool is_float() const { return value_type::floating == type_; }
   inline bool is_int() const { return value_type::integer == type_; }
   inline bool is_uint() const { return value_type::unsigned_integer == type_; }
@@ -342,7 +343,8 @@ class basic_container final {
     return type_traits<T>::type_value() == type_ ? ptr_to<T>() : nullptr;
   }
 
-  template <typename T> basic_container& operator[](T);
+  //basic_container& operator[](Key const&);
+  //template<typename T> void operator[](T);
 };
 
 //basic_container& operator[] (Key const& key) {
@@ -354,19 +356,18 @@ class basic_container final {
   //if (value_type::array != type_) switch_to_type<Array>();
   //return value_.array_->operator[](index);
 //}
-template <
-  class Key = std::string
-  , class String = std::string
-  , typename Int = int
-  , typename UInt = unsigned int
-  , typename Float = float
-  , template <typename InnerKey, class This> class MapTemplate = std_map_default_allocators
-  , template <typename This> class ArrayTemplate = std_vector_default_allocators
-  >
-basic_container<Key, String, Int, UInt, MapTemplate, ArrayTemplate<This> >&
-basic_container<Key, String, Int, UInt, MapTemplate, ArrayTemplate>::operator[](Key const&) {
-  return *this;
-}
+//template <
+  //typename Key
+  //, class String
+  //, typename Int
+  //, typename UInt
+  //, typename Float
+  //, template <typename InnerKey, class This> class MapTemplate
+  //, template <typename This> class ArrayTemplate
+  //>
+////basic_container<Key, String, Int, UInt, Float, MapTemplate, ArrayTemplate >&
+//void
+//basic_container<Key, String, Int, UInt, Float, MapTemplate, ArrayTemplate>::operator[]<Key>(Key s) { }
 
 using container = basic_container<>;
 };  // namespace nested_container
