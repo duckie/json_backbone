@@ -3,24 +3,13 @@
 #include <vector>
 #include <list>
 
-namespace nested_container {
-extern template class basic_container<>;
-extern template class basic_container<>::type_proxy<typename basic_container<>::str_type>;
-extern template bool basic_container<>::is_string() const;
-//extern template basic_container<>::basic_container(typename basic_container<>::map_type&& arg);
-//extern template basic_container<>::basic_container(typename basic_container<>::array_type&& arg);
-//extern template basic_container<>::basic_container(typename basic_container<>::str_type&& arg);
-//extern template basic_container<>::basic_container(typename basic_container<>::float_type&& arg);
-//extern template basic_container<>::basic_container(typename basic_container<>::int_type&& arg);
-//extern template basic_container<>::basic_container(typename basic_container<>::uint_type&& arg);
-//extern template basic_container<>::basic_container(std::nullptr_t const& arg);
-//extern template basic_container<>::basic_container(typename basic_container<>::map_type const& arg);
-//extern template basic_container<>::basic_container(typename basic_container<>::array_type const& arg);
-//extern template basic_container<>::basic_container(typename basic_container<>::str_type const& arg);
-//extern template basic_container<>::basic_container(typename basic_container<>::float_type const& arg);
-//extern template basic_container<>::basic_container(typename basic_container<>::int_type const& arg);
-//extern template basic_container<>::basic_container(typename basic_container<>::uint_type const& arg);
-}
+//namespace nested_container {
+//extern template class basic_container<>;
+//extern template class basic_container<>::type_traits<typename basic_container<>::str_type>;
+//extern template class basic_container<>::type_traits<typename basic_container<>::str_type&>;
+//extern template class basic_container<>::type_traits<typename basic_container<>::str_type const&>;
+//extern template bool basic_container<>::is_string() const;
+//}
 
 int main(void) {
   using nested_container::container;
@@ -40,6 +29,11 @@ int main(void) {
 
     std::string const roger(std::string("Marcel"));
     container c2(roger);
+  }
+
+  {
+    int roger = 2;
+    container c1(roger);
   }
   
   return 0;

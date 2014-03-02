@@ -6,6 +6,7 @@
 #include <type_traits>
 #include <sstream>
 #include <utility>
+#include <iostream>
 
 namespace nested_container {
 
@@ -206,6 +207,7 @@ class basic_container final {
   }
 
   template <typename T> basic_container(type_proxy<typename type_traits<T>::pure_type>, T&& arg) : type_(type_traits<T>::type_value()) { 
+    std::cout << "Yeah man" << std::endl;
     init_member(std::forward<T>(arg));
   }
 
@@ -318,7 +320,9 @@ class basic_container final {
   //basic_container(Float const& arg)           : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
   //basic_container(Int const& arg)             : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
   //basic_container(UInt const& arg)            : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
-  template <typename T> basic_container(T arg) : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
+  template <typename T> basic_container(T arg) : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {
+    std::cout << "Yeah man 2" << std::endl;
+  }
 
   ~basic_container() { clear(); }  // virtual not needed, this class is final
 
