@@ -3,14 +3,6 @@
 #include <vector>
 #include <list>
 
-//namespace nested_container {
-//extern template class basic_container<>;
-//extern template class basic_container<>::type_traits<typename basic_container<>::str_type>;
-//extern template class basic_container<>::type_traits<typename basic_container<>::str_type&>;
-//extern template class basic_container<>::type_traits<typename basic_container<>::str_type const&>;
-//extern template bool basic_container<>::is_string() const;
-//}
-
 int main(void) {
   using nested_container::container;
   {

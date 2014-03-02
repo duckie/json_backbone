@@ -228,20 +228,6 @@ class basic_container final {
   inline Int& ref_to(type_proxy<Int>) { return value_.int_; }
   inline UInt& ref_to(type_proxy<UInt>) { return value_.uint_; }
 
-  //template <bool T> basic_container& private_at(bool_proxy<T>, Key const&);
-//
-  //// Accessors for when Key != size_t
-  //template<> basic_container& private_at(bool_proxy<false>, typename std::enable_if<eq<Key,size_t>::value,Key const&>::type key) {
-    //if (value_type::dictionary != type_) switch_to_type<Map>();
-    //return value_.dict_->operator[](key);
-  //}
-//
-  //// Accessors for when Key == size_t
-  //template <> basic_container& private_at (bool_proxy<true>, typename std::enable_if<eq<Key,size_t>::value,Key const&>::type key) {
-    //if (value_type::dictionary != type_ && value_type::array != type_) switch_to_type<Map>();
-    //if (value_type::array == type_) return value_.array_->operator[](key);
-    //return value_.dict_->operator[](key);
-  //}
 
  public:
   basic_container() {};
@@ -304,22 +290,6 @@ class basic_container final {
     return *this;
   }
 
-  // Specifying those without a template is mandatory
-  // All have the same code, only signature changes;
-  //basic_container(std::nullptr_t&& arg)       : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
-  //basic_container(Map&& arg)                  : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
-  //basic_container(Array&& arg)                : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
-  //basic_container(String&& arg)               : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
-  //basic_container(Float&& arg)                : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
-  //basic_container(Int&& arg)                  : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
-  //basic_container(UInt&& arg)                 : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
-  //basic_container(std::nullptr_t const& arg)  : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
-  //basic_container(Map const& arg)             : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
-  //basic_container(Array const& arg)           : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
-  //basic_container(String const& arg)          : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
-  //basic_container(Float const& arg)           : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
-  //basic_container(Int const& arg)             : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
-  //basic_container(UInt const& arg)            : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
   template <typename T> basic_container(T arg) : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {
     std::cout << "Yeah man 2" << std::endl;
   }
@@ -347,31 +317,8 @@ class basic_container final {
     return type_traits<T>::type_value() == type_ ? ptr_to<T>() : nullptr;
   }
 
-  //basic_container& operator[](Key const&);
-  //template<typename T> void operator[](T);
 };
 
-//basic_container& operator[] (Key const& key) {
-  //if (value_type::dictionary != type_) switch_to_type<Map>();
-  //return value_.dict_->operator[](key);
-//}
-//
-//basic_container& operator[] (typename std::enable_if<!eq<Key,size_t>::value, size_t>::type index) {
-  //if (value_type::array != type_) switch_to_type<Array>();
-  //return value_.array_->operator[](index);
-//}
-//template <
-  //typename Key
-  //, class String
-  //, typename Int
-  //, typename UInt
-  //, typename Float
-  //, template <typename InnerKey, class This> class MapTemplate
-  //, template <typename This> class ArrayTemplate
-  //>
-////basic_container<Key, String, Int, UInt, Float, MapTemplate, ArrayTemplate >&
-//void
-//basic_container<Key, String, Int, UInt, Float, MapTemplate, ArrayTemplate>::operator[]<Key>(Key s) { }
 
 using container = basic_container<>;
 };  // namespace nested_container

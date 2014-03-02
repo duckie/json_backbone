@@ -23,10 +23,5 @@ template class basic_container<>::type_traits<typename basic_container<>::str_ty
 template class basic_container<>::type_traits<typename basic_container<>::str_type const&>;
 
 // TODO: and so on...
-
-//template basic_container<>::basic_container(typename basic_container<>::int_type const& arg);
-//template basic_container<>::basic_container(typename basic_container<>::int_type& arg);
-//template basic_container<>::basic_container(typename basic_container<>::int_type arg);
-//template basic_container<>::basic_container(typename basic_container<>::int_type&& arg);
 };
 
