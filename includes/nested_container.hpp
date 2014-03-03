@@ -7,6 +7,7 @@
 #include <sstream>
 #include <utility>
 #include <iostream>
+#include <cassert>
 
 namespace nested_container {
 
@@ -49,6 +50,7 @@ class basic_container final {
  private:
   using Map = map_type; 
   using Array = array_type;
+  using Null = std::nullptr_t;
 
   enum class value_type : unsigned char  {
     null = '0'
@@ -76,21 +78,11 @@ class basic_container final {
   template<typename A, typename B> using eq = std::is_same<A,B>;
 
   template <typename T> struct type_proxy {};
-
-  template <typename T> struct is_from_container {
-    static bool constexpr value = eq<Int, T>::value 
-        || eq<UInt, T>::value 
-        || eq<Float, T>::value 
-        || eq<String, T>::value 
-        || eq<Array, T>::value 
-        || eq<Map, T>::value
-        || eq<std::nullptr_t, T>::value;
-  };
+  template <bool B> struct bool_proxy {};
 
   template <typename Member> struct type_traits { 
     using T = typename std::remove_cv<typename std::remove_reference<Member>::type>::type;
     using pure_type = T;
-    static_assert(is_from_container<T>::value, "Type must be one of container's internal types");
     static constexpr value_type type_value() {
       return eq<Int, T>::value ? value_type::integer
         : eq<UInt, T>::value ? value_type::unsigned_integer
@@ -100,7 +92,29 @@ class basic_container final {
         : eq<Map, T>::value ? value_type::dictionary
         : value_type::null;
     }
+
+    static bool constexpr is_from_container = eq<Int, T>::value 
+        || eq<UInt, T>::value 
+        || eq<Float, T>::value 
+        || eq<String, T>::value 
+        || eq<Array, T>::value 
+        || eq<Map, T>::value
+        || eq<std::nullptr_t, T>::value;
+
+    static bool constexpr is_collection = eq<Array, T>::value || eq<Map, T>::value;
+    static bool constexpr is_lexical = eq<Int, T>::value || eq<UInt, T>::value || eq<Float, T>::value || eq<String, T>::value;
+    static bool constexpr is_null = eq<Int, T>::value || eq<UInt, T>::value || eq<Float, T>::value || eq<String, T>::value;
+    static bool constexpr is_index = eq<Key, T>::value || eq<size_t, T>::value;
+
+    static_assert(is_from_container, "Type must be one of container's internal types");
   };
+
+  static bool is_lexical(value_type type) { 
+    return value_type::integer == type
+      || value_type::unsigned_integer == type
+      || value_type::floating == type;
+  }
+      
 
   value_type type_ = value_type::null;
   value value_;
@@ -134,16 +148,18 @@ class basic_container final {
   inline void init_member(type_proxy<std::nullptr_t>) {}
   inline void init_member(type_proxy<Map>) { value_.dict_ = new Map; }
   inline void init_member(type_proxy<Array>) { value_.array_ = new Array; }
-  inline void init_member(type_proxy<String>) { new (&value_.str_) String; }
+  inline void init_member(type_proxy<String>) { new (&(value_.str_)) String; }
   inline void init_member(type_proxy<Float>) { value_.float_ = 0.f; }
   inline void init_member(type_proxy<Int>) { value_.int_ = 0; }
   inline void init_member(type_proxy<UInt>) { value_.uint_ = 0u; }
 
   // Init with value - move
   inline void init_member(std::nullptr_t&&) {}
-  inline void init_member(Map&& v) { value_.dict_ = new Map(std::move(v)); }
-  inline void init_member(Array&& v) { value_.array_ = new Array(std::move(v)); }
-  inline void init_member(String&& v) { new (&value_.str_) String(std::move(v)); }
+  inline void init_member(Map&& v) { value_.dict_ = new Map(v); }
+  inline void init_member(Array&& v) { value_.array_ = new Array(v); }
+  inline void init_member(String&& v) { 
+    std::cout << "yé3 " << String(v) << std::endl;
+    new (&(value_.str_)) String(v); }
   inline void init_member(Float&& v) { value_.float_ = v; }
   inline void init_member(Int&& v) { value_.int_ = v; }
   inline void init_member(UInt&& v) { value_.uint_ = v; }
@@ -152,7 +168,9 @@ class basic_container final {
   inline void init_member(std::nullptr_t const&) {}
   inline void init_member(Map const& v) { value_.dict_ = new Map(v); }
   inline void init_member(Array const& v) { value_.array_ = new Array(v); }
-  inline void init_member(String const& v) { new (&value_.str_) String(v); }
+  inline void init_member(String const& v) { 
+    std::cout << "yé2 " << String(v) << std::endl;
+    new (&(value_.str_)) String(v); }
   inline void init_member(Float const& v) { value_.float_ = v; }
   inline void init_member(Int const& v) { value_.int_ = v; }
   inline void init_member(UInt const& v) { value_.uint_ = v; }
@@ -207,11 +225,10 @@ class basic_container final {
   }
 
   template <typename T> basic_container(type_proxy<typename type_traits<T>::pure_type>, T&& arg) : type_(type_traits<T>::type_value()) { 
-    std::cout << "Yeah man" << std::endl;
     init_member(std::forward<T>(arg));
   }
 
-  // Accessors
+  // Accessors, private, not protected against bad behavior, checks must be done before
   template <typename T> inline T* ptr_to() { return ptr_to(type_proxy<T>()); }
   inline Map* ptr_to(type_proxy<Map>) { return value_.dict_; }
   inline Array* ptr_to(type_proxy<Array>) { return value_.array_; }
@@ -228,6 +245,41 @@ class basic_container final {
   inline Int& ref_to(type_proxy<Int>) { return value_.int_; }
   inline UInt& ref_to(type_proxy<UInt>) { return value_.uint_; }
 
+  // [] accessors, Key != size_type version
+  basic_container const& access_collection(bool_proxy<false>, Key const& index) const {
+    if (!is_dictionary()) return init<Null>();
+    return ref_to<Map>()[index];
+  }
+
+  basic_container const& access_collection(bool_proxy<false>, size_t const& index) const {
+    if (!is_array()) return init<Null>();
+    return ref_to<Array>()[index];
+  }
+
+  basic_container& access_collection(bool_proxy<false>, Key const& index) {
+    if (!is_dictionary()) switch_to_type<Map>();
+    return ref_to<Map>()[index];
+  }
+
+  basic_container& access_collection(bool_proxy<false>, size_t const& index) {
+    if (!is_array()) switch_to_type<Array>();
+    return ref_to<Array>()[index];
+  }
+
+  // [] accessors, Key == size_type version
+  basic_container& access_collection(bool_proxy<true>, size_t const& index) const {
+    if (!is_dictionary() && !is_array()) return init<Null>();
+    if (is_dictionary()) return ref_to<Map>()[index];
+    else return ref_to<Array>()[index];
+  }
+
+  basic_container& access_collection(bool_proxy<true>, size_t const& index) {
+    if (!is_dictionary() && !is_array()) switch_to_type<Map>();
+    if (is_dictionary()) return ref_to<Map>()[index];
+    else return ref_to<Array>()[index];
+  }
+
+  //template <typename T> convert_to
 
  public:
   basic_container() {};
@@ -290,8 +342,12 @@ class basic_container final {
     return *this;
   }
 
-  template <typename T> basic_container(T arg) : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {
-    std::cout << "Yeah man 2" << std::endl;
+  // Constructor from other types
+  template <typename T> basic_container(T arg) : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
+  
+  // Handling char* case
+  basic_container(typename str_type::value_type const* arg) : basic_container(type_proxy<str_type>(), str_type(arg)) {
+    std::cout << "Yé" << std::endl;
   }
 
   ~basic_container() { clear(); }  // virtual not needed, this class is final
@@ -301,14 +357,12 @@ class basic_container final {
     return basic_container(type_proxy<T>());
   }
 
-  template <typename T> T as() { 
-    static_assert(is_from_container<T>::value, "as() must be used with a type of the container.");
-  }
+  template <typename T> T as() { static_assert(type_traits<T>::is_from_container,""); }
 
   inline bool is_null() const { return value_type::null == type_; }
   inline bool is_dictionary() const { return value_type::dictionary == type_; }
   inline bool is_array() const { return value_type::array == type_; }
-  bool is_string() const { return value_type::string == type_; }
+  inline bool is_string() const { return value_type::string == type_; }
   inline bool is_float() const { return value_type::floating == type_; }
   inline bool is_int() const { return value_type::integer == type_; }
   inline bool is_uint() const { return value_type::unsigned_integer == type_; }
@@ -317,6 +371,56 @@ class basic_container final {
     return type_traits<T>::type_value() == type_ ? ptr_to<T>() : nullptr;
   }
 
+  template <typename T> bool get(T& output_value) const { 
+    if (type_traits<T>::type_value() == type_) {
+      output_value = ref_to<T>();
+      return true;
+    }
+    return false;
+  }
+
+  template <typename T> basic_container const& operator[] (T const& index) const {
+    return access_collection(bool_proxy<eq<Key, size_t>::value>(), index);
+  }
+
+  template <typename T> basic_container& operator[] (T const& index) {
+    return access_collection(bool_proxy<eq<Key, size_t>::value>(), index);
+  }
+
+  // Conversion.
+  template <typename T> operator T () {
+    static_assert(type_traits<T>::is_from_container,"");
+    value_type target_type = type_traits<T>::type_value();
+    if (target_type == type_) {
+      return ref_to<T>();
+    }
+    else if (is_lexical(target_type) && is_lexical(type_)) {
+      if (value_type::string == type_ || value_type::string == target_type) {  // lexical cast
+        assert(value_type::dictionary != type_);
+        switch (type_) {
+          case value_type::string:
+            return lexical_cast<T>(ref_to<String>());
+          case value_type::floating:
+            return lexical_cast<T>(ref_to<Float>());
+          case value_type::integer:
+            return lexical_cast<T>(ref_to<Int>());
+          case value_type::unsigned_integer:
+            return lexical_cast<T>(ref_to<UInt>());
+        }
+      }
+      else {  // static cast
+        switch (type_) {
+          case value_type::floating:
+            return static_cast<T>(ref_to<Float>());
+          case value_type::integer:
+            return static_cast<T>(ref_to<Int>());
+          case value_type::unsigned_integer:
+            return static_cast<T>(ref_to<UInt>());
+        }
+      }
+    }
+    return T();
+  }
 };
 
 

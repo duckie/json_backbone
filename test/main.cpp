@@ -8,10 +8,13 @@ int main(void) {
   {
     container c1;
     std::cout << c1.is_null() << std::endl;
-    container c2(std::string("Roger"));
+    container c2("Roger");
     container c3(3.f);
     container c4(4);
     container c5(4u);
+
+    //std::string roger = c2;
+    std::cout << c2.is_string() << std::endl;
   }
 
   {
@@ -24,8 +27,18 @@ int main(void) {
   }
 
   {
+    std::cout << "Begin test 3" << std::endl;
     int roger = 2;
     container c1(roger);
+
+    c1["value1"] = 1;
+    c1["value2"] = std::string("123");
+    c1["value3"] = 1.f;
+
+    int value2 = c1["value2"];
+    unsigned int value3 = c1["value3"];
+    std::cout << value2 << std::endl;
+    std::cout << value3 << std::endl;
   }
   
   return 0;
