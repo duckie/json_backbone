@@ -46,8 +46,8 @@ int main(void) {
     std::cout << value2 << std::endl;
     std::cout << value3 << std::endl;
     if (c1["value4"]["s_value2"]) {
-      //std::string value = c1["value4"]["s_value1"];
-      std::cout << "yé" << std::endl;
+      std::string value = c1["value4"]["s_value1"];
+      std::cout << value << std::endl;
     }
   }
   

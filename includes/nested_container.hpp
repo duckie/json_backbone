@@ -8,8 +8,10 @@
 #include <utility>
 #include <cassert>
 #include <iostream>
+#include <exception>
 
 namespace nested_container {
+
 
 // boost lexical cast, simple non-throwing version
 template<typename Target, typename Source> Target lexical_cast(Source arg) {
@@ -46,6 +48,10 @@ class basic_container final {
   using float_type = Float;
   using map_type = MapTemplate<key_type, basic_container>;
   using vector_type = VectorTemplate<basic_container>;
+
+  class exception_type : std::exception {
+    const char* what() const noexcept { return "NestedContainer exception."; }
+  };
 
  private:
   using Map = map_type; 
@@ -297,6 +303,64 @@ class basic_container final {
   }
 
   //template <typename T> convert_to
+  template <typename T> T convert_to(type_proxy<T>) const { 
+    value_type target_type = type_traits<T>::type_value();
+    if (target_type == type_) {
+      return ref_to<T>();
+    }
+    else if (is_lexical(target_type) && is_lexical(type_)) {
+      if (value_type::string == type_) {  // lexical cast
+        return lexical_cast<T>(ref_to<String>());
+      }
+      else {  // static cast
+        switch (type_) {
+          case value_type::floating:
+            return static_cast<T>(ref_to<Float>());
+          case value_type::integer:
+            return static_cast<T>(ref_to<Int>());
+          case value_type::unsigned_integer:
+            return static_cast<T>(ref_to<UInt>());
+          case value_type::boolean:
+            return static_cast<T>(ref_to<bool>());
+          default:
+            break;
+        }
+      }
+    }
+    return T();
+  }
+
+  // Handling the particular case of types not supporting casts
+  str_type convert_to(type_proxy<String>) const { 
+    if (value_type::string == type_) {
+      return ref_to<String>();
+    }
+    else if (is_lexical(type_)) {
+      switch (type_) {
+        case value_type::floating:
+          return lexical_cast<String>(ref_to<Float>());
+        case value_type::integer:
+          return lexical_cast<String>(ref_to<Int>());
+        case value_type::unsigned_integer:
+          return lexical_cast<String>(ref_to<UInt>());
+        case value_type::boolean:
+          return lexical_cast<String>(ref_to<bool>());
+        default:
+          break;
+      }
+    }
+    return String();
+  }
+
+  Map convert_to(type_proxy<Map>) const { 
+    if (value_type::map == type_) return ref_to<Map>();
+    return Map();
+  }
+
+  Vector convert_to(type_proxy<Vector>) const { 
+    if (value_type::vector == type_) return ref_to<Vector>();
+    return Vector();
+  }
 
  public:
   basic_container() {};
@@ -420,43 +484,7 @@ class basic_container final {
 
   // Conversion.
   template <typename T> operator T () const {
-    static_assert(type_traits<T>::is_from_container,"");
-    value_type target_type = type_traits<T>::type_value();
-    if (target_type == type_) {
-      return ref_to<T>();
-    }
-    else if (is_lexical(target_type) && is_lexical(type_)) {
-      if (value_type::string == type_ || value_type::string == target_type) {  // lexical cast
-        assert(value_type::map != type_);
-        switch (type_) {
-          case value_type::string:
-            return lexical_cast<T>(ref_to<String>());
-          case value_type::floating:
-            return lexical_cast<T>(ref_to<Float>());
-          case value_type::integer:
-            return lexical_cast<T>(ref_to<Int>());
-          case value_type::unsigned_integer:
-            return lexical_cast<T>(ref_to<UInt>());
-          default:
-            break;
-        }
-      }
-      else {  // static cast
-        switch (type_) {
-          case value_type::floating:
-            return static_cast<T>(ref_to<Float>());
-          case value_type::integer:
-            return static_cast<T>(ref_to<Int>());
-          case value_type::unsigned_integer:
-            return static_cast<T>(ref_to<UInt>());
-          //case value_type::boolean:
-            //return static_cast<T>(ref_to<bool>());
-          default:
-            break;
-        }
-      }
-    }
-    return T();
+    return convert_to(type_proxy<T>());
   }
 };
 
