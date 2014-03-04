@@ -3,6 +3,10 @@
 #include <vector>
 #include <list>
 
+std::string str1() {
+  return "Roger";
+}
+
 int main(void) {
   using nested_container::container;
   {
@@ -47,6 +51,10 @@ int main(void) {
     }
   }
   
+  {
+    std::cout << "Begin test 4" << std::endl;
+    container c1(str1());
+  }
   return 0;
 }
 

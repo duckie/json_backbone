@@ -366,16 +366,26 @@ class basic_container final {
   }
 
   // Constructor from other types
-  template <typename T> basic_container(T arg) : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
-  
+  template <typename T> basic_container(T&& arg) : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), std::forward<T>(arg)) {}
   // Handling char* case
   basic_container(typename str_type::value_type const* arg) : basic_container(type_proxy<str_type>(), str_type(arg)) {}
 
+  // Helper to initialize the container to a given type
+  template <typename T> static basic_container init() { return basic_container(type_proxy<T>()); }
+
   ~basic_container() { clear(); }  // virtual not needed, this class is final
 
-  // Helper to initialize the container to a given type
-  template <typename T> static basic_container init() { 
-    return basic_container(type_proxy<T>());
+  // Assignement from another type
+  template <typename T> basic_container& operator=(T&& arg) { 
+    switch_to_type<typename type_traits<T>::pure_type>();
+    init_member(std::forward<T>(arg));
+    return *this;
+  }
+  // Handling char* case
+  basic_container& operator=(typename str_type::value_type const* arg) {
+    switch_to_type<str_type>();
+    init_member(str_type(arg));
+    return *this;
   }
 
   template <typename T> T as() { static_assert(type_traits<T>::is_from_container,""); }
