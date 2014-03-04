@@ -34,7 +34,7 @@ template <
   , typename UInt = unsigned int
   , typename Float = float
   , template <typename InnerKey, class This> class MapTemplate = std_map_default_allocators
-  , template <typename This> class ArrayTemplate = std_vector_default_allocators
+  , template <typename This> class VectorTemplate = std_vector_default_allocators
   >
 class basic_container final {
  public:
@@ -45,11 +45,11 @@ class basic_container final {
   using uint_type = UInt;
   using float_type = Float;
   using map_type = MapTemplate<key_type, basic_container>;
-  using array_type = ArrayTemplate<basic_container>;
+  using vector_type = VectorTemplate<basic_container>;
 
  private:
   using Map = map_type; 
-  using Array = array_type;
+  using Vector = vector_type;
   using Null = std::nullptr_t;
 
   enum class value_type : unsigned char  {
@@ -68,7 +68,7 @@ class basic_container final {
     ~value() {}
 
     Map* dict_;
-    Array* array_;
+    Vector* vector_;
     String str_;
     Float float_;
     Int int_;
@@ -88,7 +88,7 @@ class basic_container final {
         : eq<UInt, T>::value ? value_type::unsigned_integer
         : eq<Float, T>::value ? value_type::floating
         : eq<String, T>::value ? value_type::string 
-        : eq<Array, T>::value ? value_type::vector
+        : eq<Vector, T>::value ? value_type::vector
         : eq<Map, T>::value ? value_type::map
         : value_type::null;
     }
@@ -97,11 +97,11 @@ class basic_container final {
         || eq<UInt, T>::value 
         || eq<Float, T>::value 
         || eq<String, T>::value 
-        || eq<Array, T>::value 
+        || eq<Vector, T>::value 
         || eq<Map, T>::value
         || eq<std::nullptr_t, T>::value;
 
-    static bool constexpr is_collection = eq<Array, T>::value || eq<Map, T>::value;
+    static bool constexpr is_collection = eq<Vector, T>::value || eq<Map, T>::value;
     static bool constexpr is_lexical = eq<Int, T>::value || eq<UInt, T>::value || eq<Float, T>::value || eq<String, T>::value;
     static bool constexpr is_null = eq<Int, T>::value || eq<UInt, T>::value || eq<Float, T>::value || eq<String, T>::value;
     static bool constexpr is_index = eq<Key, T>::value || eq<size_t, T>::value;
@@ -128,7 +128,7 @@ class basic_container final {
         delete value_.dict_;
         break;
       case value_type::vector:
-        delete value_.array_;
+        delete value_.vector_;
         break;
       case value_type::string:
         value_.str_.~str_type();
@@ -148,7 +148,7 @@ class basic_container final {
   template <typename T> inline void init_member() { init_member(type_proxy<T>()); }
   inline void init_member(type_proxy<std::nullptr_t>) {}
   inline void init_member(type_proxy<Map>) { value_.dict_ = new Map; }
-  inline void init_member(type_proxy<Array>) { value_.array_ = new Array; }
+  inline void init_member(type_proxy<Vector>) { value_.vector_ = new Vector; }
   inline void init_member(type_proxy<String>) { new (&(value_.str_)) String; }
   inline void init_member(type_proxy<Float>) { value_.float_ = 0.f; }
   inline void init_member(type_proxy<Int>) { value_.int_ = 0; }
@@ -157,7 +157,7 @@ class basic_container final {
   // Init with value - move
   inline void init_member(std::nullptr_t&&) {}
   inline void init_member(Map&& v) { value_.dict_ = new Map(v); }
-  inline void init_member(Array&& v) { value_.array_ = new Array(v); }
+  inline void init_member(Vector&& v) { value_.vector_ = new Vector(v); }
   inline void init_member(String&& v) { new (&(value_.str_)) String(v); }
   inline void init_member(Float&& v) { value_.float_ = v; }
   inline void init_member(Int&& v) { value_.int_ = v; }
@@ -166,7 +166,7 @@ class basic_container final {
   // Init with value - copy
   inline void init_member(std::nullptr_t const&) {}
   inline void init_member(Map const& v) { value_.dict_ = new Map(v); }
-  inline void init_member(Array const& v) { value_.array_ = new Array(v); }
+  inline void init_member(Vector const& v) { value_.vector_ = new Vector(v); }
   inline void init_member(String const& v) { new (&(value_.str_)) String(v); }
   inline void init_member(Float const& v) { value_.float_ = v; }
   inline void init_member(Int const& v) { value_.int_ = v; }
@@ -181,7 +181,7 @@ class basic_container final {
         init_member<Map>();
         break;
       case value_type::vector:
-        init_member<Array>();
+        init_member<Vector>();
         break;
       case value_type::string:
         init_member<String>();
@@ -228,7 +228,7 @@ class basic_container final {
   // Accessors, private, not protected against bad behavior, checks must be done before
   template <typename T> inline T* ptr_to() { return ptr_to(type_proxy<T>()); }
   inline Map* ptr_to(type_proxy<Map>) { return value_.dict_; }
-  inline Array* ptr_to(type_proxy<Array>) { return value_.array_; }
+  inline Vector* ptr_to(type_proxy<Vector>) { return value_.vector_; }
   inline String* ptr_to(type_proxy<String>) { return &value_.str_; }
   inline Float* ptr_to(type_proxy<Float>) { return &value_.float_; }
   inline Int* ptr_to(type_proxy<Int>) { return &value_.int_; }
@@ -236,7 +236,7 @@ class basic_container final {
 
   template <typename T> inline T const* ptr_to() const { return ptr_to(type_proxy<T>()); }
   inline Map const* ptr_to(type_proxy<Map>) const { return value_.dict_; }
-  inline Array const* ptr_to(type_proxy<Array>) const { return value_.array_; }
+  inline Vector const* ptr_to(type_proxy<Vector>) const { return value_.vector_; }
   inline String const* ptr_to(type_proxy<String>) const { return &value_.str_; }
   inline Float const* ptr_to(type_proxy<Float>) const { return &value_.float_; }
   inline Int const* ptr_to(type_proxy<Int>) const { return &value_.int_; }
@@ -244,7 +244,7 @@ class basic_container final {
 
   template <typename T> inline T& ref_to() { return ref_to(type_proxy<T>()); }
   inline Map& ref_to(type_proxy<Map>) { return *value_.dict_; }
-  inline Array& ref_to(type_proxy<Array>) { return *value_.array_; }
+  inline Vector& ref_to(type_proxy<Vector>) { return *value_.vector_; }
   inline String& ref_to(type_proxy<String>) { return value_.str_; }
   inline Float& ref_to(type_proxy<Float>) { return value_.float_; }
   inline Int& ref_to(type_proxy<Int>) { return value_.int_; }
@@ -252,7 +252,7 @@ class basic_container final {
 
   template <typename T> inline T const& ref_to() const { return ref_to(type_proxy<T>()); }
   inline Map const& ref_to(type_proxy<Map>) const { return *value_.dict_; }
-  inline Array const& ref_to(type_proxy<Array>) const { return *value_.array_; }
+  inline Vector const& ref_to(type_proxy<Vector>) const { return *value_.vector_; }
   inline String const& ref_to(type_proxy<String>) const { return value_.str_; }
   inline Float const& ref_to(type_proxy<Float>) const { return value_.float_; }
   inline Int const& ref_to(type_proxy<Int>) const { return value_.int_; }
@@ -260,36 +260,36 @@ class basic_container final {
 
   // [] accessors, Key != size_type version
   basic_container const& access_collection(bool_proxy<false>, Key const& index) const {
-    if (!is_dictionary()) return init<Null>();
+    if (!is_map()) return init<Null>();
     return ref_to<Map>()[index];
   }
 
   basic_container const& access_collection(bool_proxy<false>, size_t const& index) const {
-    if (!is_array()) return init<Null>();
-    return ref_to<Array>()[index];
+    if (!is_vector()) return init<Null>();
+    return ref_to<Vector>()[index];
   }
 
   basic_container& access_collection(bool_proxy<false>, Key const& index) {
-    if (!is_dictionary()) switch_to_type<Map>();
+    if (!is_map()) switch_to_type<Map>();
     return ref_to<Map>()[index];
   }
 
   basic_container& access_collection(bool_proxy<false>, size_t const& index) {
-    if (!is_array()) switch_to_type<Array>();
-    return ref_to<Array>()[index];
+    if (!is_vector()) switch_to_type<Vector>();
+    return ref_to<Vector>()[index];
   }
 
   // [] accessors, Key == size_type version
   basic_container& access_collection(bool_proxy<true>, size_t const& index) const {
-    if (!is_dictionary() && !is_array()) return init<Null>();
-    if (is_dictionary()) return ref_to<Map>()[index];
-    else return ref_to<Array>()[index];
+    if (!is_map() && !is_vector()) return init<Null>();
+    if (is_map()) return ref_to<Map>()[index];
+    else return ref_to<Vector>()[index];
   }
 
   basic_container& access_collection(bool_proxy<true>, size_t const& index) {
-    if (!is_dictionary() && !is_array()) switch_to_type<Map>();
-    if (is_dictionary()) return ref_to<Map>()[index];
-    else return ref_to<Array>()[index];
+    if (!is_map() && !is_vector()) switch_to_type<Map>();
+    if (is_map()) return ref_to<Map>()[index];
+    else return ref_to<Vector>()[index];
   }
 
   //template <typename T> convert_to
@@ -307,7 +307,7 @@ class basic_container final {
         *value_.dict_ = *c.value_.dict_;
         break;
       case value_type::vector:
-        *value_.array_ = *c.value_.array_;
+        *value_.vector_ = *c.value_.vector_;
         break;
       case value_type::string:
         value_.str_ = c.value_.str_;
@@ -335,7 +335,7 @@ class basic_container final {
         *value_.dict_ = std::move(*c.value_.dict_);
         break;
       case value_type::vector:
-        *value_.array_ = std::move(*c.value_.array_);
+        *value_.vector_ = std::move(*c.value_.vector_);
         break;
       case value_type::string:
         value_.str_ = std::move(c.value_.str_);
@@ -371,8 +371,8 @@ class basic_container final {
   template <typename T> T as() { static_assert(type_traits<T>::is_from_container,""); }
 
   inline bool is_null() const { return value_type::null == type_; }
-  inline bool is_dictionary() const { return value_type::map == type_; }
-  inline bool is_array() const { return value_type::vector == type_; }
+  inline bool is_map() const { return value_type::map == type_; }
+  inline bool is_vector() const { return value_type::vector == type_; }
   inline bool is_string() const { return value_type::string == type_; }
   inline bool is_float() const { return value_type::floating == type_; }
   inline bool is_int() const { return value_type::integer == type_; }
@@ -417,6 +417,8 @@ class basic_container final {
             return lexical_cast<T>(ref_to<Int>());
           case value_type::unsigned_integer:
             return lexical_cast<T>(ref_to<UInt>());
+          default:
+            break;
         }
       }
       else {  // static cast
@@ -427,6 +429,8 @@ class basic_container final {
             return static_cast<T>(ref_to<Int>());
           case value_type::unsigned_integer:
             return static_cast<T>(ref_to<UInt>());
+          default:
+            break;
         }
       }
     }
