@@ -32,8 +32,9 @@ int main(void) {
     container c1(roger);
 
     c1["value1"] = 1;
-    c1["value2"] = std::string("123");
+    c1["value2"] = "123";
     c1["value3"] = 1.f;
+    c1["value4"]["s_value1"] = "Hello subsection";
 
     int value2 = c1["value2"];
     unsigned int value3 = c1["value3"];

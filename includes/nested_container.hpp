@@ -6,8 +6,8 @@
 #include <type_traits>
 #include <sstream>
 #include <utility>
-#include <iostream>
 #include <cassert>
+#include <iostream>
 
 namespace nested_container {
 
@@ -54,8 +54,8 @@ class basic_container final {
 
   enum class value_type : unsigned char  {
     null = '0'
-    , dictionary
-    , array
+    , map 
+    , vector 
     , string
     , floating
     , integer
@@ -88,8 +88,8 @@ class basic_container final {
         : eq<UInt, T>::value ? value_type::unsigned_integer
         : eq<Float, T>::value ? value_type::floating
         : eq<String, T>::value ? value_type::string 
-        : eq<Array, T>::value ? value_type::array
-        : eq<Map, T>::value ? value_type::dictionary
+        : eq<Array, T>::value ? value_type::vector
+        : eq<Map, T>::value ? value_type::map
         : value_type::null;
     }
 
@@ -112,7 +112,8 @@ class basic_container final {
   static bool is_lexical(value_type type) { 
     return value_type::integer == type
       || value_type::unsigned_integer == type
-      || value_type::floating == type;
+      || value_type::floating == type
+      || value_type::string == type;
   }
       
 
@@ -123,10 +124,10 @@ class basic_container final {
     switch (type_) {
       case value_type::null:
         break; 
-      case value_type::dictionary:
+      case value_type::map:
         delete value_.dict_;
         break;
-      case value_type::array:
+      case value_type::vector:
         delete value_.array_;
         break;
       case value_type::string:
@@ -157,9 +158,7 @@ class basic_container final {
   inline void init_member(std::nullptr_t&&) {}
   inline void init_member(Map&& v) { value_.dict_ = new Map(v); }
   inline void init_member(Array&& v) { value_.array_ = new Array(v); }
-  inline void init_member(String&& v) { 
-    std::cout << "yé3 " << String(v) << std::endl;
-    new (&(value_.str_)) String(v); }
+  inline void init_member(String&& v) { new (&(value_.str_)) String(v); }
   inline void init_member(Float&& v) { value_.float_ = v; }
   inline void init_member(Int&& v) { value_.int_ = v; }
   inline void init_member(UInt&& v) { value_.uint_ = v; }
@@ -168,22 +167,20 @@ class basic_container final {
   inline void init_member(std::nullptr_t const&) {}
   inline void init_member(Map const& v) { value_.dict_ = new Map(v); }
   inline void init_member(Array const& v) { value_.array_ = new Array(v); }
-  inline void init_member(String const& v) { 
-    std::cout << "yé2 " << String(v) << std::endl;
-    new (&(value_.str_)) String(v); }
+  inline void init_member(String const& v) { new (&(value_.str_)) String(v); }
   inline void init_member(Float const& v) { value_.float_ = v; }
   inline void init_member(Int const& v) { value_.int_ = v; }
   inline void init_member(UInt const& v) { value_.uint_ = v; }
 
   // Runtime version
   void init_member(value_type target_type) {
-    switch (type_) {
+    switch (target_type) {
       case value_type::null:
         break; 
-      case value_type::dictionary:
+      case value_type::map:
         init_member<Map>();
         break;
-      case value_type::array:
+      case value_type::vector:
         init_member<Array>();
         break;
       case value_type::string:
@@ -237,6 +234,14 @@ class basic_container final {
   inline Int* ptr_to(type_proxy<Int>) { return &value_.int_; }
   inline UInt* ptr_to(type_proxy<UInt>) { return &value_.uint_; }
 
+  template <typename T> inline T const* ptr_to() const { return ptr_to(type_proxy<T>()); }
+  inline Map const* ptr_to(type_proxy<Map>) const { return value_.dict_; }
+  inline Array const* ptr_to(type_proxy<Array>) const { return value_.array_; }
+  inline String const* ptr_to(type_proxy<String>) const { return &value_.str_; }
+  inline Float const* ptr_to(type_proxy<Float>) const { return &value_.float_; }
+  inline Int const* ptr_to(type_proxy<Int>) const { return &value_.int_; }
+  inline UInt const* ptr_to(type_proxy<UInt>) const { return &value_.uint_; }
+
   template <typename T> inline T& ref_to() { return ref_to(type_proxy<T>()); }
   inline Map& ref_to(type_proxy<Map>) { return *value_.dict_; }
   inline Array& ref_to(type_proxy<Array>) { return *value_.array_; }
@@ -244,6 +249,14 @@ class basic_container final {
   inline Float& ref_to(type_proxy<Float>) { return value_.float_; }
   inline Int& ref_to(type_proxy<Int>) { return value_.int_; }
   inline UInt& ref_to(type_proxy<UInt>) { return value_.uint_; }
+
+  template <typename T> inline T const& ref_to() const { return ref_to(type_proxy<T>()); }
+  inline Map const& ref_to(type_proxy<Map>) const { return *value_.dict_; }
+  inline Array const& ref_to(type_proxy<Array>) const { return *value_.array_; }
+  inline String const& ref_to(type_proxy<String>) const { return value_.str_; }
+  inline Float const& ref_to(type_proxy<Float>) const { return value_.float_; }
+  inline Int const& ref_to(type_proxy<Int>) const { return value_.int_; }
+  inline UInt const& ref_to(type_proxy<UInt>) const { return value_.uint_; }
 
   // [] accessors, Key != size_type version
   basic_container const& access_collection(bool_proxy<false>, Key const& index) const {
@@ -290,10 +303,10 @@ class basic_container final {
     switch (type_) {
       case value_type::null:
         break; 
-      case value_type::dictionary:
+      case value_type::map:
         *value_.dict_ = *c.value_.dict_;
         break;
-      case value_type::array:
+      case value_type::vector:
         *value_.array_ = *c.value_.array_;
         break;
       case value_type::string:
@@ -318,10 +331,10 @@ class basic_container final {
     switch (type_) {
       case value_type::null:
         break; 
-      case value_type::dictionary:
+      case value_type::map:
         *value_.dict_ = std::move(*c.value_.dict_);
         break;
-      case value_type::array:
+      case value_type::vector:
         *value_.array_ = std::move(*c.value_.array_);
         break;
       case value_type::string:
@@ -346,9 +359,7 @@ class basic_container final {
   template <typename T> basic_container(T arg) : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), arg) {}
   
   // Handling char* case
-  basic_container(typename str_type::value_type const* arg) : basic_container(type_proxy<str_type>(), str_type(arg)) {
-    std::cout << "Yé" << std::endl;
-  }
+  basic_container(typename str_type::value_type const* arg) : basic_container(type_proxy<str_type>(), str_type(arg)) {}
 
   ~basic_container() { clear(); }  // virtual not needed, this class is final
 
@@ -360,8 +371,8 @@ class basic_container final {
   template <typename T> T as() { static_assert(type_traits<T>::is_from_container,""); }
 
   inline bool is_null() const { return value_type::null == type_; }
-  inline bool is_dictionary() const { return value_type::dictionary == type_; }
-  inline bool is_array() const { return value_type::array == type_; }
+  inline bool is_dictionary() const { return value_type::map == type_; }
+  inline bool is_array() const { return value_type::vector == type_; }
   inline bool is_string() const { return value_type::string == type_; }
   inline bool is_float() const { return value_type::floating == type_; }
   inline bool is_int() const { return value_type::integer == type_; }
@@ -388,7 +399,7 @@ class basic_container final {
   }
 
   // Conversion.
-  template <typename T> operator T () {
+  template <typename T> operator T () const {
     static_assert(type_traits<T>::is_from_container,"");
     value_type target_type = type_traits<T>::type_value();
     if (target_type == type_) {
@@ -396,7 +407,7 @@ class basic_container final {
     }
     else if (is_lexical(target_type) && is_lexical(type_)) {
       if (value_type::string == type_ || value_type::string == target_type) {  // lexical cast
-        assert(value_type::dictionary != type_);
+        assert(value_type::map != type_);
         switch (type_) {
           case value_type::string:
             return lexical_cast<T>(ref_to<String>());
