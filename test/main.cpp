@@ -35,11 +35,16 @@ int main(void) {
     c1["value2"] = "123";
     c1["value3"] = 1.f;
     c1["value4"]["s_value1"] = "Hello subsection";
+    c1["value4"]["s_value2"] = true;
 
     int value2 = c1["value2"];
     unsigned int value3 = c1["value3"];
     std::cout << value2 << std::endl;
     std::cout << value3 << std::endl;
+    if (c1["value4"]["s_value2"]) {
+      //std::string value = c1["value4"]["s_value1"];
+      std::cout << "yé" << std::endl;
+    }
   }
   
   return 0;

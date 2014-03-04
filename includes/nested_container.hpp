@@ -73,6 +73,7 @@ class basic_container final {
     Float float_;
     Int int_;
     UInt uint_;
+    bool bool_;
   };
 
   template<typename A, typename B> using eq = std::is_same<A,B>;
@@ -84,7 +85,8 @@ class basic_container final {
     using T = typename std::remove_cv<typename std::remove_reference<Member>::type>::type;
     using pure_type = T;
     static constexpr value_type type_value() {
-      return eq<Int, T>::value ? value_type::integer
+      return eq<bool, T>::value ? value_type::boolean 
+        : eq<Int, T>::value ? value_type::integer
         : eq<UInt, T>::value ? value_type::unsigned_integer
         : eq<Float, T>::value ? value_type::floating
         : eq<String, T>::value ? value_type::string 
@@ -93,7 +95,8 @@ class basic_container final {
         : value_type::null;
     }
 
-    static bool constexpr is_from_container = eq<Int, T>::value 
+    static bool constexpr is_from_container = eq<bool, T>::value
+        || eq<Int, T>::value 
         || eq<UInt, T>::value 
         || eq<Float, T>::value 
         || eq<String, T>::value 
@@ -102,15 +105,16 @@ class basic_container final {
         || eq<std::nullptr_t, T>::value;
 
     static bool constexpr is_collection = eq<Vector, T>::value || eq<Map, T>::value;
-    static bool constexpr is_lexical = eq<Int, T>::value || eq<UInt, T>::value || eq<Float, T>::value || eq<String, T>::value;
-    static bool constexpr is_null = eq<Int, T>::value || eq<UInt, T>::value || eq<Float, T>::value || eq<String, T>::value;
+    static bool constexpr is_lexical = eq<bool, T>::value || eq<Int, T>::value || eq<UInt, T>::value || eq<Float, T>::value || eq<String, T>::value;
+    static bool constexpr is_null = eq<Null, T>::value;
     static bool constexpr is_index = eq<Key, T>::value || eq<size_t, T>::value;
 
     static_assert(is_from_container, "Type must be one of container's internal types");
   };
 
   static bool is_lexical(value_type type) { 
-    return value_type::integer == type
+    return value_type::boolean == type 
+      || value_type::integer == type
       || value_type::unsigned_integer == type
       || value_type::floating == type
       || value_type::string == type;
@@ -122,8 +126,6 @@ class basic_container final {
 
   void clear() {
     switch (type_) {
-      case value_type::null:
-        break; 
       case value_type::map:
         delete value_.dict_;
         break;
@@ -132,12 +134,6 @@ class basic_container final {
         break;
       case value_type::string:
         value_.str_.~str_type();
-        break;
-      case value_type::floating:
-        break;
-      case value_type::integer:
-        break;
-      case value_type::unsigned_integer:
         break;
       default:
         break;
@@ -153,6 +149,7 @@ class basic_container final {
   inline void init_member(type_proxy<Float>) { value_.float_ = 0.f; }
   inline void init_member(type_proxy<Int>) { value_.int_ = 0; }
   inline void init_member(type_proxy<UInt>) { value_.uint_ = 0u; }
+  inline void init_member(type_proxy<bool>) { value_.bool_ = false; }
 
   // Init with value - move
   inline void init_member(std::nullptr_t&&) {}
@@ -162,6 +159,7 @@ class basic_container final {
   inline void init_member(Float&& v) { value_.float_ = v; }
   inline void init_member(Int&& v) { value_.int_ = v; }
   inline void init_member(UInt&& v) { value_.uint_ = v; }
+  inline void init_member(bool&& v) { value_.bool_ = v; }
 
   // Init with value - copy
   inline void init_member(std::nullptr_t const&) {}
@@ -171,12 +169,11 @@ class basic_container final {
   inline void init_member(Float const& v) { value_.float_ = v; }
   inline void init_member(Int const& v) { value_.int_ = v; }
   inline void init_member(UInt const& v) { value_.uint_ = v; }
+  inline void init_member(bool const& v) { value_.bool_ = v; }
 
   // Runtime version
   void init_member(value_type target_type) {
     switch (target_type) {
-      case value_type::null:
-        break; 
       case value_type::map:
         init_member<Map>();
         break;
@@ -194,6 +191,9 @@ class basic_container final {
         break;
       case value_type::unsigned_integer:
         init_member<UInt>();
+        break;
+      case value_type::boolean:
+        init_member<bool>();
         break;
       default:
         break;
@@ -233,6 +233,7 @@ class basic_container final {
   inline Float* ptr_to(type_proxy<Float>) { return &value_.float_; }
   inline Int* ptr_to(type_proxy<Int>) { return &value_.int_; }
   inline UInt* ptr_to(type_proxy<UInt>) { return &value_.uint_; }
+  inline bool* ptr_to(type_proxy<bool>) { return &value_.bool_; }
 
   template <typename T> inline T const* ptr_to() const { return ptr_to(type_proxy<T>()); }
   inline Map const* ptr_to(type_proxy<Map>) const { return value_.dict_; }
@@ -241,6 +242,7 @@ class basic_container final {
   inline Float const* ptr_to(type_proxy<Float>) const { return &value_.float_; }
   inline Int const* ptr_to(type_proxy<Int>) const { return &value_.int_; }
   inline UInt const* ptr_to(type_proxy<UInt>) const { return &value_.uint_; }
+  inline bool const* ptr_to(type_proxy<bool>) const { return &value_.bool_; }
 
   template <typename T> inline T& ref_to() { return ref_to(type_proxy<T>()); }
   inline Map& ref_to(type_proxy<Map>) { return *value_.dict_; }
@@ -249,6 +251,7 @@ class basic_container final {
   inline Float& ref_to(type_proxy<Float>) { return value_.float_; }
   inline Int& ref_to(type_proxy<Int>) { return value_.int_; }
   inline UInt& ref_to(type_proxy<UInt>) { return value_.uint_; }
+  inline bool& ref_to(type_proxy<bool>) { return value_.bool_; }
 
   template <typename T> inline T const& ref_to() const { return ref_to(type_proxy<T>()); }
   inline Map const& ref_to(type_proxy<Map>) const { return *value_.dict_; }
@@ -257,6 +260,7 @@ class basic_container final {
   inline Float const& ref_to(type_proxy<Float>) const { return value_.float_; }
   inline Int const& ref_to(type_proxy<Int>) const { return value_.int_; }
   inline UInt const& ref_to(type_proxy<UInt>) const { return value_.uint_; }
+  inline bool const& ref_to(type_proxy<bool>) const { return value_.bool_; }
 
   // [] accessors, Key != size_type version
   basic_container const& access_collection(bool_proxy<false>, Key const& index) const {
@@ -321,6 +325,9 @@ class basic_container final {
       case value_type::unsigned_integer:
         value_.uint_ = c.value_.uint_;
         break;
+      case value_type::boolean:
+        value_.bool_ = c.value_.bool_;
+        break;
       default:
         break;
     }
@@ -348,6 +355,9 @@ class basic_container final {
         break;
       case value_type::unsigned_integer:
         value_.uint_ = c.value_.uint_;
+        break;
+      case value_type::boolean:
+        value_.bool_ = c.value_.bool_;
         break;
       default:
         break;
@@ -429,6 +439,8 @@ class basic_container final {
             return static_cast<T>(ref_to<Int>());
           case value_type::unsigned_integer:
             return static_cast<T>(ref_to<UInt>());
+          //case value_type::boolean:
+            //return static_cast<T>(ref_to<bool>());
           default:
             break;
         }
