@@ -114,6 +114,7 @@ class basic_container final {
     static bool constexpr is_lexical = eq<bool, T>::value || eq<Int, T>::value || eq<UInt, T>::value || eq<Float, T>::value || eq<String, T>::value;
     static bool constexpr is_null = eq<Null, T>::value;
     static bool constexpr is_index = eq<Key, T>::value || eq<size_t, T>::value;
+    static bool constexpr is_pure = eq<T, Member>::value;
 
     static_assert(is_from_container, "Type must be one of container's internal types");
   };
@@ -215,6 +216,17 @@ class basic_container final {
     type_ = target_type;
   }
 
+  template <typename T> void switch_to_type(T&& value) {
+    value_type constexpr target_type = type_traits<T>::type_value();
+    if (target_type == type_) {
+      ref_to<T>() = std::forward<T>(value);
+      return;
+    }
+    clear();
+    init_member(std::forward<T>(value));
+    type_ = target_type;
+  }
+
   // When target type is known at runtime only
   void switch_to_type(value_type target_type) {
     if (target_type == type_) return;
@@ -304,6 +316,7 @@ class basic_container final {
 
   //template <typename T> convert_to
   template <typename T> T convert_to(type_proxy<T>) const { 
+    static_assert(type_traits<T>::is_pure, "Type must not be a reference nor have cv-qualifiers");
     value_type target_type = type_traits<T>::type_value();
     if (target_type == type_) {
       return ref_to<T>();
@@ -452,21 +465,68 @@ class basic_container final {
     return *this;
   }
 
-  template <typename T> T as() { static_assert(type_traits<T>::is_from_container,""); }
+  inline bool is_null() const noexcept { return value_type::null == type_; }
+  inline bool is_map() const noexcept { return value_type::map == type_; }
+  inline bool is_vector() const noexcept { return value_type::vector == type_; }
+  inline bool is_string() const noexcept { return value_type::string == type_; }
+  inline bool is_float() const noexcept { return value_type::floating == type_; }
+  inline bool is_int() const noexcept { return value_type::integer == type_; }
+  inline bool is_uint() const noexcept { return value_type::unsigned_integer == type_; }
 
-  inline bool is_null() const { return value_type::null == type_; }
-  inline bool is_map() const { return value_type::map == type_; }
-  inline bool is_vector() const { return value_type::vector == type_; }
-  inline bool is_string() const { return value_type::string == type_; }
-  inline bool is_float() const { return value_type::floating == type_; }
-  inline bool is_int() const { return value_type::integer == type_; }
-  inline bool is_uint() const { return value_type::unsigned_integer == type_; }
+  // By reference accessors
+  template <typename T> T const& ref() const { 
+    static_assert(type_traits<T>::is_pure, "Type must not be a reference nor have cv-qualifiers");
+    if (type_traits<T>::type_value() != type_) throw exception_type();
+    return ref_to<T>();
+  }
+  Null const& ref_null() const { return ref<Null>(); }
+  Map const& ref_map() const { return ref<Map>(); }
+  Vector const& ref_vector() const { return ref<Vector>(); }
+  String const& ref_string() const { return ref<String>(); }
+  Float const& ref_float() const { return ref<Float>(); }
+  Int const& ref_int() const { return ref<Int>(); }
+  UInt const& ref_uint() const { return ref<UInt>(); }
+  bool const& ref_bool() const { return ref<bool>(); }
 
-  template <typename T> T const* get() const { 
+  template <typename T> T& ref() { 
+    static_assert(type_traits<T>::is_pure, "Type must not be a reference nor have cv-qualifiers");
+    if (type_traits<T>::type_value() != type_) throw exception_type();
+    return ref_to<T>();
+  }
+  Null& ref_null() { return ref<Null>(); }
+  Map& ref_map() { return ref<Map>(); }
+  Vector& ref_vector() { return ref<Vector>(); }
+  String& ref_string() { return ref<String>(); }
+  Float& ref_float() { return ref<Float>(); }
+  Int& ref_int() { return ref<Int>(); }
+  UInt& ref_uint() { return ref<UInt>(); }
+  bool& ref_bool() { return ref<bool>(); }
+
+  // Forced type switch
+  template <typename T> T& transform() noexcept { 
+    static_assert(type_traits<T>::is_pure, "Type must not be a reference nor have cv-qualifiers");
+    if (type_traits<T>::type_value() != type_) switch_to_type(convert_to(type_proxy<T>()));
+    return ref_to<T>();
+  }
+  Null& transform_null() { return transform<Null>(); }
+  Map& transform_map() { return transform<Map>(); }
+  Vector& transform_vector() { return transform<Vector>(); }
+  String& transform_string() { return transform<String>(); }
+  Float& transform_float() { return transform<Float>(); }
+  Int& transform_int() { return transform<Int>(); }
+  UInt& transform_uint() { return transform<UInt>(); }
+  bool& transform_bool() { return transform<bool>(); }
+
+  // Lazy non throwing accessors
+  template <typename T> T const* get() const noexcept { 
     return type_traits<T>::type_value() == type_ ? ptr_to<T>() : nullptr;
   }
 
-  template <typename T> bool get(T& output_value) const { 
+  template <typename T> T* get() noexcept { 
+    return type_traits<T>::type_value() == type_ ? ptr_to<T>() : nullptr;
+  }
+
+  template <typename T> bool get(T& output_value) const noexcept { 
     if (type_traits<T>::type_value() == type_) {
       output_value = ref_to<T>();
       return true;
@@ -483,9 +543,16 @@ class basic_container final {
   }
 
   // Conversion.
-  template <typename T> operator T () const {
-    return convert_to(type_proxy<T>());
-  }
+  template <typename T> operator T () const { return convert_to(type_proxy<T>()); }
+  template <typename T> T as() const { return convert_to(type_proxy<T>()); }
+  Null as_null() { return as<Null>(); }
+  Map as_map() { return as<Map>(); }
+  Vector as_vector() { return as<Vector>(); }
+  String as_string() { return as<String>(); }
+  Float as_float() { return as<Float>(); }
+  Int as_int() { return as<Int>(); }
+  UInt as_uint() { return as<UInt>(); }
+  bool as_bool() { return as<bool>(); }
 };
 
 

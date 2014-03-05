@@ -46,9 +46,13 @@ int main(void) {
     std::cout << value2 << std::endl;
     std::cout << value3 << std::endl;
     if (c1["value4"]["s_value2"]) {
-      std::string value = c1["value4"]["s_value1"];
-      std::cout << value << std::endl;
+      std::cout << c1["value4"]["s_value1"].ref_string() << std::endl;
     }
+
+    float& test1 = c1["value2"].transform_float();
+    std::cout << test1 << std::endl;
+    test1 = 2.f;  // Modifies the underlying container !
+    std::cout << c1["value2"].ref_float() << std::endl;
   }
   
   {
