@@ -59,6 +59,24 @@ int main(void) {
     std::cout << "Begin test 4" << std::endl;
     container c1(str1());
   }
+
+  {
+    std::cout << "Begin test 5" << std::endl;
+    container c2(1);
+    //std::vector<container> t = c2.as_vector();
+    std::vector<container> t;
+    t.push_back(c2);
+    container c3 = c2;
+    //container c1 = {{ container(1), container(2), container(4) }};
+    //int& t1 = c2.ref_int();
+    //for(container& elem : c2.as_vector()) {
+      //std::cout << elem.as_int() << std::endl;
+    //}
+    //container c1 = {{ {"Roger",1},{"Marcel",2},{"Ole",4} }};
+    //for(std::pair<int,std::string> const& elem : c1.as_map()) {
+      //std::cout << elem.first << ":" << elem.second << std::endl;
+    //}
+  }
   return 0;
 }
 

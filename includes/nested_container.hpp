@@ -9,6 +9,7 @@
 #include <cassert>
 #include <iostream>
 #include <exception>
+#include <initializer_list>
 
 namespace nested_container {
 
@@ -108,7 +109,8 @@ class basic_container final {
         || eq<String, T>::value 
         || eq<Vector, T>::value 
         || eq<Map, T>::value
-        || eq<std::nullptr_t, T>::value;
+        || eq<std::nullptr_t, T>::value
+        || eq<basic_container, T>::value;
 
     static bool constexpr is_collection = eq<Vector, T>::value || eq<Map, T>::value;
     static bool constexpr is_lexical = eq<bool, T>::value || eq<Int, T>::value || eq<UInt, T>::value || eq<Float, T>::value || eq<String, T>::value;
@@ -127,7 +129,6 @@ class basic_container final {
       || value_type::string == type;
   }
       
-
   value_type type_ = value_type::null;
   value value_;
 
@@ -167,6 +168,37 @@ class basic_container final {
   inline void init_member(Int&& v) { value_.int_ = v; }
   inline void init_member(UInt&& v) { value_.uint_ = v; }
   inline void init_member(bool&& v) { value_.bool_ = v; }
+  void init_member(basic_container&& c) {
+    // To replace with a switchtype with value
+    switch_to_type(c.type_);
+    switch (type_) {
+      case value_type::null:
+        break; 
+      case value_type::map:
+        *value_.dict_ = std::move(*c.value_.dict_);
+        break;
+      case value_type::vector:
+        *value_.vector_ = std::move(*c.value_.vector_);
+        break;
+      case value_type::string:
+        value_.str_ = std::move(c.value_.str_);
+        break;
+      case value_type::floating:
+        value_.float_ = c.value_.float_;
+        break;
+      case value_type::integer:
+        value_.int_ = c.value_.int_;
+        break;
+      case value_type::unsigned_integer:
+        value_.uint_ = c.value_.uint_;
+        break;
+      case value_type::boolean:
+        value_.bool_ = c.value_.bool_;
+        break;
+      default:
+        break;
+    }
+  }
 
   // Init with value - copy
   inline void init_member(std::nullptr_t const&) {}
@@ -177,6 +209,36 @@ class basic_container final {
   inline void init_member(Int const& v) { value_.int_ = v; }
   inline void init_member(UInt const& v) { value_.uint_ = v; }
   inline void init_member(bool const& v) { value_.bool_ = v; }
+  void init_member(basic_container const& c) {
+    switch_to_type(c.type_);
+    switch (type_) {
+      case value_type::null:
+        break; 
+      case value_type::map:
+        *value_.dict_ = std::move(*c.value_.dict_);
+        break;
+      case value_type::vector:
+        *value_.vector_ = std::move(*c.value_.vector_);
+        break;
+      case value_type::string:
+        value_.str_ = std::move(c.value_.str_);
+        break;
+      case value_type::floating:
+        value_.float_ = c.value_.float_;
+        break;
+      case value_type::integer:
+        value_.int_ = c.value_.int_;
+        break;
+      case value_type::unsigned_integer:
+        value_.uint_ = c.value_.uint_;
+        break;
+      case value_type::boolean:
+        value_.bool_ = c.value_.bool_;
+        break;
+      default:
+        break;
+    }
+  }
 
   // Runtime version
   void init_member(value_type target_type) {
@@ -234,6 +296,7 @@ class basic_container final {
     init_member(target_type);
     type_ = target_type;
   }
+
 
   template <typename T> basic_container(type_proxy<T>) : type_(type_traits<T>::type_value()) { 
     init_member(type_proxy<T>());
@@ -377,8 +440,13 @@ class basic_container final {
 
  public:
   basic_container() {};
-  basic_container(basic_container const& c) { *this = c; }
-  basic_container(basic_container&& c) { c = std::move(c); }
+  basic_container(basic_container&& c) : basic_container(type_proxy<basic_container>(), c) {}
+  basic_container(basic_container const& c) : basic_container(type_proxy<basic_container>(), c) {}
+  // Constructor from other types
+  template <typename T> basic_container(T&& arg) : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), std::forward<T>(arg)) {}
+  // Handling char* case
+  basic_container(typename str_type::value_type const* arg) : basic_container(type_proxy<str_type>(), str_type(arg)) {}
+
   basic_container& operator= (basic_container const& c) {
     switch_to_type(c.type_);
     switch (type_) {
@@ -442,11 +510,6 @@ class basic_container final {
     return *this;
   }
 
-  // Constructor from other types
-  template <typename T> basic_container(T&& arg) : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), std::forward<T>(arg)) {}
-  // Handling char* case
-  basic_container(typename str_type::value_type const* arg) : basic_container(type_proxy<str_type>(), str_type(arg)) {}
-
   // Helper to initialize the container to a given type
   template <typename T> static basic_container init() { return basic_container(type_proxy<T>()); }
 
@@ -479,28 +542,28 @@ class basic_container final {
     if (type_traits<T>::type_value() != type_) throw exception_type();
     return ref_to<T>();
   }
-  Null const& ref_null() const { return ref<Null>(); }
-  Map const& ref_map() const { return ref<Map>(); }
-  Vector const& ref_vector() const { return ref<Vector>(); }
-  String const& ref_string() const { return ref<String>(); }
-  Float const& ref_float() const { return ref<Float>(); }
-  Int const& ref_int() const { return ref<Int>(); }
-  UInt const& ref_uint() const { return ref<UInt>(); }
-  bool const& ref_bool() const { return ref<bool>(); }
+  inline Null const& ref_null() const { return ref<Null>(); }
+  inline Map const& ref_map() const { return ref<Map>(); }
+  inline Vector const& ref_vector() const { return ref<Vector>(); }
+  inline String const& ref_string() const { return ref<String>(); }
+  inline Float const& ref_float() const { return ref<Float>(); }
+  inline Int const& ref_int() const { return ref<Int>(); }
+  inline UInt const& ref_uint() const { return ref<UInt>(); }
+  inline bool const& ref_bool() const { return ref<bool>(); }
 
   template <typename T> T& ref() { 
     static_assert(type_traits<T>::is_pure, "Type must not be a reference nor have cv-qualifiers");
     if (type_traits<T>::type_value() != type_) throw exception_type();
     return ref_to<T>();
   }
-  Null& ref_null() { return ref<Null>(); }
-  Map& ref_map() { return ref<Map>(); }
-  Vector& ref_vector() { return ref<Vector>(); }
-  String& ref_string() { return ref<String>(); }
-  Float& ref_float() { return ref<Float>(); }
-  Int& ref_int() { return ref<Int>(); }
-  UInt& ref_uint() { return ref<UInt>(); }
-  bool& ref_bool() { return ref<bool>(); }
+  inline Null& ref_null() { return ref<Null>(); }
+  inline Map& ref_map() { return ref<Map>(); }
+  inline Vector& ref_vector() { return ref<Vector>(); }
+  inline String& ref_string() { return ref<String>(); }
+  inline Float& ref_float() { return ref<Float>(); }
+  inline Int& ref_int() { return ref<Int>(); }
+  inline UInt& ref_uint() { return ref<UInt>(); }
+  inline bool& ref_bool() { return ref<bool>(); }
 
   // Forced type switch
   template <typename T> T& transform() noexcept { 
@@ -508,14 +571,14 @@ class basic_container final {
     if (type_traits<T>::type_value() != type_) switch_to_type(convert_to(type_proxy<T>()));
     return ref_to<T>();
   }
-  Null& transform_null() { return transform<Null>(); }
-  Map& transform_map() { return transform<Map>(); }
-  Vector& transform_vector() { return transform<Vector>(); }
-  String& transform_string() { return transform<String>(); }
-  Float& transform_float() { return transform<Float>(); }
-  Int& transform_int() { return transform<Int>(); }
-  UInt& transform_uint() { return transform<UInt>(); }
-  bool& transform_bool() { return transform<bool>(); }
+  inline Null& transform_null() { return transform<Null>(); }
+  inline Map& transform_map() { return transform<Map>(); }
+  inline Vector& transform_vector() { return transform<Vector>(); }
+  inline String& transform_string() { return transform<String>(); }
+  inline Float& transform_float() { return transform<Float>(); }
+  inline Int& transform_int() { return transform<Int>(); }
+  inline UInt& transform_uint() { return transform<UInt>(); }
+  inline bool& transform_bool() { return transform<bool>(); }
 
   // Lazy non throwing accessors
   template <typename T> T const* get() const noexcept { 
@@ -543,16 +606,16 @@ class basic_container final {
   }
 
   // Conversion.
-  template <typename T> operator T () const { return convert_to(type_proxy<T>()); }
-  template <typename T> T as() const { return convert_to(type_proxy<T>()); }
-  Null as_null() { return as<Null>(); }
-  Map as_map() { return as<Map>(); }
-  Vector as_vector() { return as<Vector>(); }
-  String as_string() { return as<String>(); }
-  Float as_float() { return as<Float>(); }
-  Int as_int() { return as<Int>(); }
-  UInt as_uint() { return as<UInt>(); }
-  bool as_bool() { return as<bool>(); }
+  template <typename T> inline operator T () const { return convert_to(type_proxy<T>()); }
+  template <typename T> inline T as() const { return convert_to(type_proxy<T>()); }
+  inline Null as_null() const { return as<Null>(); }
+  inline Map as_map() const { return as<Map>(); }
+  inline Vector as_vector() const { return as<Vector>(); }
+  inline String as_string() const { return as<String>(); }
+  inline Float as_float() const { return as<Float>(); }
+  inline Int as_int() const { return as<Int>(); }
+  inline UInt as_uint() const { return as<UInt>(); }
+  inline bool as_bool() const { return as<bool>(); }
 };
 
 
