@@ -7,9 +7,18 @@
 #include <sstream>
 #include <utility>
 #include <cassert>
-#include <iostream>
 #include <exception>
 #include <initializer_list>
+#include <tuple>
+#include <typeinfo>
+#include <iostream>
+
+#ifdef _NESTED_CONTAINER_DEBUG_PRINT_STACK_
+# include <iostream>
+# define NC_DEBUG_STR(A) { std::cout << A << std::endl; }
+#else
+# define NC_DEBUG_STR(...)
+#endif 
 
 namespace nested_container {
 
@@ -163,12 +172,12 @@ class basic_container final {
   inline void init_member(std::nullptr_t&&) {}
   inline void init_member(Map&& v) { value_.dict_ = new Map(v); }
   inline void init_member(Vector&& v) { value_.vector_ = new Vector(v); }
-  inline void init_member(String&& v) { new (&(value_.str_)) String(v); }
+  inline void init_member(String&& v) { NC_DEBUG_STR(__FUNCTION__ << "(string&&)");new (&(value_.str_)) String(v); }
   inline void init_member(Float&& v) { value_.float_ = v; }
   inline void init_member(Int&& v) { value_.int_ = v; }
   inline void init_member(UInt&& v) { value_.uint_ = v; }
   inline void init_member(bool&& v) { value_.bool_ = v; }
-  void init_member(basic_container&& c) {
+  inline void init_member(basic_container&& c) {
     // To replace with a switchtype with value
     switch_to_type(c.type_);
     switch (type_) {
@@ -204,12 +213,13 @@ class basic_container final {
   inline void init_member(std::nullptr_t const&) {}
   inline void init_member(Map const& v) { value_.dict_ = new Map(v); }
   inline void init_member(Vector const& v) { value_.vector_ = new Vector(v); }
-  inline void init_member(String const& v) { new (&(value_.str_)) String(v); }
+  inline void init_member(String const& v) { NC_DEBUG_STR(__FUNCTION__ << "(String const&)");new (&(value_.str_)) String(v); }
   inline void init_member(Float const& v) { value_.float_ = v; }
   inline void init_member(Int const& v) { value_.int_ = v; }
   inline void init_member(UInt const& v) { value_.uint_ = v; }
   inline void init_member(bool const& v) { value_.bool_ = v; }
-  void init_member(basic_container const& c) {
+  inline void init_member(basic_container const& c) {
+    NC_DEBUG_STR(__FUNCTION__ << "(basic_container const&)");
     switch_to_type(c.type_);
     switch (type_) {
       case value_type::null:
@@ -440,14 +450,40 @@ class basic_container final {
 
  public:
   basic_container() {};
-  basic_container(basic_container&& c) : basic_container(type_proxy<basic_container>(), c) {}
+  basic_container(basic_container&& c) : basic_container(type_proxy<basic_container>(), std::forward<basic_container&&>(c)) {}
   basic_container(basic_container const& c) : basic_container(type_proxy<basic_container>(), c) {}
   // Constructor from other types
-  template <typename T> basic_container(T&& arg) : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), std::forward<T>(arg)) {}
+  template <typename T> basic_container(T&& arg) : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), std::forward<T>(arg)) {
+    NC_DEBUG_STR("basic_container<T>(T&&) T=" << typeid(arg).name());
+  }
   // Handling char* case
-  basic_container(typename str_type::value_type const* arg) : basic_container(type_proxy<str_type>(), str_type(arg)) {}
+  basic_container(typename str_type::value_type const* arg) : basic_container(type_proxy<str_type>(), str_type(arg)) {
+  }
+
+  // Initializer lists
+  basic_container(std::initializer_list<std::pair<Key, basic_container>> list) : basic_container(type_proxy<Map>()){
+    NC_DEBUG_STR("basic_container(initialiazer map)");
+    for(std::pair<Key, basic_container> const& elem : list) ref_to<Map>().emplace(elem);
+  }
+
+  static basic_container init_map(std::initializer_list<std::pair<Key, basic_container>> list) {
+    NC_DEBUG_STR("init_map(initialiazer map)");
+    basic_container container((type_proxy<Map>()));
+    for(std::pair<Key, basic_container> const& elem : list) container.ref_to<Map>().emplace(elem);
+    return container;
+  }
+  
+  static basic_container init_vec(std::initializer_list<basic_container> list) {
+    NC_DEBUG_STR("init_vec(initialiazer vec)");
+    basic_container container((type_proxy<Vector>()));
+    container.ref_to<Vector>().reserve(list.size());
+    for(basic_container const& element : list) container.ref_to<Vector>().push_back(element);
+    return container;
+  }
+
 
   basic_container& operator= (basic_container const& c) {
+    NC_DEBUG_STR("operator=const&");
     switch_to_type(c.type_);
     switch (type_) {
       case value_type::null:
@@ -479,6 +515,7 @@ class basic_container final {
     return *this;
   }
   basic_container& operator= (basic_container&& c) {
+    NC_DEBUG_STR("operator=&&");
     switch_to_type(c.type_);
     switch (type_) {
       case value_type::null:
@@ -535,6 +572,7 @@ class basic_container final {
   inline bool is_float() const noexcept { return value_type::floating == type_; }
   inline bool is_int() const noexcept { return value_type::integer == type_; }
   inline bool is_uint() const noexcept { return value_type::unsigned_integer == type_; }
+  inline bool is_bool() const noexcept { return value_type::boolean == type_; }
 
   // By reference accessors
   template <typename T> T const& ref() const { 

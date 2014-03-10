@@ -1,9 +1,14 @@
+#define _NESTED_CONTAINER_DEBUG_PRINT_STACK_
 #include <nested_container.hpp>
 #include <iostream>
 #include <vector>
 #include <list>
 
 std::string str1() {
+  return "Roger";
+}
+
+nested_container::container str2() {
   return "Roger";
 }
 
@@ -63,19 +68,26 @@ int main(void) {
   {
     std::cout << "Begin test 5" << std::endl;
     container c2(1);
-    //std::vector<container> t = c2.as_vector();
     std::vector<container> t;
     t.push_back(c2);
-    container c3 = c2;
-    //container c1 = {{ container(1), container(2), container(4) }};
-    //int& t1 = c2.ref_int();
-    //for(container& elem : c2.as_vector()) {
-      //std::cout << elem.as_int() << std::endl;
-    //}
-    //container c1 = {{ {"Roger",1},{"Marcel",2},{"Ole",4} }};
-    //for(std::pair<int,std::string> const& elem : c1.as_map()) {
-      //std::cout << elem.first << ":" << elem.second << std::endl;
-    //}
+    
+    std::cout << "Move of container" << std::endl;
+    container c5(str2());
+    std::cout << c5.is_string() << std::endl;
+
+    std::cout << "Init by vector" << std::endl;
+    container c1 = container::init_vec({ "Al1", "Allo", "Deloin", "Roger","Marcel"});
+    std::cout << c1[0].is_int() << std::endl;
+
+    std::cout << "Init by map" << std::endl;
+    container c4 = { 
+      {"Roger",1}
+      , {"Marcel","Robert"}
+      , {"Robert", container::init_vec({1,2,3u})} 
+    };
+    std::cout << c4["Roger"].is_int() << std::endl;
+    std::cout << c4["Marcel"].is_string() << std::endl;
+    std::cout << c4["Rober"].is_vector() << std::endl;
   }
   return 0;
 }
