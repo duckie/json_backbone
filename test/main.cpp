@@ -1,4 +1,3 @@
-#define _NESTED_CONTAINER_DEBUG_PRINT_STACK_
 #include <nested_container.hpp>
 #include <iostream>
 #include <vector>
