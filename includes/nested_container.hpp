@@ -160,15 +160,17 @@ class basic_container final {
   inline void init_member(type_proxy<UInt>) { value_.uint_ = 0u; }
   inline void init_member(type_proxy<bool>) { value_.bool_ = false; }
 
+  // Init with value -  trivial types
+  inline void init_member(std::nullptr_t) {}
+  inline void init_member(Float v) { value_.float_ = v; }
+  inline void init_member(Int v) { value_.int_ = v; }
+  inline void init_member(UInt v) { value_.uint_ = v; }
+  inline void init_member(bool v) { value_.bool_ = v; }
+
   // Init with value - move
-  inline void init_member(std::nullptr_t&&) {}
   inline void init_member(Map&& v) { value_.dict_ = new Map(v); }
   inline void init_member(Vector&& v) { value_.vector_ = new Vector(v); }
   inline void init_member(String&& v) { new (&(value_.str_)) String(v); }
-  inline void init_member(Float&& v) { value_.float_ = v; }
-  inline void init_member(Int&& v) { value_.int_ = v; }
-  inline void init_member(UInt&& v) { value_.uint_ = v; }
-  inline void init_member(bool&& v) { value_.bool_ = v; }
   inline void init_member(basic_container&& c) {
     switch_to_type(c.type_);
     switch (type_) {
@@ -201,14 +203,9 @@ class basic_container final {
   }
 
   // Init with value - copy
-  inline void init_member(std::nullptr_t const&) {}
   inline void init_member(Map const& v) { value_.dict_ = new Map(v); }
   inline void init_member(Vector const& v) { value_.vector_ = new Vector(v); }
   inline void init_member(String const& v) { new (&(value_.str_)) String(v); }
-  inline void init_member(Float const& v) { value_.float_ = v; }
-  inline void init_member(Int const& v) { value_.int_ = v; }
-  inline void init_member(UInt const& v) { value_.uint_ = v; }
-  inline void init_member(bool const& v) { value_.bool_ = v; }
   inline void init_member(basic_container const& c) {
     // To replace with a switchtype with value
     switch_to_type(c.type_);
