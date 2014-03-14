@@ -13,6 +13,7 @@ nested_container::container str2() {
 
 int main(void) {
   using nested_container::container;
+  using nested_container::drivers::json;
   {
     container c1;
     std::cout << c1.is_null() << std::endl;
@@ -89,6 +90,13 @@ int main(void) {
     std::cout << c4["Roger"].is_int() << std::endl;
     std::cout << c4["Marcel"].is_string() << std::endl;
     std::cout << c4["Rober"].is_vector() << std::endl;
+  }
+
+  {
+    std::cout << "Begin test 6" << std::endl;
+    json<container> json_driver;
+    container c;
+    std::cout << json_driver.serialize(c) << std::endl;
   }
   return 0;
 }

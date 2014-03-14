@@ -604,10 +604,104 @@ class basic_container final {
   inline Int as_int() const { return as<Int>(); }
   inline UInt as_uint() const { return as<UInt>(); }
   inline bool as_bool() const { return as<bool>(); }
+
+  // Visiting
+  struct const_visitor {
+    virtual void apply(std::nullptr_t) {};
+    virtual void apply(Map const&) {};
+    virtual void apply(Vector const&) {};
+    virtual void apply(String const&) {};
+    virtual void apply(Float) {};
+    virtual void apply(Int) {};
+    virtual void apply(UInt) {};
+    virtual void apply(bool) {};
+  };
+
+  void visit(const_visitor& v) const {
+    switch (type_) {
+      case value_type::null:
+        v.apply(nullptr);
+        break; 
+      case value_type::map:
+        v.apply(ref_to<Map>()); 
+        break;
+      case value_type::vector:
+        v.apply(ref_to<Vector>()); 
+        break;
+      case value_type::string:
+        v.apply(ref_to<String>()); 
+        break;
+      case value_type::floating:
+        v.apply(ref_to<Float>()); 
+        break;
+      case value_type::integer:
+        v.apply(ref_to<Int>()); 
+        break;
+      case value_type::unsigned_integer:
+        v.apply(ref_to<UInt>()); 
+        break;
+      case value_type::boolean:
+        v.apply(ref_to<bool>()); 
+        break;
+      default:
+        break;
+    }
+  };
+};
+
+using container = basic_container<>;
+
+namespace drivers {
+
+template<typename container_type> class json {
+  //using container_type = basic_container<T ...>;
+  using base_visitor_type = typename container_type::const_visitor;
+  using string_type = typename container_type::str_type;
+  using ostream_type = std::basic_ostringstream<typename string_type::value_type, typename string_type::traits_type>;
+
+  using key_type = typename container_type::key_type;
+  using map_type = typename container_type::map_type;
+  using vector_type = typename container_type::vector_type;
+  using float_type = typename container_type::float_type;
+  using int_type = typename container_type::int_type;
+  using uint_type = typename container_type::uint_type;
+
+  struct visitor_type : public base_visitor_type {
+    ostream_type output_stream;
+
+    virtual void apply(std::nullptr_t) override { output_stream << "NULL"; };
+    virtual void apply(map_type const& v) override {
+      output_stream << "{";
+      bool first = true;
+      for(std::pair<key_type, container_type> const& element : v) {
+        if (!first) output_stream << ",";
+        first = false;
+        output_stream << "\"" << element.first << "\":";
+        element.second.visit(*this);
+      }
+    };
+    virtual void apply(vector_type const& v) override {};
+    virtual void apply(string_type const& v) override {};
+    virtual void apply(float_type v) override {};
+    virtual void apply(int_type v) override {};
+    virtual void apply(uint_type v) override {};
+    virtual void apply(bool v) override {};
+  };
+
+ public:
+  string_type serialize(container_type const& container) {
+    visitor_type visitor;
+    container.visit(visitor);
+    return visitor.output_stream.str();
+  }
+
+  container_type deserialize(string_type const& input) {
+  }
 };
 
 
-using container = basic_container<>;
+}
+
 };  // namespace nested_container
 
 #endif  // __NESTED_COMPILER__
