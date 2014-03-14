@@ -84,6 +84,8 @@ int main(void) {
       , {"Marcel","Robert"}
       , {"Robert", container::init_vec({1,2,3u})} 
     };
+    ++c4["Roger"].raw_int();
+    std::cout << c4["Roger"].ref_int() << std::endl;
     std::cout << c4["Roger"].is_int() << std::endl;
     std::cout << c4["Marcel"].is_string() << std::endl;
     std::cout << c4["Rober"].is_vector() << std::endl;

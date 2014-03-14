@@ -541,6 +541,33 @@ class basic_container final {
   inline UInt& transform_uint() { return transform<UInt>(); }
   inline bool& transform_bool() { return transform<bool>(); }
 
+  // Raw accessors - use at your own risk
+  template <typename T> T const& raw() const { 
+    static_assert(type_traits<T>::is_from_container, "Type must be compatible with this container.");
+    return ref_to<T>();
+  }
+  inline Null const& raw_null() const { return raw<Null>(); }
+  inline Map const& raw_map() const { return raw<Map>(); }
+  inline Vector const& raw_vector() const { return raw<Vector>(); }
+  inline String const& raw_string() const { return raw<String>(); }
+  inline Float const& raw_float() const { return raw<Float>(); }
+  inline Int const& raw_int() const { return raw<Int>(); }
+  inline UInt const& raw_uint() const { return raw<UInt>(); }
+  inline bool const& raw_bool() const { return raw<bool>(); }
+
+  template <typename T> T& raw() { 
+    static_assert(type_traits<T>::is_from_container, "Type must be compatible with this container.");
+    return ref_to<T>();
+  }
+  inline Null& raw_null() { return raw<Null>(); }
+  inline Map& raw_map() { return raw<Map>(); }
+  inline Vector& raw_vector() { return raw<Vector>(); }
+  inline String& raw_string() { return raw<String>(); }
+  inline Float& raw_float() { return raw<Float>(); }
+  inline Int& raw_int() { return raw<Int>(); }
+  inline UInt& raw_uint() { return raw<UInt>(); }
+  inline bool& raw_bool() { return raw<bool>(); }
+
   // Lazy non throwing accessors
   template <typename T> T const* get() const noexcept { 
     return type_traits<T>::type_value() == type_ ? ptr_to<T>() : nullptr;
