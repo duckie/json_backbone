@@ -177,10 +177,12 @@ class basic_container final {
       case value_type::null:
         break; 
       case value_type::map:
-        *value_.dict_ = std::move(*c.value_.dict_);
+        value_.dict_ = c.value_.dict_;
+        c.value_.dict_ = nullptr;  // Useless in theory, just in case
         break;
       case value_type::vector:
-        *value_.vector_ = std::move(*c.value_.vector_);
+        value_.vector_ = c.value_.vector_;
+        c.value_.vector_ = nullptr;  // Useless in theory, just in case
         break;
       case value_type::string:
         value_.str_ = std::move(c.value_.str_);
@@ -200,6 +202,8 @@ class basic_container final {
       default:
         break;
     }
+
+    c.type_ = value_type::null;
   }
 
   // Init with value - copy
@@ -463,69 +467,8 @@ class basic_container final {
     return container;
   }
 
-
-  basic_container& operator= (basic_container const& c) {
-    switch_to_type(c.type_);
-    switch (type_) {
-      case value_type::null:
-        break; 
-      case value_type::map:
-        *value_.dict_ = *c.value_.dict_;
-        break;
-      case value_type::vector:
-        *value_.vector_ = *c.value_.vector_;
-        break;
-      case value_type::string:
-        value_.str_ = c.value_.str_;
-        break;
-      case value_type::floating:
-        value_.float_ = c.value_.float_;
-        break;
-      case value_type::integer:
-        value_.int_ = c.value_.int_;
-        break;
-      case value_type::unsigned_integer:
-        value_.uint_ = c.value_.uint_;
-        break;
-      case value_type::boolean:
-        value_.bool_ = c.value_.bool_;
-        break;
-      default:
-        break;
-    }
-    return *this;
-  }
-  basic_container& operator= (basic_container&& c) {
-    switch_to_type(c.type_);
-    switch (type_) {
-      case value_type::null:
-        break; 
-      case value_type::map:
-        *value_.dict_ = std::move(*c.value_.dict_);
-        break;
-      case value_type::vector:
-        *value_.vector_ = std::move(*c.value_.vector_);
-        break;
-      case value_type::string:
-        value_.str_ = std::move(c.value_.str_);
-        break;
-      case value_type::floating:
-        value_.float_ = c.value_.float_;
-        break;
-      case value_type::integer:
-        value_.int_ = c.value_.int_;
-        break;
-      case value_type::unsigned_integer:
-        value_.uint_ = c.value_.uint_;
-        break;
-      case value_type::boolean:
-        value_.bool_ = c.value_.bool_;
-        break;
-      default:
-        break;
-    }
-    return *this;
-  }
+  basic_container& operator= (basic_container const& c) { init_member(c); }
+  basic_container& operator= (basic_container&& c) { init_member(c); }
 
   // Helper to initialize the container to a given type
   template <typename T> static basic_container init() { return basic_container(type_proxy<T>()); }
