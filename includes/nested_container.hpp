@@ -607,14 +607,14 @@ class basic_container final {
 
   // Visiting
   struct const_visitor {
-    virtual void apply(std::nullptr_t) {};
-    virtual void apply(Map const&) {};
-    virtual void apply(Vector const&) {};
-    virtual void apply(String const&) {};
-    virtual void apply(Float) {};
-    virtual void apply(Int) {};
-    virtual void apply(UInt) {};
-    virtual void apply(bool) {};
+    virtual void apply(std::nullptr_t) {}
+    virtual void apply(Map const&) {}
+    virtual void apply(Vector const&) {}
+    virtual void apply(String const&) {}
+    virtual void apply(Float) {}
+    virtual void apply(Int) {}
+    virtual void apply(UInt) {}
+    virtual void apply(bool) {}
   };
 
   void visit(const_visitor& v) const {
@@ -653,7 +653,7 @@ using container = basic_container<>;
 
 namespace drivers {
 
-template<typename container_type> class json {
+template<typename container_type> class json_sstream {
   //using container_type = basic_container<T ...>;
   using base_visitor_type = typename container_type::const_visitor;
   using string_type = typename container_type::str_type;
@@ -666,10 +666,11 @@ template<typename container_type> class json {
   using int_type = typename container_type::int_type;
   using uint_type = typename container_type::uint_type;
 
-  struct visitor_type : public base_visitor_type {
+  struct visitor_ostream : public base_visitor_type {
     ostream_type output_stream;
-
-    virtual void apply(std::nullptr_t) override { output_stream << "NULL"; };
+    
+    virtual void apply(std::nullptr_t) override { output_stream << "null"; }
+    
     virtual void apply(map_type const& v) override {
       output_stream << "{";
       bool first = true;
@@ -679,18 +680,30 @@ template<typename container_type> class json {
         output_stream << "\"" << element.first << "\":";
         element.second.visit(*this);
       }
-    };
-    virtual void apply(vector_type const& v) override {};
-    virtual void apply(string_type const& v) override {};
-    virtual void apply(float_type v) override {};
-    virtual void apply(int_type v) override {};
-    virtual void apply(uint_type v) override {};
-    virtual void apply(bool v) override {};
+      output_stream << "}";
+    }
+    
+    virtual void apply(vector_type const& v) override {
+      output_stream << "[";
+      bool first = true;
+      for(container_type const& element : v) {
+        if (!first) output_stream << ",";
+        first = false;
+        element.visit(*this);
+      }
+      output_stream << "]";
+    }
+    
+    virtual void apply(string_type const& v) override { output_stream << "\"" << v << "\""; }
+    virtual void apply(float_type v) override { output_stream << v; }
+    virtual void apply(int_type v) override { output_stream << v; }
+    virtual void apply(uint_type v) override { output_stream << v; }
+    virtual void apply(bool v) override { output_stream << (v?"true":"false"); }
   };
 
  public:
-  string_type serialize(container_type const& container) {
-    visitor_type visitor;
+  string_type serialize(container_type const& container) const {
+    visitor_ostream visitor;
     container.visit(visitor);
     return visitor.output_stream.str();
   }

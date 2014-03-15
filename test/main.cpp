@@ -13,7 +13,7 @@ nested_container::container str2() {
 
 int main(void) {
   using nested_container::container;
-  using nested_container::drivers::json;
+  using nested_container::drivers::json_sstream;
   {
     container c1;
     std::cout << c1.is_null() << std::endl;
@@ -94,8 +94,20 @@ int main(void) {
 
   {
     std::cout << "Begin test 6" << std::endl;
-    json<container> json_driver;
-    container c;
+    json_sstream<container> json_driver;
+    container c = {
+      {"nom","Roger"}
+      , {"prenom","Marcel"}
+      , {"attributs", {
+          {"poids", 95u}
+          , {"taille", 1.65f}
+          , {"membres", 5}
+          , {"beauf", true}
+          , {"copine", nullptr}
+          , {"potes", container::init_vec({"René","Jean-Paul","Martine"})}
+        }
+      }
+    };
     std::cout << json_driver.serialize(c) << std::endl;
   }
   return 0;
