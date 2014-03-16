@@ -1,5 +1,5 @@
-#include <nested_container.hpp>
 #include <iostream>
+#include <nested_container.hpp>
 #include <vector>
 #include <list>
 
@@ -14,6 +14,7 @@ nested_container::container str2() {
 int main(void) {
   using nested_container::container;
   using nested_container::drivers::json_sstream;
+  using nested_container::drivers::json;
   {
     container c1;
     std::cout << c1.is_null() << std::endl;
@@ -94,7 +95,6 @@ int main(void) {
 
   {
     std::cout << "Begin test 6" << std::endl;
-    json_sstream<container> json_driver;
     container c = {
       {"nom","Roger"}
       , {"prenom","Marcel"}
@@ -108,7 +108,15 @@ int main(void) {
         }
       }
     };
+
+    std::cout << "\nSstream json" << std::endl;
+    json_sstream<container> json_sstream_driver;
+    std::cout << json_sstream_driver.serialize(c) << std::endl;
+
+    std::cout << "\nFast json" << std::endl;
+    json<container> json_driver;
     std::cout << json_driver.serialize(c) << std::endl;
+
   }
   return 0;
 }
