@@ -678,7 +678,7 @@ template<typename container_type> class json_sstream {
     virtual void apply(map_type const& v) override {
       output_stream << "{";
       bool first = true;
-      for(std::pair<key_type, container_type> const& element : v) {
+      for(std::pair<key_type, container_type const&> const& element : v) {
         if (!first) output_stream << ",";
         first = false;
         output_stream << "\"" << element.first << "\":";
@@ -766,7 +766,7 @@ template<typename container_type> class json {
     virtual void apply(map_type const& v) override {
       size += 2u;  // {}
       bool first = true;
-      for(std::pair<key_type, container_type> const& element : v) {
+      for(std::pair<key_type, container_type const&> const& element : v) {
         if (!first) ++size;
         first = false;
         size += 3u + element.first.size();
@@ -804,7 +804,7 @@ template<typename container_type> class json {
       *cur_buffer = '{';
       ++cur_buffer;
       bool first = true;
-      for(std::pair<key_type, container_type> const& element : v) {
+      for(std::pair<key_type, container_type const&> element : v) {
         if (!first) {
           *cur_buffer = ',';
           ++cur_buffer;
