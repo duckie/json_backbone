@@ -2,6 +2,7 @@
 #include <nested_container.hpp>
 #include <vector>
 #include <list>
+#include <chrono>
 
 std::string str1() {
   return "Roger";
@@ -100,7 +101,7 @@ int main(void) {
       , {"prenom","Marcel"}
       , {"attributs", {
           {"poids", 95u}
-          , {"taille", 1.65f}
+          , {"taille", 165}
           , {"membres", 5}
           , {"beauf", true}
           , {"copine", nullptr}
@@ -113,9 +114,29 @@ int main(void) {
     json_sstream<container> json_sstream_driver;
     std::cout << json_sstream_driver.serialize(c) << std::endl;
 
-    std::cout << "\nFast json" << std::endl;
+    std::cout << "\nPrintf json" << std::endl;
     json<container> json_driver;
     std::cout << json_driver.serialize(c) << std::endl;
+
+    //size_t constexpr max_iter = 1e5;
+    //using std::chrono::high_resolution_clock;
+    //using std::chrono::time_point;
+    //using std::chrono::duration_cast;
+    //using std::chrono::milliseconds;
+//
+    //time_point<high_resolution_clock> start, end;
+//
+    //// Sstream
+    //start = high_resolution_clock::now();
+    //for(size_t i=0u; i < max_iter; ++i) json_sstream_driver.serialize(c);
+    //end = high_resolution_clock::now();
+    //std::cout << "Sstream test took " << duration_cast<milliseconds>(end-start).count() << "ms" << std::endl;
+//
+    //// Fast
+    //start = high_resolution_clock::now();
+    //for(size_t i=0u; i < max_iter; ++i) json_driver.serialize(c);
+    //end = high_resolution_clock::now();
+    //std::cout << "Printf test took " << duration_cast<milliseconds>(end-start).count() << "ms" << std::endl;
 
   }
   return 0;

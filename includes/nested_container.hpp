@@ -895,8 +895,7 @@ template<typename container_type> class json {
   }
 };
 
-}
-
-};  // namespace nested_container
+}  // namespace drivers
+}  // namespace nested_container
 
 #endif  // __NESTED_COMPILER__
