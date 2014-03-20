@@ -14,8 +14,8 @@ nested_container::container str2() {
 
 int main(void) {
   using nested_container::container;
-  using nested_container::drivers::json_sstream;
   using nested_container::drivers::json;
+  using nested_container::drivers::json_cstring;
   {
     container c1;
     std::cout << c1.is_null() << std::endl;
@@ -120,11 +120,11 @@ int main(void) {
     };
 
     std::cout << "\nSstream json" << std::endl;
-    json_sstream<container> json_sstream_driver;
+    json<container> json_sstream_driver;
     std::cout << json_sstream_driver.serialize(c) << std::endl;
 
     std::cout << "\nPrintf json" << std::endl;
-    json<container> json_driver;
+    json_cstring<container> json_driver;
     std::cout << json_driver.serialize(c) << std::endl;
 
     size_t constexpr max_iter = 1e4;
@@ -147,6 +147,39 @@ int main(void) {
     end = high_resolution_clock::now();
     std::cout << "Printf test took " << duration_cast<milliseconds>(end-start).count() << "ms" << std::endl;
 
+  }
+
+  if(false)
+  {
+    std::cout << "Begin test 7" << std::endl;
+    container c = container::init_vec({});
+    size_t nb_elements = 1e6;
+    for(size_t i=0u; i < nb_elements; ++i) {
+      c.raw_vector().push_back(static_cast<unsigned int>(i));
+    }
+    
+    json<container> json_sstream_driver;
+    json_cstring<container> json_driver;
+
+    size_t constexpr max_iter = 1e0;
+    using std::chrono::high_resolution_clock;
+    using std::chrono::time_point;
+    using std::chrono::duration_cast;
+    using std::chrono::milliseconds;
+
+    time_point<high_resolution_clock> start, end;
+
+    // Sstream
+    start = high_resolution_clock::now();
+    for(size_t i=0u; i < max_iter; ++i) json_sstream_driver.serialize(c);
+    end = high_resolution_clock::now();
+    std::cout << "Sstream test took " << duration_cast<milliseconds>(end-start).count() << "ms" << std::endl;
+
+    // Fast
+    start = high_resolution_clock::now();
+    for(size_t i=0u; i < max_iter; ++i) json_driver.serialize(c);
+    end = high_resolution_clock::now();
+    std::cout << "Printf test took " << duration_cast<milliseconds>(end-start).count() << "ms" << std::endl;
   }
   return 0;
 }

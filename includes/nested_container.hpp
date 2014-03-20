@@ -658,17 +658,17 @@ using container = basic_container<>;
 
 namespace drivers {
 
-template<typename container_type> class json_sstream {
-  using base_visitor_type = typename container_type::const_visitor;
-  using string_type = typename container_type::str_type;
-  using ostream_type = std::basic_ostringstream<typename string_type::value_type, typename string_type::traits_type>;
+template<typename container_type> class json {
+  using base_visitor_type   = typename container_type::const_visitor;
+  using string_type         = typename container_type::str_type;
+  using ostream_type        = std::basic_ostringstream<typename string_type::value_type, typename string_type::traits_type>;
 
-  using key_type = typename container_type::key_type;
-  using map_type = typename container_type::map_type;
+  using key_type    = typename container_type::key_type;
+  using map_type    = typename container_type::map_type;
   using vector_type = typename container_type::vector_type;
-  using float_type = typename container_type::float_type;
-  using int_type = typename container_type::int_type;
-  using uint_type = typename container_type::uint_type;
+  using float_type  = typename container_type::float_type;
+  using int_type    = typename container_type::int_type;
+  using uint_type   = typename container_type::uint_type;
 
   struct visitor_ostream : public base_visitor_type {
     ostream_type output_stream;
@@ -716,47 +716,47 @@ template<typename container_type> class json_sstream {
   }
 };
 
-template <typename T> struct string_conversion_traits {
+template <typename T> struct cstring_conversion_traits {
   static size_t constexpr max_size = 0u;
   static std::string const printf_code;
 };
-template <typename T> std::string const string_conversion_traits<T>::printf_code = "";
+template <typename T> std::string const cstring_conversion_traits<T>::printf_code = "";
 
-template <> struct string_conversion_traits<int> {
+template <> struct cstring_conversion_traits<int> {
   static size_t constexpr max_size = std::numeric_limits<int>::digits + 1u;
   static std::string const printf_code;
 };
-std::string const string_conversion_traits<int>::printf_code = "%d";
+std::string const cstring_conversion_traits<int>::printf_code = "%d";
 
-template <> struct string_conversion_traits<unsigned int> {
+template <> struct cstring_conversion_traits<unsigned int> {
   static size_t constexpr max_size = std::numeric_limits<unsigned int>::digits;
   static std::string const printf_code;
 };
-std::string const string_conversion_traits<unsigned int>::printf_code = "%u";
+std::string const cstring_conversion_traits<unsigned int>::printf_code = "%u";
 
-template <> struct string_conversion_traits<size_t> {
+template <> struct cstring_conversion_traits<size_t> {
   static size_t constexpr max_size = std::numeric_limits<size_t>::digits;
   static std::string const printf_code;
-};
-std::string const string_conversion_traits<size_t>::printf_code = "%lu";
+}; 
+std::string const cstring_conversion_traits<size_t>::printf_code = "%lu";
 
-template <> struct string_conversion_traits<float> {
+template <> struct cstring_conversion_traits<float> {
   static size_t constexpr max_size = 3 + FLT_MANT_DIG - FLT_MIN_EXP;
   static std::string const printf_code;
 };
-std::string const string_conversion_traits<float>::printf_code = "%f";
+std::string const cstring_conversion_traits<float>::printf_code = "%f";
 
-template<typename container_type> class json {
+template<typename container_type> class json_cstring {
   using base_visitor_type = typename container_type::const_visitor;
-  using string_type = typename container_type::str_type;
-  using ostream_type = std::basic_ostringstream<typename string_type::value_type, typename string_type::traits_type>;
+  using string_type       = typename container_type::str_type;
+  using ostream_type      = std::basic_ostringstream<typename string_type::value_type, typename string_type::traits_type>;
 
-  using key_type = typename container_type::key_type;
-  using map_type = typename container_type::map_type;
+  using key_type    = typename container_type::key_type;
+  using map_type    = typename container_type::map_type;
   using vector_type = typename container_type::vector_type;
-  using float_type = typename container_type::float_type;
-  using int_type = typename container_type::int_type;
-  using uint_type = typename container_type::uint_type;
+  using float_type  = typename container_type::float_type;
+  using int_type    = typename container_type::int_type;
+  using uint_type   = typename container_type::uint_type;
 
   struct visitor_size : public base_visitor_type {
     size_t size = 0u;
@@ -785,9 +785,9 @@ template<typename container_type> class json {
     }
     
     virtual void apply(string_type const& v) override { size += 2u + v.size(); }
-    virtual void apply(float_type v) override { size += string_conversion_traits<float_type>::max_size; }
-    virtual void apply(int_type v) override { size += string_conversion_traits<int_type>::max_size; }
-    virtual void apply(uint_type v) override { size += string_conversion_traits<uint_type>::max_size; }
+    virtual void apply(float_type v) override { size += cstring_conversion_traits<float_type>::max_size; }
+    virtual void apply(int_type v) override { size += cstring_conversion_traits<int_type>::max_size; }
+    virtual void apply(uint_type v) override { size += cstring_conversion_traits<uint_type>::max_size; }
     virtual void apply(bool v) override { size += 5; }
   };
 
@@ -842,8 +842,8 @@ template<typename container_type> class json {
     virtual void apply(float_type v) override { 
       int char_written = std::snprintf(
           cur_buffer
-          , string_conversion_traits<float_type>::max_size
-          , string_conversion_traits<float_type>::printf_code.c_str()
+          , cstring_conversion_traits<float_type>::max_size
+          , cstring_conversion_traits<float_type>::printf_code.c_str()
           , v);
       if (0 < char_written) cur_buffer += char_written;
     }
@@ -851,8 +851,8 @@ template<typename container_type> class json {
     virtual void apply(int_type v) override { 
       int char_written = std::snprintf(
           cur_buffer
-          , string_conversion_traits<int_type>::max_size
-          , string_conversion_traits<int_type>::printf_code.c_str()
+          , cstring_conversion_traits<int_type>::max_size
+          , cstring_conversion_traits<int_type>::printf_code.c_str()
           , v);
       if (0 < char_written) cur_buffer += char_written;
     }
@@ -860,8 +860,8 @@ template<typename container_type> class json {
     virtual void apply(uint_type v) override { 
       int char_written = std::snprintf(
           cur_buffer
-          , string_conversion_traits<uint_type>::max_size
-          , string_conversion_traits<uint_type>::printf_code.c_str()
+          , cstring_conversion_traits<uint_type>::max_size
+          , cstring_conversion_traits<uint_type>::printf_code.c_str()
           , v);
       if (0 < char_written) cur_buffer += char_written;
     }
