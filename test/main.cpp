@@ -108,6 +108,15 @@ int main(void) {
           , {"potes", container::init_vec({"René","Jean-Paul","Martine"})}
         }
       }
+      , {"attributs_prives", {
+          {"poids", 95u}
+          , {"taille", 165}
+          , {"membres", 5}
+          , {"beauf", true}
+          , {"copine", nullptr}
+          , {"potes", container::init_vec({"René","Jean-Paul","Martine"})}
+        }
+      }
     };
 
     std::cout << "\nSstream json" << std::endl;
