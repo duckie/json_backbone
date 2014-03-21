@@ -133,8 +133,8 @@ class basic_container final {
       || value_type::string == type;
   }
       
-  value_type type_ = value_type::null;
   value value_;
+  value_type type_ = value_type::null;
 
   void clear() {
     switch (type_) {
