@@ -1,8 +1,14 @@
 #include <iostream>
-#include <nested_container.hpp>
+#include <nested_container/container.hpp>
+#include <nested_container/json.hpp>
+#include <nested_container/experimental/cjson.hpp>
 #include <vector>
 #include <list>
 #include <chrono>
+
+using nested_container::container;
+template <typename C> using json = nested_container::json::serializer<C>;
+template <typename C> using json_cstring = nested_container::experimental::cjson::serializer<C>;
 
 std::string str1() {
   return "Roger";
@@ -12,10 +18,8 @@ nested_container::container str2() {
   return "Roger";
 }
 
+
 int main(void) {
-  using nested_container::container;
-  using nested_container::drivers::json;
-  using nested_container::drivers::json_cstring;
   {
     container c1;
     std::cout << c1.is_null() << std::endl;
