@@ -33,6 +33,7 @@ template<typename Target, typename Source> Target lexical_cast(Source arg) {
 
 template <typename key_type, typename value_type> using std_map_default_allocators = std::map<key_type, value_type>;
 template <typename value_type> using std_vector_default_allocators = std::vector<value_type>;
+template <class Container> class attr_init;
 
 template <
   typename Key = std::string
@@ -445,7 +446,7 @@ class basic_container final {
 
  public:
   basic_container() {};
-  basic_container(basic_container&& c) : basic_container(type_proxy<basic_container>(), std::forward<basic_container&&>(c)) {}
+  basic_container(basic_container&& c) : basic_container(type_proxy<basic_container>(), std::move(c)) {}
   basic_container(basic_container const& c) : basic_container(type_proxy<basic_container>(), c) {}
   // Constructor from other types
   template <typename T> basic_container(T&& arg) : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), std::forward<T>(arg)) {}
@@ -453,8 +454,12 @@ class basic_container final {
   basic_container(typename str_type::value_type const* arg) : basic_container(type_proxy<str_type>(), str_type(arg)) {}
 
   // Initializer lists
-  basic_container(std::initializer_list<std::pair<Key, basic_container>> list) : basic_container(type_proxy<Map>()){
-    for(std::pair<Key, basic_container> const& elem : list) ref_to<Map>().emplace(elem);
+  basic_container(std::initializer_list< attr_init<basic_container> > list) : basic_container(type_proxy<Map>()){
+    for(auto const& elem : list) ref_to<Map>().emplace(elem.key(), elem.value());
+  }
+  basic_container(std::initializer_list<basic_container> list) : basic_container(type_proxy<Vector>()){
+    ref_to<Vector>().reserve(list.size());
+    for(basic_container const& element : list) ref_to<Vector>().push_back(element);
   }
 
   static basic_container init_map(std::initializer_list<std::pair<Key, basic_container>> list) {
@@ -651,6 +656,37 @@ class basic_container final {
     }
   };
 };
+
+template <class Container> class attr_init final {
+  using key_type = typename Container::str_type;
+
+  mutable key_type key_;
+  mutable Container value_;
+ public:
+  explicit attr_init(key_type const& key) : key_(key) {
+    std::cout << "Copy bro" << std::endl;
+  }
+  explicit attr_init(key_type&& key) : key_(std::move(key)) { 
+    std::cout << "Move bro" << std::endl;
+  }
+  explicit attr_init(key_type const& key, Container const& value) : key_(key), value_(value) {}
+  explicit attr_init(key_type && key, Container const& value) : key_(std::move(key)), value_(value) {}
+  explicit attr_init(key_type const& key, Container && value) : key_(key), value_(std::move(value)) {}
+  explicit attr_init(key_type && key, Container && value) : key_(std::move(key)), value_(std::move(value)) {
+    std::cout << "Move bro 2" << std::endl;
+  }
+
+  attr_init& operator= (Container const& value) { value_ = value; return *this; }
+  attr_init& operator= (Container&& value) { value_ = std::move(value); return *this; }
+  attr_init& operator() (Container const& value) { value_ = value; return *this; }
+  attr_init& operator() (Container&& value) { value_ = std::move(value); return *this; }
+
+  // Always consumed with move
+  inline key_type key() const { return std::move(key_); }
+  inline Container value() const { return std::move(value_); }
+};
+
+
 }  // namespace nested_container
 
 #endif  // __NESTED_COMPILER__

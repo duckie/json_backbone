@@ -85,43 +85,36 @@ int main(void) {
     container c1 = container::init_vec({ "Al1", "Allo", "Deloin", "Roger","Marcel"});
     std::cout << c1[0].is_int() << std::endl;
 
-    std::cout << "Init by map" << std::endl;
-    container c4 = { 
-      {"Roger",1}
-      , {"Marcel","Robert"}
-      , {"Robert", container::init_vec({1,2,3u})} 
-    };
-    ++c4["Roger"].raw_int();
-    std::cout << c4["Roger"].ref_int() << std::endl;
-    std::cout << c4["Roger"].is_int() << std::endl;
-    std::cout << c4["Marcel"].is_string() << std::endl;
-    std::cout << c4["Rober"].is_vector() << std::endl;
+    //std::cout << "Init by map" << std::endl;
+    //container c4 = { 
+      //{"Roger",1}
+      //, {"Marcel","Robert"}
+      //, {"Robert", container::init_vec({1,2,3u})} 
+    //};
+    //++c4["Roger"].raw_int();
+    //std::cout << c4["Roger"].ref_int() << std::endl;
+    //std::cout << c4["Roger"].is_int() << std::endl;
+    //std::cout << c4["Marcel"].is_string() << std::endl;
+    //std::cout << c4["Rober"].is_vector() << std::endl;
   }
 
   {
     std::cout << "Begin test 6" << std::endl;
-    container c = {
-      {"nom","Roger"}
-      , {"prenom","Marcel"}
-      , {"attributs", {
-          {"poids", 95u}
-          , {"taille", 165}
-          , {"membres", 5}
-          , {"beauf", true}
-          , {"copine", nullptr}
-          , {"potes", container::init_vec({"René","Jean-Paul","Martine"})}
-        }
-      }
-      , {"attributs_prives", {
-          {"poids", 95u}
-          , {"taille", 165}
-          , {"membres", 5}
-          , {"beauf", true}
-          , {"copine", nullptr}
-          , {"potes", container::init_vec({"René","Jean-Paul","Martine"})}
-        }
+    using _ = nested_container::attr_init<container>;
+    //using initializer = nested_container::pair_initializer<container>;
+    //nested_container::_ck<container>;
+    
+    container c = { 
+      _("nom") = "Roger",
+      _("prenom") = "Marcel",
+      _("attributs") = {
+        _("poids") = 95u,
+        _("liste") = {1,2.f,"yeah"}
       }
     };
+
+    std::cout << c["nom"].ref_string() << std::endl;
+    std::cout << c["attributs"]["liste"][2].ref_string() << std::endl;
 
     std::cout << "\nSstream json" << std::endl;
     json<container> json_sstream_driver;
@@ -131,25 +124,25 @@ int main(void) {
     json_cstring<container> json_driver;
     std::cout << json_driver.serialize(c) << std::endl;
 
-    size_t constexpr max_iter = 1e4;
-    using std::chrono::high_resolution_clock;
-    using std::chrono::time_point;
-    using std::chrono::duration_cast;
-    using std::chrono::milliseconds;
-
-    time_point<high_resolution_clock> start, end;
-
-    // Sstream
-    start = high_resolution_clock::now();
-    for(size_t i=0u; i < max_iter; ++i) json_sstream_driver.serialize(c);
-    end = high_resolution_clock::now();
-    std::cout << "Sstream test took " << duration_cast<milliseconds>(end-start).count() << "ms" << std::endl;
-
-    // Fast
-    start = high_resolution_clock::now();
-    for(size_t i=0u; i < max_iter; ++i) json_driver.serialize(c);
-    end = high_resolution_clock::now();
-    std::cout << "Printf test took " << duration_cast<milliseconds>(end-start).count() << "ms" << std::endl;
+    //size_t constexpr max_iter = 1e4;
+    //using std::chrono::high_resolution_clock;
+    //using std::chrono::time_point;
+    //using std::chrono::duration_cast;
+    //using std::chrono::milliseconds;
+//
+    //time_point<high_resolution_clock> start, end;
+//
+    //// Sstream
+    //start = high_resolution_clock::now();
+    //for(size_t i=0u; i < max_iter; ++i) json_sstream_driver.serialize(c);
+    //end = high_resolution_clock::now();
+    //std::cout << "Sstream test took " << duration_cast<milliseconds>(end-start).count() << "ms" << std::endl;
+//
+    //// Fast
+    //start = high_resolution_clock::now();
+    //for(size_t i=0u; i < max_iter; ++i) json_driver.serialize(c);
+    //end = high_resolution_clock::now();
+    //std::cout << "Printf test took " << duration_cast<milliseconds>(end-start).count() << "ms" << std::endl;
 
   }
 
@@ -184,6 +177,11 @@ int main(void) {
     for(size_t i=0u; i < max_iter; ++i) json_driver.serialize(c);
     end = high_resolution_clock::now();
     std::cout << "Printf test took " << duration_cast<milliseconds>(end-start).count() << "ms" << std::endl;
+  }
+
+
+  {
+    std::cout << "Begin test 8" << std::endl;
   }
   return 0;
 }
