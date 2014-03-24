@@ -60,6 +60,13 @@ class basic_container final {
     const char* what() const noexcept { return "NestedContainer exception."; }
   };
 
+  class exception_map_key_doesnt_exist : std::exception {
+    const char* what() const noexcept { return "NestedContainer exception."; }
+  };
+
+  class exception_map_vector_outofrange : std::exception {
+    const char* what() const noexcept { return "NestedContainer exception."; }
+  };
  private:
   using Map = map_type; 
   using Vector = vector_type;
@@ -375,37 +382,48 @@ class basic_container final {
 
   // [] accessors, Key != size_type version
   basic_container const& access_collection(bool_proxy<false>, Key const& index) const {
-    if (!is_map()) return init<Null>();
-    return ref_to<Map>()[index];
+    if (!is_map()) throw exception_type();
+    auto const& element = ref_to<Map>().find(index);
+    if (ref_to<Map>().end() == element) throw exception_map_key_doesnt_exist();
+    return element->second;
   }
 
   basic_container const& access_collection(bool_proxy<false>, size_t const& index) const {
-    if (!is_vector()) return init<Null>();
+    if (!is_vector()) throw exception_type();
+    if (index < ref_to<Vector>().size()) throw exception_map_vector_outofrange(); 
     return ref_to<Vector>()[index];
   }
 
   basic_container& access_collection(bool_proxy<false>, Key const& index) {
-    if (!is_map()) switch_to_type<Map>();
+    if (!is_map()) throw exception_type();
     return ref_to<Map>()[index];
   }
 
   basic_container& access_collection(bool_proxy<false>, size_t const& index) {
-    if (!is_vector()) switch_to_type<Vector>();
+    if (!is_vector()) throw exception_type();
+    if (index < ref_to<Vector>().size()) ref_to<Vector>().resize(index);
     return ref_to<Vector>()[index];
   }
 
   // [] accessors, Key == size_type version
-  basic_container& access_collection(bool_proxy<true>, size_t const& index) const {
-    if (!is_map() && !is_vector()) return init<Null>();
-    if (is_map()) return ref_to<Map>()[index];
-    else return ref_to<Vector>()[index];
-  }
-
-  basic_container& access_collection(bool_proxy<true>, size_t const& index) {
-    if (!is_map() && !is_vector()) switch_to_type<Map>();
-    if (is_map()) return ref_to<Map>()[index];
-    else return ref_to<Vector>()[index];
-  }
+  //basic_container& access_collection(bool_proxy<true>, size_t const& index) const {
+    //if (!is_map() && !is_vector()) throw exception_type();
+    //if (is_map()) {
+      //auto const& element = ref_to<Map>().find(index);
+      //if (ref_to<Map>().end() == element) throw exception_map_key_doesnt_exist();
+      //return element->second;
+    //}
+    //else {
+      //if (index < ref_to<Vector>().size()) throw exception_map_vector_outofrange(); 
+      //return ref_to<Vector>()[index];
+    //}
+  //}
+//
+  //basic_container& access_collection(bool_proxy<true>, size_t const& index) {
+    //if (!is_map() && !is_vector()) throw exception_type();
+    //if (is_map()) return ref_to<Map>()[index];
+    //else return ref_to<Vector>()[index];
+  //}
 
   //template <typename T> convert_to
   template <typename T> T convert_to(type_proxy<T>) const { 
@@ -437,6 +455,9 @@ class basic_container final {
   }
 
   // Handling the particular case of types not supporting casts
+  std::nullptr_t convert_to(type_proxy<std::nullptr_t>) const { 
+    return nullptr;
+  }
   str_type convert_to(type_proxy<String>) const { 
     if (value_type::string == type_) {
       return ref_to<String>();
@@ -538,7 +559,7 @@ class basic_container final {
     if (type_traits<T>::type_value() != type_) throw exception_type();
     return ref_to<T>();
   }
-  inline Null const& ref_null() const { return ref<Null>(); }
+  inline Null ref_null() const { return nullptr; }
   inline Map const& ref_map() const { return ref<Map>(); }
   inline Vector const& ref_vector() const { return ref<Vector>(); }
   inline String const& ref_string() const { return ref<String>(); }
@@ -552,7 +573,6 @@ class basic_container final {
     if (type_traits<T>::type_value() != type_) throw exception_type();
     return ref_to<T>();
   }
-  inline Null& ref_null() { return ref<Null>(); }
   inline Map& ref_map() { return ref<Map>(); }
   inline Vector& ref_vector() { return ref<Vector>(); }
   inline String& ref_string() { return ref<String>(); }
@@ -567,7 +587,7 @@ class basic_container final {
     if (type_traits<T>::type_value() != type_) switch_to_type(convert_to(type_proxy<T>()));
     return ref_to<T>();
   }
-  inline Null& transform_null() { return transform<Null>(); }
+  inline Null transform_null() { switch_to_type<Null>(); return nullptr; }
   inline Map& transform_map() { return transform<Map>(); }
   inline Vector& transform_vector() { return transform<Vector>(); }
   inline String& transform_string() { return transform<String>(); }
@@ -581,7 +601,7 @@ class basic_container final {
     static_assert(type_traits<T>::is_from_container, "Type must be compatible with this container.");
     return ref_to<T>();
   }
-  inline Null const& raw_null() const { return raw<Null>(); }
+  inline Null raw_null() const { return nullptr; }
   inline Map const& raw_map() const { return raw<Map>(); }
   inline Vector const& raw_vector() const { return raw<Vector>(); }
   inline String const& raw_string() const { return raw<String>(); }
@@ -594,7 +614,6 @@ class basic_container final {
     static_assert(type_traits<T>::is_from_container, "Type must be compatible with this container.");
     return ref_to<T>();
   }
-  inline Null& raw_null() { return raw<Null>(); }
   inline Map& raw_map() { return raw<Map>(); }
   inline Vector& raw_vector() { return raw<Vector>(); }
   inline String& raw_string() { return raw<String>(); }

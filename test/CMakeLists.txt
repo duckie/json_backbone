@@ -1,3 +1,6 @@
-add_executable(test main.cpp)
-#target_link_libraries(test nestedcontainer_static)
+add_library(nested_container OBJECT nested_container.cpp)
+
+add_executable(tests unit_tests.cpp $<TARGET_OBJECTS:nested_container>)
+add_executable(perf_json_cjson perf_json_cjson.cpp $<TARGET_OBJECTS:nested_container>)
+add_executable(perf_json_parse perf_json_parse.cpp $<TARGET_OBJECTS:nested_container>)
 
