@@ -20,6 +20,8 @@ nested_container::container str2() {
 
 
 int main(void) {
+
+  // Construction
   {
     container c1;
     std::cout << c1.is_null() << std::endl;
@@ -101,9 +103,8 @@ int main(void) {
   {
     std::cout << "Begin test 6" << std::endl;
     using _ = nested_container::attr_init<container>;
-    //using initializer = nested_container::pair_initializer<container>;
-    //nested_container::_ck<container>;
     
+    container c2 = {"Marcel", 2, 1.f};
     container c = { 
       _("nom") = "Roger",
       _("prenom") = "Marcel",
@@ -123,27 +124,6 @@ int main(void) {
     std::cout << "\nPrintf json" << std::endl;
     json_cstring<container> json_driver;
     std::cout << json_driver.serialize(c) << std::endl;
-
-    //size_t constexpr max_iter = 1e4;
-    //using std::chrono::high_resolution_clock;
-    //using std::chrono::time_point;
-    //using std::chrono::duration_cast;
-    //using std::chrono::milliseconds;
-//
-    //time_point<high_resolution_clock> start, end;
-//
-    //// Sstream
-    //start = high_resolution_clock::now();
-    //for(size_t i=0u; i < max_iter; ++i) json_sstream_driver.serialize(c);
-    //end = high_resolution_clock::now();
-    //std::cout << "Sstream test took " << duration_cast<milliseconds>(end-start).count() << "ms" << std::endl;
-//
-    //// Fast
-    //start = high_resolution_clock::now();
-    //for(size_t i=0u; i < max_iter; ++i) json_driver.serialize(c);
-    //end = high_resolution_clock::now();
-    //std::cout << "Printf test took " << duration_cast<milliseconds>(end-start).count() << "ms" << std::endl;
-
   }
 
   if(false)
@@ -182,6 +162,25 @@ int main(void) {
 
   {
     std::cout << "Begin test 8" << std::endl;
+    json<container> json_driver;
+    std::string input = R"json(["test1","test2",1.1,2,-4])json";
+    input = R"json(
+    {"test1":1,
+      "test2":1.1,
+      "test3":["test1","test2",1.1,2,-4],
+      "test4":true,  
+         "test5":null
+  , "test6":{}}
+    )json";
+
+    std::cout << "To deserialize: " << input << std::endl;
+    //std::string input = R"json([])json";
+    container c = json_driver.deserialize(input);
+    std::cout << json_driver.serialize(c) << std::endl;
+    container& c2 = c["test3"];
+    c = c["test3"];
+    
+    std::cout << c[1].is_string() << "\n" << c[2].is_float() << "\n" << c[3].is_uint() << "\n" << c[4].is_int() << std::endl;
   }
   return 0;
 }

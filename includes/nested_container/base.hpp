@@ -34,6 +34,7 @@ template<typename Target, typename Source> Target lexical_cast(Source arg) {
 template <typename key_type, typename value_type> using std_map_default_allocators = std::map<key_type, value_type>;
 template <typename value_type> using std_vector_default_allocators = std::vector<value_type>;
 template <class Container> class attr_init;
+template <class Container> class vector_element_init;
 
 template <
   typename Key = std::string
@@ -122,6 +123,7 @@ class basic_container final {
     static bool constexpr is_null = eq<Null, T>::value;
     static bool constexpr is_index = eq<Key, T>::value || eq<size_t, T>::value;
     static bool constexpr is_pure = eq<T, Member>::value;
+    static bool constexpr is_self= eq<basic_container, T>::value;
 
     static_assert(is_from_container, "Type must be one of container's internal types");
   };
@@ -132,6 +134,10 @@ class basic_container final {
       || value_type::unsigned_integer == type
       || value_type::floating == type
       || value_type::string == type;
+  }
+
+  static bool is_collection(value_type type) { 
+    return value_type::map == type || value_type::vector == type;
   }
       
   value value_;
@@ -215,34 +221,52 @@ class basic_container final {
   inline void init_member(Vector const& v) { value_.vector_ = new Vector(v); }
   inline void init_member(String const& v) { new (&(value_.str_)) String(v); }
   inline void init_member(basic_container const& c) {
-    // To replace with a switchtype with value
-    switch_to_type(c.type_);
-    switch (type_) {
-      case value_type::null:
-        break; 
-      case value_type::map:
-        *value_.dict_ = *c.value_.dict_;
-        break;
-      case value_type::vector:
-        *value_.vector_ = *c.value_.vector_;
-        break;
-      case value_type::string:
-        value_.str_ = c.value_.str_;
-        break;
-      case value_type::floating:
-        value_.float_ = c.value_.float_;
-        break;
-      case value_type::integer:
-        value_.int_ = c.value_.int_;
-        break;
-      case value_type::unsigned_integer:
-        value_.uint_ = c.value_.uint_;
-        break;
-      case value_type::boolean:
-        value_.bool_ = c.value_.bool_;
-        break;
-      default:
-        break;
+    value_type previous_type = type_;
+    if (type_ != c.type_ && is_collection(type_) && is_collection(c.type_)){
+      // We have to handle the special case of an affectation from a container
+      // sub element to itself : deletion must be defered not to read
+      // a deleted memory area
+      if(value_type::map == type_) {
+        Map* defered_map = nullptr;
+        init_member(*c.value_.vector_);
+        delete defered_map;
+      }
+      else {
+        Vector* defered_vector = nullptr;
+        init_member(*c.value_.dict_);
+        delete defered_vector;
+      }
+      type_ = c.type_;
+    }
+    else {
+      switch_to_type(c.type_);
+      switch (type_) {
+        case value_type::null:
+          break; 
+        case value_type::map:
+          *value_.dict_ = *c.value_.dict_;
+          break;
+        case value_type::vector:
+          *value_.vector_ = *c.value_.vector_;
+          break;
+        case value_type::string:
+          value_.str_ = c.value_.str_;
+          break;
+        case value_type::floating:
+          value_.float_ = c.value_.float_;
+          break;
+        case value_type::integer:
+          value_.int_ = c.value_.int_;
+          break;
+        case value_type::unsigned_integer:
+          value_.uint_ = c.value_.uint_;
+          break;
+        case value_type::boolean:
+          value_.bool_ = c.value_.bool_;
+          break;
+        default:
+          break;
+      }
     }
   }
 
@@ -448,6 +472,7 @@ class basic_container final {
   basic_container() {};
   basic_container(basic_container&& c) : basic_container(type_proxy<basic_container>(), std::move(c)) {}
   basic_container(basic_container const& c) : basic_container(type_proxy<basic_container>(), c) {}
+  basic_container(basic_container& c) : basic_container(type_proxy<basic_container>(), c) {}
   // Constructor from other types
   template <typename T> basic_container(T&& arg) : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), std::forward<T>(arg)) {}
   // Handling char* case
@@ -457,9 +482,9 @@ class basic_container final {
   basic_container(std::initializer_list< attr_init<basic_container> > list) : basic_container(type_proxy<Map>()){
     for(auto const& elem : list) ref_to<Map>().emplace(elem.key(), elem.value());
   }
-  basic_container(std::initializer_list<basic_container> list) : basic_container(type_proxy<Vector>()){
+  basic_container(std::initializer_list<vector_element_init<basic_container>> list) : basic_container(type_proxy<Vector>()){
     ref_to<Vector>().reserve(list.size());
-    for(basic_container const& element : list) ref_to<Vector>().push_back(element);
+    for(auto const& element : list) ref_to<Vector>().emplace_back(element.value());
   }
 
   static basic_container init_map(std::initializer_list<std::pair<Key, basic_container>> list) {
@@ -471,12 +496,10 @@ class basic_container final {
   static basic_container init_vec(std::initializer_list<basic_container> list) {
     basic_container container((type_proxy<Vector>()));
     container.ref_to<Vector>().reserve(list.size());
-    for(basic_container const& element : list) container.ref_to<Vector>().push_back(element);
+    for(basic_container const& element : list) container.ref_to<Vector>().emplace_back(element);
     return container;
   }
 
-  basic_container& operator= (basic_container const& c) { init_member(c); return *this; }
-  basic_container& operator= (basic_container&& c) { init_member(c); return *this; }
 
   // Helper to initialize the container to a given type
   template <typename T> static basic_container init() { return basic_container(type_proxy<T>()); }
@@ -484,8 +507,12 @@ class basic_container final {
   ~basic_container() { clear(); }  // virtual not needed, this class is final
 
   // Assignement from another type
+  //template <typename T> typename std::enable_if<!type_traits<T>::is_self, basic_container&>::type operator=(T&& arg) { 
+  basic_container& operator= (basic_container const& c) { init_member(c); return *this; }
+  basic_container& operator= (basic_container&& c) { init_member(c); return *this; }
+  basic_container& operator= (basic_container& c) { init_member(c); return *this; }
   template <typename T> basic_container& operator=(T&& arg) { 
-    switch_to_type<typename type_traits<T>::pure_type>();
+    switch_to_type<typename type_traits<decltype(arg)>::pure_type>();
     init_member(std::forward<T>(arg));
     return *this;
   }
@@ -663,18 +690,12 @@ template <class Container> class attr_init final {
   mutable key_type key_;
   mutable Container value_;
  public:
-  explicit attr_init(key_type const& key) : key_(key) {
-    std::cout << "Copy bro" << std::endl;
-  }
-  explicit attr_init(key_type&& key) : key_(std::move(key)) { 
-    std::cout << "Move bro" << std::endl;
-  }
+  explicit attr_init(key_type const& key) : key_(key) {}
+  explicit attr_init(key_type&& key) : key_(std::move(key)) {}
   explicit attr_init(key_type const& key, Container const& value) : key_(key), value_(value) {}
   explicit attr_init(key_type && key, Container const& value) : key_(std::move(key)), value_(value) {}
   explicit attr_init(key_type const& key, Container && value) : key_(key), value_(std::move(value)) {}
-  explicit attr_init(key_type && key, Container && value) : key_(std::move(key)), value_(std::move(value)) {
-    std::cout << "Move bro 2" << std::endl;
-  }
+  explicit attr_init(key_type && key, Container && value) : key_(std::move(key)), value_(std::move(value)) {}
 
   attr_init& operator= (Container const& value) { value_ = value; return *this; }
   attr_init& operator= (Container&& value) { value_ = std::move(value); return *this; }
@@ -683,6 +704,22 @@ template <class Container> class attr_init final {
 
   // Always consumed with move
   inline key_type key() const { return std::move(key_); }
+  inline Container value() const { return std::move(value_); }
+};
+
+template <class Container> class vector_element_init final {
+  mutable Container value_;
+ public:
+  vector_element_init(Container const& value) : value_(value) {}
+  vector_element_init(Container && value) : value_(std::move(value)) {} 
+  template <typename T> vector_element_init(T&& value) : value_(std::forward<T>(value)) {}
+
+  vector_element_init & operator= (Container const& value) { value_ = value; return *this; }
+  vector_element_init & operator= (Container&& value) { value_ = std::move(value); return *this; }
+  vector_element_init & operator() (Container const& value) { value_ = value; return *this; }
+  vector_element_init & operator() (Container&& value) { value_ = std::move(value); return *this; }
+
+  // Always consumed with move
   inline Container value() const { return std::move(value_); }
 };
 

@@ -15,5 +15,16 @@ include_directories(
 #list(APPEND CMAKE_CXX_FLAGS "-std=c++11")
 set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
 
+### Boost support ###
+FIND_PACKAGE(Boost REQUIRED)
+if(Boost_FOUND)
+	include_directories(${Boost_INCLUDE_DIRS})
+  #link_directories(${Boost_LIBRARY_DIRS})
+  #  # GCC does not support the boost auto link feature
+  #  if(CMAKE_COMPILER_IS_GNUCXX)
+  #      set(LIBRARIES "${LIBRARIES}" "${Boost_LIBRARIES}")
+  #  endif(CMAKE_COMPILER_IS_GNUCXX)
+endif()
+
 #add_subdirectory(src)
 add_subdirectory(test)
