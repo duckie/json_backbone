@@ -1,7 +1,6 @@
 #include <iostream>
 #include <nested_container/container.hpp>
-#include <nested_container/json.hpp>
-#include <nested_container/experimental/cjson.hpp>
+#include <nested_container/json_forward.hpp>
 #include <vector>
 #include <list>
 #include <chrono>
@@ -16,7 +15,6 @@ NESTED_COMPILER_JSON_EXTERNALIZE(basic_container);
 
 using nested_container::container;
 template <typename C> using json = nested_container::json::serializer<C>;
-template <typename C> using json_cstring = nested_container::experimental::cjson::serializer<C>;
 
 std::string str1() {
   return "Roger";
@@ -93,7 +91,7 @@ int main(void) {
 
     std::cout << "Init by vector" << std::endl;
     container c1 = container::init_vec({ "Al1", "Allo", "Deloin", "Roger","Marcel"});
-    std::cout << c1[0].is_int() << std::endl;
+    std::cout << c1[static_cast<typename container::vec_size_type>(0u)].is_int() << std::endl;
 
     //std::cout << "Init by map" << std::endl;
     //container c4 = { 
@@ -128,10 +126,6 @@ int main(void) {
     std::cout << "\nSstream json" << std::endl;
     json<container> json_sstream_driver;
     std::cout << json_sstream_driver.serialize(c) << std::endl;
-
-    std::cout << "\nPrintf json" << std::endl;
-    json_cstring<container> json_driver;
-    std::cout << json_driver.serialize(c) << std::endl;
   }
 
   return 0;

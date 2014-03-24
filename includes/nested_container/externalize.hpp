@@ -99,6 +99,20 @@ namespace nested_container { \
   extern template void Container< __VA_ARGS__ >::switch_to_type<typename Container< __VA_ARGS__ >::int_type>(); \
   extern template void Container< __VA_ARGS__ >::switch_to_type<typename Container< __VA_ARGS__ >::uint_type>(); \
   extern template void Container< __VA_ARGS__ >::switch_to_type<bool>(); \
+  /* collection accessors */ \
+  extern template Container< __VA_ARGS__ > const& Container< __VA_ARGS__ >::operator[](typename Container< __VA_ARGS__ >::key_type const&) const; \
+  extern template Container< __VA_ARGS__ > const& Container< __VA_ARGS__ >::operator[](typename Container< __VA_ARGS__ >::key_type const&) const; \
+  extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator[](typename Container< __VA_ARGS__ >::key_type&); \
+  extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator[](typename Container< __VA_ARGS__ >::key_type const&); \
+  extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator[](typename Container< __VA_ARGS__ >::key_type&&); \
+  extern template Container< __VA_ARGS__ > const& Container< __VA_ARGS__ >::operator[](typename Container< __VA_ARGS__ >::vec_size_type const&) const; \
+  extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator[](typename Container< __VA_ARGS__ >::vec_size_type&); \
+  extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator[](typename Container< __VA_ARGS__ >::vec_size_type const&); \
+  extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator[](typename Container< __VA_ARGS__ >::vec_size_type&&); \
+  extern template Container< __VA_ARGS__ > const& Container< __VA_ARGS__ >::operator[](int const&) const; \
+  extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator[](int&); \
+  extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator[](int const&); \
+  extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator[](int &&); \
 }  // namespace nested_Container<>  
 
 
@@ -181,6 +195,19 @@ namespace nested_container { \
   template void Container< __VA_ARGS__ >::switch_to_type<typename Container< __VA_ARGS__ >::int_type>(); \
   template void Container< __VA_ARGS__ >::switch_to_type<typename Container< __VA_ARGS__ >::uint_type>(); \
   template void Container< __VA_ARGS__ >::switch_to_type<bool>(); \
+  /* collection accessors */ \
+  template Container< __VA_ARGS__ > const& Container< __VA_ARGS__ >::operator[](typename Container< __VA_ARGS__ >::key_type const&) const; \
+  template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator[](typename Container< __VA_ARGS__ >::key_type&); \
+  template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator[](typename Container< __VA_ARGS__ >::key_type const&); \
+  template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator[](typename Container< __VA_ARGS__ >::key_type&&); \
+  template Container< __VA_ARGS__ > const& Container< __VA_ARGS__ >::operator[](typename Container< __VA_ARGS__ >::vec_size_type const&) const; \
+  template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator[](typename Container< __VA_ARGS__ >::vec_size_type&); \
+  template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator[](typename Container< __VA_ARGS__ >::vec_size_type const&); \
+  template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator[](typename Container< __VA_ARGS__ >::vec_size_type&&); \
+  template Container< __VA_ARGS__ > const& Container< __VA_ARGS__ >::operator[](int const&) const; \
+  template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator[](int&); \
+  template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator[](int const&); \
+  template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator[](int &&); \
 }  // namespace nested_container  
 #else
 # define NESTED_COMPILER_EXTERNALIZE(...)

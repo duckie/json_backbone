@@ -16,6 +16,7 @@
 #include <cstdlib>
 #include <cfloat>
 #include <limits>
+#include <iostream>
 
 namespace nested_container {
 // boost lexical cast, simple non-throwing version
@@ -55,6 +56,7 @@ class basic_container final {
   using float_type = Float;
   using map_type = MapTemplate<key_type, basic_container>;
   using vector_type = VectorTemplate<basic_container>;
+  using vec_size_type = typename vector_type::size_type;
 
   class exception_type : std::exception {
     const char* what() const noexcept { return "NestedContainer exception."; }
@@ -128,7 +130,7 @@ class basic_container final {
     static bool constexpr is_collection = eq<Vector, T>::value || eq<Map, T>::value;
     static bool constexpr is_lexical = eq<bool, T>::value || eq<Int, T>::value || eq<UInt, T>::value || eq<Float, T>::value || eq<String, T>::value;
     static bool constexpr is_null = eq<Null, T>::value;
-    static bool constexpr is_index = eq<Key, T>::value || eq<size_t, T>::value;
+    static bool constexpr is_index = eq<Key, T>::value || eq<vec_size_type, T>::value;
     static bool constexpr is_pure = eq<T, Member>::value;
     static bool constexpr is_self= eq<basic_container, T>::value;
 
@@ -383,47 +385,29 @@ class basic_container final {
   // [] accessors, Key != size_type version
   basic_container const& access_collection(bool_proxy<false>, Key const& index) const {
     if (!is_map()) throw exception_type();
-    auto const& element = ref_to<Map>().find(index);
-    if (ref_to<Map>().end() == element) throw exception_map_key_doesnt_exist();
-    return element->second;
+    return ref_to<Map>().at(index);
   }
 
-  basic_container const& access_collection(bool_proxy<false>, size_t const& index) const {
+  basic_container const& access_collection(bool_proxy<false>, vec_size_type index) const {
     if (!is_vector()) throw exception_type();
-    if (index < ref_to<Vector>().size()) throw exception_map_vector_outofrange(); 
-    return ref_to<Vector>()[index];
+    return ref_to<Vector>().at(index);
   }
 
-  basic_container& access_collection(bool_proxy<false>, Key const& index) {
-    if (!is_map()) throw exception_type();
+  basic_container& access_collection(bool_proxy<false>, Key const& index) noexcept {
+    if (!is_map()) switch_to_type<Map>();
     return ref_to<Map>()[index];
   }
 
-  basic_container& access_collection(bool_proxy<false>, size_t const& index) {
-    if (!is_vector()) throw exception_type();
-    if (index < ref_to<Vector>().size()) ref_to<Vector>().resize(index);
-    return ref_to<Vector>()[index];
+  basic_container& access_collection(bool_proxy<false>, Key&& index) noexcept {
+    if (!is_map()) switch_to_type<Map>();
+    return ref_to<Map>()[std::move(index)];
   }
 
-  // [] accessors, Key == size_type version
-  //basic_container& access_collection(bool_proxy<true>, size_t const& index) const {
-    //if (!is_map() && !is_vector()) throw exception_type();
-    //if (is_map()) {
-      //auto const& element = ref_to<Map>().find(index);
-      //if (ref_to<Map>().end() == element) throw exception_map_key_doesnt_exist();
-      //return element->second;
-    //}
-    //else {
-      //if (index < ref_to<Vector>().size()) throw exception_map_vector_outofrange(); 
-      //return ref_to<Vector>()[index];
-    //}
-  //}
-//
-  //basic_container& access_collection(bool_proxy<true>, size_t const& index) {
-    //if (!is_map() && !is_vector()) throw exception_type();
-    //if (is_map()) return ref_to<Map>()[index];
-    //else return ref_to<Vector>()[index];
-  //}
+  basic_container& access_collection(bool_proxy<false>, vec_size_type index) noexcept {
+    if (!is_vector()) switch_to_type<Vector>();
+    if (ref_to<Vector>().size() <= index) ref_to<Vector>().resize(index);
+    return ref_to<Vector>()[index];
+  }
 
   //template <typename T> convert_to
   template <typename T> T convert_to(type_proxy<T>) const { 
@@ -639,13 +623,22 @@ class basic_container final {
     return false;
   }
 
-  template <typename T> basic_container const& operator[] (T const& index) const {
-    return access_collection(bool_proxy<eq<Key, size_t>::value>(), index);
+  basic_container const& operator[] (typename key_type::value_type const* index) const {
+    return access_collection(bool_proxy<eq<Key, vec_size_type>::value>(), index);
   }
 
-  template <typename T> basic_container& operator[] (T const& index) {
-    return access_collection(bool_proxy<eq<Key, size_t>::value>(), index);
+  basic_container& operator[] (typename key_type::value_type const* index) {
+    return access_collection(bool_proxy<eq<Key, vec_size_type>::value>(), index);
   }
+
+  template <typename T> basic_container const& operator[] (T const& index) const {
+    return access_collection(bool_proxy<eq<Key, vec_size_type>::value>(), index);
+  }
+
+  template <typename T> basic_container& operator[] (T&& index) {
+    return access_collection(bool_proxy<eq<Key, vec_size_type>::value>(), std::forward<T&&>(index));
+  }
+
 
   // Conversion.
   template <typename T> inline operator T () const { return convert_to(type_proxy<T>()); }
