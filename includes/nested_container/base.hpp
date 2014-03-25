@@ -86,6 +86,7 @@ class basic_container final {
  private:
   using Map = map_type; 
   using Vector = vector_type;
+  using VecSize = typename vector_type::size_type;
   using Null = std::nullptr_t;
 
   enum class value_type : unsigned char  {
@@ -113,6 +114,8 @@ class basic_container final {
   };
 
   template<typename A, typename B> using eq = std::is_same<A,B>;
+  template<typename A, typename B> using ifeq = typename std::enable_if<eq<A,B>::value, int>::type;
+  template<typename A, typename B> using ifneq = typename std::enable_if<!eq<A,B>::value, int>::type;
 
   template <typename T> struct type_proxy {};
   template <bool B> struct bool_proxy {};
@@ -396,34 +399,35 @@ class basic_container final {
   inline bool const& ref_to(type_proxy<bool>) const { return value_.bool_; }
 
   // [] accessors, Key != size_type version
-  basic_container const& access_collection(bool_proxy<false>, Key const& index) const {
+  template <ifneq<Key,VecSize> =0> basic_container const& access_collection(Key const& index) const {
     if (!is_map()) throw exception_type();
     return ref_to<Map>().at(index);
   }
 
-  basic_container const& access_collection(bool_proxy<false>, vec_size_type index) const {
+  template <ifneq<Key,VecSize> =0> basic_container const& access_collection(vec_size_type index) const {
     if (!is_vector()) throw exception_type();
     return ref_to<Vector>().at(index);
   }
 
-  basic_container& access_collection(bool_proxy<false>, Key const& index) noexcept {
+  template <ifneq<Key,VecSize> =0> basic_container& access_collection(Key const& index) noexcept {
     if (!is_map()) switch_to_type<Map>();
     return ref_to<Map>()[index];
   }
 
-  basic_container& access_collection(bool_proxy<false>, Key&& index) noexcept {
+  template <ifneq<Key,VecSize> =0> basic_container& access_collection(Key&& index) noexcept {
     if (!is_map()) switch_to_type<Map>();
     return ref_to<Map>()[std::move(index)];
   }
 
-  basic_container& access_collection(bool_proxy<false>, vec_size_type index) noexcept {
+  template <ifneq<Key,VecSize> =0> basic_container& access_collection(vec_size_type index) noexcept {
     if (!is_vector()) switch_to_type<Vector>();
     if (ref_to<Vector>().size() <= index) ref_to<Vector>().resize(index);
     return ref_to<Vector>()[index];
   }
 
   //template <typename T> convert_to
-  template <typename T> T convert_to(type_proxy<T>) const { 
+  template <typename T, typename std::enable_if<!eq<T,Null>::value && !eq<T,String>::value && !eq<T,Map>::value && !eq<T, Vector>::value, int>::type = 0> 
+  T convert_to() const { 
     static_assert(type_traits<T>::is_pure, "Type must not be a reference nor have cv-qualifiers");
     value_type target_type = type_traits<T>::type_value();
     if (target_type == type_) {
@@ -452,10 +456,9 @@ class basic_container final {
   }
 
   // Handling the particular case of types not supporting casts
-  std::nullptr_t convert_to(type_proxy<std::nullptr_t>) const { 
-    return nullptr;
-  }
-  str_type convert_to(type_proxy<String>) const { 
+  template <typename T, ifeq<Null,T> =0> T convert_to() const { return nullptr; }
+
+  template <typename T, ifeq<String,T> =0> T convert_to() const {
     if (value_type::string == type_) {
       return ref_to<String>();
     }
@@ -464,7 +467,6 @@ class basic_container final {
         case value_type::floating:
           return lexical_cast<String>(ref_to<Float>());
         case value_type::integer:
-          std::cout << "Whatssuuuppp  ????" << std::endl;
           return lexical_cast<String>(ref_to<Int>());
         case value_type::unsigned_integer:
           return lexical_cast<String>(ref_to<UInt>());
@@ -477,12 +479,12 @@ class basic_container final {
     return String();
   }
 
-  Map convert_to(type_proxy<Map>) const { 
+  template <typename T, ifeq<Map,T> =0> T convert_to() const { 
     if (value_type::map == type_) return ref_to<Map>();
     return Map();
   }
 
-  Vector convert_to(type_proxy<Vector>) const { 
+  template <typename T, ifeq<Vector,T> =0> T convert_to() const { 
     if (value_type::vector == type_) return ref_to<Vector>();
     return Vector();
   }
@@ -494,13 +496,12 @@ class basic_container final {
   basic_container(basic_container& c) : basic_container(type_proxy<basic_container>(), c) {}
   // Constructor from other types
 
-  // Array of chars would be nice to support but disambiguate from char const* is hard
-  //template <size_t Length> basic_container(typename str_type::value_type const (& arg ) [Length] ) : basic_container(type_proxy<str_type>(), str_type(arg, Length)) {}
-
-  // Handling char* case
+  // Handling char array case
   template <std::size_t Size> basic_container( char const (&arg)[Size]) : basic_container(type_proxy<str_type>(), str_type(arg, Size)) {}
-  template <typename T, typename std::enable_if<eq<typename String::value_type const*,T>::value, int>::type =0> basic_container(T arg) : basic_container(type_proxy<str_type>(), str_type(arg)) {}
-  template <typename T, typename std::enable_if<eq<typename String::value_type*,T>::value, int>::type =0> basic_container(T arg) : basic_container(type_proxy<str_type>(), str_type(arg)) {}
+  // Handling char* case
+  template <typename T, ifeq<typename String::value_type const*,T> = 0> basic_container(T arg) : basic_container(type_proxy<str_type>(), str_type(arg)) {}
+  template <typename T, ifeq<typename String::value_type*,T> = 0> basic_container(T arg) : basic_container(type_proxy<str_type>(), str_type(arg)) {}
+  // Other types
   template <typename T, typename std::enable_if<type_traits<T>::is_from_container, int>::type = 0>
   basic_container(T&& arg) : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), std::forward<T>(arg)) {}
 
@@ -594,7 +595,7 @@ class basic_container final {
   // Forced type switch
   template <typename T> T& transform() noexcept { 
     static_assert(type_traits<T>::is_pure, "Type must not be a reference nor have cv-qualifiers");
-    if (type_traits<T>::type_value() != type_) switch_to_type(convert_to(type_proxy<T>()));
+    if (type_traits<T>::type_value() != type_) switch_to_type(convert_to<T>());
     return ref_to<T>();
   }
   inline Null transform_null() { switch_to_type<Null>(); return nullptr; }
@@ -649,26 +650,15 @@ class basic_container final {
     return false;
   }
 
-  basic_container const& operator[] (typename key_type::value_type const* index) const {
-    return access_collection(bool_proxy<eq<Key, vec_size_type>::value>(), index);
-  }
-
-  basic_container& operator[] (typename key_type::value_type const* index) {
-    return access_collection(bool_proxy<eq<Key, vec_size_type>::value>(), index);
-  }
-
-  template <typename T> basic_container const& operator[] (T const& index) const {
-    return access_collection(bool_proxy<eq<Key, vec_size_type>::value>(), index);
-  }
-
-  template <typename T> basic_container& operator[] (T&& index) {
-    return access_collection(bool_proxy<eq<Key, vec_size_type>::value>(), std::forward<T&&>(index));
-  }
+  template <ifneq<Key,VecSize> =0> basic_container const& operator[] (typename key_type::value_type const* index) const { return access_collection(index); } 
+  template <ifneq<Key,VecSize> =0> basic_container& operator[] (typename key_type::value_type const* index) noexcept { return access_collection(index); }
+  template <typename T> basic_container const& operator[] (T const& index) const { return access_collection(index); }
+  template <typename T> basic_container& operator[] (T&& index) noexcept { return access_collection(std::forward<T&&>(index)); }
 
 
   // Conversion.
-  template <typename T> inline operator T () const { return convert_to(type_proxy<T>()); }
-  template <typename T> inline T as() const { return convert_to(type_proxy<T>()); }
+  template <typename T> inline operator T () const { return convert_to<T>(); }
+  template <typename T> inline T as() const { return convert_to<T>(); }
   inline Null as_null() const { return as<Null>(); }
   inline Map as_map() const { return as<Map>(); }
   inline Vector as_vector() const { return as<Vector>(); }
