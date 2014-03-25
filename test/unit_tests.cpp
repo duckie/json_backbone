@@ -130,8 +130,8 @@ int main(void) {
     json<container> json_sstream_driver;
     std::cout << json_sstream_driver.serialize(c) << std::endl;
 
-    //std::string test1("Yeah ma poule");
-    //container c3(test1.c_str());
+    std::string test1("Yeah ma poule");
+    container c3(test1.c_str());
   }
 
   return 0;

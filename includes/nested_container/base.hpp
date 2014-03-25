@@ -65,6 +65,9 @@ template <
   , template <typename This> class VectorTemplate = std_vector_default_allocators
   >
 class basic_container final {
+  friend attr_init<basic_container>;
+  friend vector_element_init<basic_container>;
+
  public:
   // Public type declarations
   using key_type = Key;
@@ -113,7 +116,6 @@ class basic_container final {
 
   template <typename T> struct type_proxy {};
   template <bool B> struct bool_proxy {};
-
   template <typename Member> struct type_traits { 
     using T = typename std::remove_cv<typename std::remove_reference<Member>::type>::type;
     using pure_type = T;
@@ -145,7 +147,7 @@ class basic_container final {
     static bool constexpr is_pure = eq<T, Member>::value;
     static bool constexpr is_self= eq<basic_container, T>::value;
 
-    static_assert(is_from_container, "Type must be one of container's internal types");
+    //static_assert(is_from_container, "Type must be one of container's internal types");
   };
 
   static bool is_lexical(value_type type) { 
@@ -496,9 +498,11 @@ class basic_container final {
   //template <size_t Length> basic_container(typename str_type::value_type const (& arg ) [Length] ) : basic_container(type_proxy<str_type>(), str_type(arg, Length)) {}
 
   // Handling char* case
-  basic_container(typename str_type::value_type const* arg) : basic_container(type_proxy<str_type>(), str_type(arg)) {}
-  template <typename T> basic_container(T&& arg) : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), std::forward<T>(arg)) {}
-
+  template <std::size_t Size> basic_container( char const (&arg)[Size]) : basic_container(type_proxy<str_type>(), str_type(arg, Size)) {}
+  template <typename T, typename std::enable_if<eq<typename String::value_type const*,T>::value, int>::type =0> basic_container(T arg) : basic_container(type_proxy<str_type>(), str_type(arg)) {}
+  template <typename T, typename std::enable_if<eq<typename String::value_type*,T>::value, int>::type =0> basic_container(T arg) : basic_container(type_proxy<str_type>(), str_type(arg)) {}
+  template <typename T, typename std::enable_if<type_traits<T>::is_from_container, int>::type = 0>
+  basic_container(T&& arg) : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), std::forward<T>(arg)) {}
 
   // Initializer lists
   basic_container(std::initializer_list< attr_init<basic_container> > list) : basic_container(type_proxy<Map>()){
@@ -742,6 +746,8 @@ template <class Container> class attr_init final {
 };
 
 template <class Container> class vector_element_init final {
+  //static_assert(std::is_same< basic_
+
   mutable Container value_;
  public:
   vector_element_init(Container const& value) : value_(value) {}
