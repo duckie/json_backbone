@@ -123,9 +123,15 @@ int main(void) {
     std::cout << c["nom"].ref_string() << std::endl;
     std::cout << c["attributs"]["liste"][2].ref_string() << std::endl;
 
+    std::string yeah = c["attributs"]["liste"][0];
+    std::cout << "String from number " << yeah << std::endl;
+
     std::cout << "\nSstream json" << std::endl;
     json<container> json_sstream_driver;
     std::cout << json_sstream_driver.serialize(c) << std::endl;
+
+    //std::string test1("Yeah ma poule");
+    //container c3(test1.c_str());
   }
 
   return 0;

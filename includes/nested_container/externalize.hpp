@@ -81,6 +81,30 @@ namespace nested_container { \
   extern template Container< __VA_ARGS__ >::Container(bool&); \
   extern template Container< __VA_ARGS__ >::Container(bool const&); \
   extern template Container< __VA_ARGS__ >::Container(bool&&); \
+  /* Array Ctors up to 12 */ \
+  /*extern template Container< __VA_ARGS__ >::Container(typename Container< __VA_ARGS__ >::str_type::value_type const (&) [0]);*/ \
+  /* Assignment from other types */ \
+  extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator=(typename Container< __VA_ARGS__ >::map_type&); \
+  extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator=(typename Container< __VA_ARGS__ >::map_type const&); \
+  extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator=(typename Container< __VA_ARGS__ >::map_type&&); \
+  extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator=(typename Container< __VA_ARGS__ >::vector_type&); \
+  extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator=(typename Container< __VA_ARGS__ >::vector_type const&); \
+  extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator=(typename Container< __VA_ARGS__ >::vector_type&&); \
+  extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator=(typename Container< __VA_ARGS__ >::str_type&); \
+  extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator=(typename Container< __VA_ARGS__ >::str_type const&); \
+  extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator=(typename Container< __VA_ARGS__ >::str_type&&); \
+  extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator=(typename Container< __VA_ARGS__ >::float_type&); \
+  extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator=(typename Container< __VA_ARGS__ >::float_type const&); \
+  extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator=(typename Container< __VA_ARGS__ >::float_type&&); \
+  extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator=(typename Container< __VA_ARGS__ >::int_type&); \
+  extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator=(typename Container< __VA_ARGS__ >::int_type const&); \
+  extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator=(typename Container< __VA_ARGS__ >::int_type&&); \
+  extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator=(typename Container< __VA_ARGS__ >::uint_type&); \
+  extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator=(typename Container< __VA_ARGS__ >::uint_type const&); \
+  extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator=(typename Container< __VA_ARGS__ >::uint_type&&); \
+  extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator=(bool&); \
+  extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator=(bool const&); \
+  extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator=(bool&&); \
   /* Init members */ \
   extern template void Container< __VA_ARGS__ >::init_member<std::nullptr_t>(); \
   extern template void Container< __VA_ARGS__ >::init_member<typename Container< __VA_ARGS__ >::map_type>(); \
@@ -113,6 +137,13 @@ namespace nested_container { \
   extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator[](int&); \
   extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator[](int const&); \
   extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator[](int &&); \
+  /* lexical cast */ \
+  extern template typename Container< __VA_ARGS__ >::float_type lexical_cast<typename Container< __VA_ARGS__ >::float_type, typename Container< __VA_ARGS__ >::str_type>(typename Container< __VA_ARGS__ >::str_type const&); \
+  extern template typename Container< __VA_ARGS__ >::int_type lexical_cast<typename Container< __VA_ARGS__ >::int_type, typename Container< __VA_ARGS__ >::str_type>(typename Container< __VA_ARGS__ >::str_type const&); \
+  extern template typename Container< __VA_ARGS__ >::uint_type lexical_cast<typename Container< __VA_ARGS__ >::uint_type, typename Container< __VA_ARGS__ >::str_type>(typename Container< __VA_ARGS__ >::str_type const&); \
+  extern template bool lexical_cast<bool, typename Container< __VA_ARGS__ >::str_type>(typename Container< __VA_ARGS__ >::str_type const&); \
+  /* STL */ \
+  /*extern template class Container< __VA_ARGS__ >::vector_template< Container< __VA_ARGS__ > >;*/ \
 }  // namespace nested_Container<>  
 
 
@@ -177,6 +208,28 @@ namespace nested_container { \
   template Container< __VA_ARGS__ >::Container(bool&); \
   template Container< __VA_ARGS__ >::Container(bool const&); \
   template Container< __VA_ARGS__ >::Container(bool&&); \
+  /* Assignment from other types */ \
+  template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator=(typename Container< __VA_ARGS__ >::map_type&); \
+  template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator=(typename Container< __VA_ARGS__ >::map_type const&); \
+  template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator=(typename Container< __VA_ARGS__ >::map_type&&); \
+  template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator=(typename Container< __VA_ARGS__ >::vector_type&); \
+  template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator=(typename Container< __VA_ARGS__ >::vector_type const&); \
+  template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator=(typename Container< __VA_ARGS__ >::vector_type&&); \
+  template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator=(typename Container< __VA_ARGS__ >::str_type&); \
+  template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator=(typename Container< __VA_ARGS__ >::str_type const&); \
+  template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator=(typename Container< __VA_ARGS__ >::str_type&&); \
+  template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator=(typename Container< __VA_ARGS__ >::float_type&); \
+  template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator=(typename Container< __VA_ARGS__ >::float_type const&); \
+  template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator=(typename Container< __VA_ARGS__ >::float_type&&); \
+  template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator=(typename Container< __VA_ARGS__ >::int_type&); \
+  template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator=(typename Container< __VA_ARGS__ >::int_type const&); \
+  template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator=(typename Container< __VA_ARGS__ >::int_type&&); \
+  template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator=(typename Container< __VA_ARGS__ >::uint_type&); \
+  template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator=(typename Container< __VA_ARGS__ >::uint_type const&); \
+  template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator=(typename Container< __VA_ARGS__ >::uint_type&&); \
+  template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator=(bool&); \
+  template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator=(bool const&); \
+  template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator=(bool&&); \
   /* Init members */ \
   template void Container< __VA_ARGS__ >::init_member<std::nullptr_t>(); \
   template void Container< __VA_ARGS__ >::init_member<typename Container< __VA_ARGS__ >::map_type>(); \
@@ -208,6 +261,11 @@ namespace nested_container { \
   template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator[](int&); \
   template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator[](int const&); \
   template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator[](int &&); \
+  /* lexical cast */ \
+  template typename Container< __VA_ARGS__ >::float_type lexical_cast<typename Container< __VA_ARGS__ >::float_type, typename Container< __VA_ARGS__ >::str_type>(typename Container< __VA_ARGS__ >::str_type const&); \
+  template typename Container< __VA_ARGS__ >::int_type lexical_cast<typename Container< __VA_ARGS__ >::int_type, typename Container< __VA_ARGS__ >::str_type>(typename Container< __VA_ARGS__ >::str_type const&); \
+  template typename Container< __VA_ARGS__ >::uint_type lexical_cast<typename Container< __VA_ARGS__ >::uint_type, typename Container< __VA_ARGS__ >::str_type>(typename Container< __VA_ARGS__ >::str_type const&); \
+  template bool lexical_cast<bool, typename Container< __VA_ARGS__ >::str_type>(typename Container< __VA_ARGS__ >::str_type const&); \
 }  // namespace nested_container  
 #else
 # define NESTED_COMPILER_EXTERNALIZE(...)

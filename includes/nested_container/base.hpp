@@ -19,8 +19,26 @@
 #include <iostream>
 
 namespace nested_container {
+
 // boost lexical cast, simple non-throwing version
-template<typename Target, typename Source> Target lexical_cast(Source arg) {
+// TODO: Replace with Karma generators and Qi parsers
+template<typename Target, typename Source> 
+typename std::enable_if<std::is_fundamental<Source>::value, Target>::type
+lexical_cast(Source arg) {
+  std::stringstream interpreter;
+  Target result;
+
+  if(!(interpreter << arg)
+      || !(interpreter >> result)
+      || !(interpreter >> std::ws).eof())
+    return Target();
+
+  return result;
+}
+
+template<typename Target, typename Source> 
+typename std::enable_if<!std::is_fundamental<Source>::value, Target>::type
+lexical_cast(Source const& arg) {
   std::stringstream interpreter;
   Target result;
 
@@ -62,13 +80,6 @@ class basic_container final {
     const char* what() const noexcept { return "NestedContainer exception."; }
   };
 
-  class exception_map_key_doesnt_exist : std::exception {
-    const char* what() const noexcept { return "NestedContainer exception."; }
-  };
-
-  class exception_map_vector_outofrange : std::exception {
-    const char* what() const noexcept { return "NestedContainer exception."; }
-  };
  private:
   using Map = map_type; 
   using Vector = vector_type;
@@ -451,6 +462,7 @@ class basic_container final {
         case value_type::floating:
           return lexical_cast<String>(ref_to<Float>());
         case value_type::integer:
+          std::cout << "Whatssuuuppp  ????" << std::endl;
           return lexical_cast<String>(ref_to<Int>());
         case value_type::unsigned_integer:
           return lexical_cast<String>(ref_to<UInt>());
@@ -479,9 +491,14 @@ class basic_container final {
   basic_container(basic_container const& c) : basic_container(type_proxy<basic_container>(), c) {}
   basic_container(basic_container& c) : basic_container(type_proxy<basic_container>(), c) {}
   // Constructor from other types
-  template <typename T> basic_container(T&& arg) : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), std::forward<T>(arg)) {}
+
+  // Array of chars would be nice to support but disambiguate from char const* is hard
+  //template <size_t Length> basic_container(typename str_type::value_type const (& arg ) [Length] ) : basic_container(type_proxy<str_type>(), str_type(arg, Length)) {}
+
   // Handling char* case
   basic_container(typename str_type::value_type const* arg) : basic_container(type_proxy<str_type>(), str_type(arg)) {}
+  template <typename T> basic_container(T&& arg) : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), std::forward<T>(arg)) {}
+
 
   // Initializer lists
   basic_container(std::initializer_list< attr_init<basic_container> > list) : basic_container(type_proxy<Map>()){
@@ -516,6 +533,11 @@ class basic_container final {
   basic_container& operator= (basic_container const& c) { init_member(c); return *this; }
   basic_container& operator= (basic_container&& c) { init_member(c); return *this; }
   basic_container& operator= (basic_container& c) { init_member(c); return *this; }
+  template <size_t Length> basic_container& operator=(typename str_type::value_type const (& arg) [Length] ) {
+    switch_to_type<str_type>();
+    init_member(str_type(arg, Length));
+    return *this;
+  }
   template <typename T> basic_container& operator=(T&& arg) { 
     switch_to_type<typename type_traits<decltype(arg)>::pure_type>();
     init_member(std::forward<T>(arg));
