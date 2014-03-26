@@ -19,8 +19,6 @@ template <typename C> using json = nested_container::json::serializer<C>;
 template <typename C> using json_cstring = nested_container::experimental::cjson::serializer<C>;
 
 int main(void) {
-  // Performance test
-  if(false)
   {
     std::cout << "Begin test 7" << std::endl;
     container c = container::init_vec({});
@@ -32,7 +30,7 @@ int main(void) {
     json<container> json_sstream_driver;
     json_cstring<container> json_driver;
 
-    size_t constexpr max_iter = 1e0;
+    size_t constexpr max_iter = 1e1;
     using std::chrono::high_resolution_clock;
     using std::chrono::time_point;
     using std::chrono::duration_cast;

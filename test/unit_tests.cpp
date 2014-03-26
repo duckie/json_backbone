@@ -93,17 +93,17 @@ int main(void) {
     container c1 = container::init_vec({ "Al1", "Allo", "Deloin", "Roger","Marcel"});
     std::cout << c1[static_cast<typename container::vec_size_type>(0u)].is_int() << std::endl;
 
-    //std::cout << "Init by map" << std::endl;
-    //container c4 = { 
-      //{"Roger",1}
-      //, {"Marcel","Robert"}
-      //, {"Robert", container::init_vec({1,2,3u})} 
-    //};
-    //++c4["Roger"].raw_int();
-    //std::cout << c4["Roger"].ref_int() << std::endl;
-    //std::cout << c4["Roger"].is_int() << std::endl;
-    //std::cout << c4["Marcel"].is_string() << std::endl;
-    //std::cout << c4["Rober"].is_vector() << std::endl;
+    std::cout << "Init by map" << std::endl;
+    container c4 = container::init_map({ 
+      {"Roger",1}
+      , {"Marcel","Robert"}
+      , {"Robert", container::init_vec({1,2,3u})} 
+    });
+    ++ c4["Roger"].raw_int();
+    std::cout << c4["Roger"].ref_int() << std::endl;
+    std::cout << c4["Roger"].is_int() << std::endl;
+    std::cout << c4["Marcel"].is_string() << std::endl;
+    std::cout << c4["Rober"].is_vector() << std::endl;
   }
 
   {
@@ -120,6 +120,12 @@ int main(void) {
       }
     };
 
+    c["attributs"]["sub_attributes"][0] = true;
+    c["attributs"]["sub_attributes"][3] = "falsy man";
+
+    c["attributs"]["sub_attributes2"].transform_vector().emplace_back(nullptr);
+    c["attributs"]["sub_attributes2"].ref_vector().emplace_back(-1);
+
     std::cout << c["nom"].ref_string() << std::endl;
     std::cout << c["attributs"]["liste"][2].ref_string() << std::endl;
 
@@ -129,6 +135,7 @@ int main(void) {
     std::cout << "\nSstream json" << std::endl;
     json<container> json_sstream_driver;
     std::cout << json_sstream_driver.serialize(c) << std::endl;
+    std::cout << json_sstream_driver.serialize(c["attributs"]["sub_attributes"]) << std::endl;
 
     std::string test1("Yeah ma poule");
     container c3(test1.c_str());

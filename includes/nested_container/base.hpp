@@ -410,7 +410,7 @@ class basic_container final {
 
   template <ifneq<Key,VecSize> =0> basic_container& access_collection(vec_size_type index) noexcept {
     if (!is_vector()) switch_to_type<Vector>();
-    if (ref_to<Vector>().size() <= index) ref_to<Vector>().resize(index);
+    if (ref_to<Vector>().size() <= index) ref_to<Vector>().resize(index+1);
     return ref_to<Vector>()[index];
   }
 
@@ -537,7 +537,7 @@ class basic_container final {
     return *this;
   }
   template <typename T> basic_container& operator=(T&& arg) { 
-    switch_to_type<typename type_traits<decltype(arg)>::pure_type>();
+    switch_to_type<typename type_traits<T>::pure_type>();
     init_member(std::forward<T>(arg));
     return *this;
   }
