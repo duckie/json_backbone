@@ -117,8 +117,6 @@ class basic_container final {
   template<typename A, typename B> using ifeq = typename std::enable_if<eq<A,B>::value, int>::type;
   template<typename A, typename B> using ifneq = typename std::enable_if<!eq<A,B>::value, int>::type;
 
-  template <typename T> struct type_proxy {};
-  template <bool B> struct bool_proxy {};
   template <typename Member> struct type_traits { 
     using T = typename std::remove_cv<typename std::remove_reference<Member>::type>::type;
     using pure_type = T;
@@ -185,15 +183,14 @@ class basic_container final {
   }
 
   // Compile time initializers
-  template <typename T> inline void init_member() { init_member(type_proxy<T>()); }
-  inline void init_member(type_proxy<std::nullptr_t>) {}
-  inline void init_member(type_proxy<Map>) { value_.dict_ = new Map; }
-  inline void init_member(type_proxy<Vector>) { value_.vector_ = new Vector; }
-  inline void init_member(type_proxy<String>) { new (&(value_.str_)) String; }
-  inline void init_member(type_proxy<Float>) { value_.float_ = 0.f; }
-  inline void init_member(type_proxy<Int>) { value_.int_ = 0; }
-  inline void init_member(type_proxy<UInt>) { value_.uint_ = 0u; }
-  inline void init_member(type_proxy<bool>) { value_.bool_ = false; }
+  template <typename T, ifeq<Null,T> =0> inline void init_member() {}
+  template <typename T, ifeq<Map,T> =0> inline void init_member() { value_.dict_ = new Map; }
+  template <typename T, ifeq<Vector,T> =0> inline void init_member() { value_.vector_ = new Vector; }
+  template <typename T, ifeq<String,T> =0> inline void init_member() { new (&(value_.str_)) String; }
+  template <typename T, ifeq<Float,T> =0> inline void init_member() { value_.float_ = 0.f; }
+  template <typename T, ifeq<Int,T> =0> inline void init_member() { value_.int_ = 0; }
+  template <typename T, ifeq<UInt,T> =0> inline void init_member() { value_.uint_ = 0u; }
+  template <typename T, ifeq<bool,T> =0> inline void init_member() { value_.bool_ = false; }
 
   // Init with value -  trivial types
   inline void init_member(std::nullptr_t) {}
@@ -353,50 +350,42 @@ class basic_container final {
   }
 
 
-  template <typename T> basic_container(type_proxy<T>) : type_(type_traits<T>::type_value()) { 
-    init_member(type_proxy<T>());
-  }
-
-  template <typename T> basic_container(type_proxy<typename type_traits<T>::pure_type>, T&& arg) : type_(type_traits<T>::type_value()) { 
-    init_member(std::forward<T>(arg));
-  }
+  // For default construction with a type at compile type
+  template <typename T> struct type_proxy {};
+  template <typename T> explicit basic_container(type_proxy<T>) : type_(type_traits<T>::type_value()) { init_member<T>(); }
 
   // Accessors, private, not protected against bad behavior, checks must be done before
-  template <typename T> inline T* ptr_to() { return ptr_to(type_proxy<T>()); }
-  inline Map* ptr_to(type_proxy<Map>) { return value_.dict_; }
-  inline Vector* ptr_to(type_proxy<Vector>) { return value_.vector_; }
-  inline String* ptr_to(type_proxy<String>) { return &value_.str_; }
-  inline Float* ptr_to(type_proxy<Float>) { return &value_.float_; }
-  inline Int* ptr_to(type_proxy<Int>) { return &value_.int_; }
-  inline UInt* ptr_to(type_proxy<UInt>) { return &value_.uint_; }
-  inline bool* ptr_to(type_proxy<bool>) { return &value_.bool_; }
+  template <typename T, ifeq<Map,T> =0>     inline Map*     ptr_to() { return value_.dict_; }
+  template <typename T, ifeq<Vector,T> =0>  inline Vector*  ptr_to() { return value_.vector_; }
+  template <typename T, ifeq<String,T> =0>  inline String*  ptr_to() { return &value_.str_; }
+  template <typename T, ifeq<Float,T> =0>   inline Float*   ptr_to() { return &value_.float_; }
+  template <typename T, ifeq<Int,T> =0>     inline Int*     ptr_to() { return &value_.int_; }
+  template <typename T, ifeq<UInt,T> =0>    inline UInt*    ptr_to() { return &value_.uint_; }
+  template <typename T, ifeq<bool,T> =0>    inline bool*    ptr_to() { return &value_.bool_; }
 
-  template <typename T> inline T const* ptr_to() const { return ptr_to(type_proxy<T>()); }
-  inline Map const* ptr_to(type_proxy<Map>) const { return value_.dict_; }
-  inline Vector const* ptr_to(type_proxy<Vector>) const { return value_.vector_; }
-  inline String const* ptr_to(type_proxy<String>) const { return &value_.str_; }
-  inline Float const* ptr_to(type_proxy<Float>) const { return &value_.float_; }
-  inline Int const* ptr_to(type_proxy<Int>) const { return &value_.int_; }
-  inline UInt const* ptr_to(type_proxy<UInt>) const { return &value_.uint_; }
-  inline bool const* ptr_to(type_proxy<bool>) const { return &value_.bool_; }
+  template <typename T, ifeq<Map,T> =0>     inline Map    const*  ptr_to() const { return value_.dict_; }
+  template <typename T, ifeq<Vector,T> =0>  inline Vector const*  ptr_to() const { return value_.vector_; }
+  template <typename T, ifeq<String,T> =0>  inline String const*  ptr_to() const { return &value_.str_; }
+  template <typename T, ifeq<Float,T> =0>   inline Float  const*  ptr_to() const { return &value_.float_; }
+  template <typename T, ifeq<Int,T> =0>     inline Int    const*  ptr_to() const { return &value_.int_; }
+  template <typename T, ifeq<UInt,T> =0>    inline UInt   const*  ptr_to() const { return &value_.uint_; }
+  template <typename T, ifeq<bool,T> =0>    inline bool   const*  ptr_to() const { return &value_.bool_; }
 
-  template <typename T> inline T& ref_to() { return ref_to(type_proxy<T>()); }
-  inline Map& ref_to(type_proxy<Map>) { return *value_.dict_; }
-  inline Vector& ref_to(type_proxy<Vector>) { return *value_.vector_; }
-  inline String& ref_to(type_proxy<String>) { return value_.str_; }
-  inline Float& ref_to(type_proxy<Float>) { return value_.float_; }
-  inline Int& ref_to(type_proxy<Int>) { return value_.int_; }
-  inline UInt& ref_to(type_proxy<UInt>) { return value_.uint_; }
-  inline bool& ref_to(type_proxy<bool>) { return value_.bool_; }
+  template <typename T, ifeq<Map,T> =0>     inline Map&     ref_to() { return *value_.dict_; }
+  template <typename T, ifeq<Vector,T> =0>  inline Vector&  ref_to() { return *value_.vector_; }
+  template <typename T, ifeq<String,T> =0>  inline String&  ref_to() { return value_.str_; }
+  template <typename T, ifeq<Float,T> =0>   inline Float&   ref_to() { return value_.float_; }
+  template <typename T, ifeq<Int,T> =0>     inline Int&     ref_to() { return value_.int_; }
+  template <typename T, ifeq<UInt,T> =0>    inline UInt&    ref_to() { return value_.uint_; }
+  template <typename T, ifeq<bool,T> =0>    inline bool&    ref_to() { return value_.bool_; }
 
-  template <typename T> inline T const& ref_to() const { return ref_to(type_proxy<T>()); }
-  inline Map const& ref_to(type_proxy<Map>) const { return *value_.dict_; }
-  inline Vector const& ref_to(type_proxy<Vector>) const { return *value_.vector_; }
-  inline String const& ref_to(type_proxy<String>) const { return value_.str_; }
-  inline Float const& ref_to(type_proxy<Float>) const { return value_.float_; }
-  inline Int const& ref_to(type_proxy<Int>) const { return value_.int_; }
-  inline UInt const& ref_to(type_proxy<UInt>) const { return value_.uint_; }
-  inline bool const& ref_to(type_proxy<bool>) const { return value_.bool_; }
+  template <typename T, ifeq<Map,T> =0>     inline Map    const&  ref_to() const { return *value_.dict_; }
+  template <typename T, ifeq<Vector,T> =0>  inline Vector const&  ref_to() const { return *value_.vector_; }
+  template <typename T, ifeq<String,T> =0>  inline String const&  ref_to() const { return value_.str_; }
+  template <typename T, ifeq<Float,T> =0>   inline Float  const&  ref_to() const { return value_.float_; }
+  template <typename T, ifeq<Int,T> =0>     inline Int    const&  ref_to() const { return value_.int_; }
+  template <typename T, ifeq<UInt,T> =0>    inline UInt   const&  ref_to() const { return value_.uint_; }
+  template <typename T, ifeq<bool,T> =0>    inline bool   const&  ref_to() const { return value_.bool_; }
 
   // [] accessors, Key != size_type version
   template <ifneq<Key,VecSize> =0> basic_container const& access_collection(Key const& index) const {
@@ -491,25 +480,29 @@ class basic_container final {
 
  public:
   basic_container() {};
-  basic_container(basic_container&& c) : basic_container(type_proxy<basic_container>(), std::move(c)) {}
-  basic_container(basic_container const& c) : basic_container(type_proxy<basic_container>(), c) {}
-  basic_container(basic_container& c) : basic_container(type_proxy<basic_container>(), c) {}
+  basic_container(basic_container&& c) { init_member(std::move(c)); }
+  basic_container(basic_container const& c) { init_member(c); }
+  basic_container(basic_container& c) { init_member(c); }
   // Constructor from other types
 
   // Handling char array case
-  template <std::size_t Size> basic_container( char const (&arg)[Size]) : basic_container(type_proxy<str_type>(), str_type(arg, Size)) {}
+  template <std::size_t Size> basic_container( char const (&arg)[Size]) : basic_container(str_type(arg, Size)) {}
   // Handling char* case
-  template <typename T, ifeq<typename String::value_type const*,T> = 0> basic_container(T arg) : basic_container(type_proxy<str_type>(), str_type(arg)) {}
-  template <typename T, ifeq<typename String::value_type*,T> = 0> basic_container(T arg) : basic_container(type_proxy<str_type>(), str_type(arg)) {}
+  template <typename T, ifeq<typename String::value_type const*,T> = 0> basic_container(T arg) : basic_container(str_type(arg)) {}
+  template <typename T, ifeq<typename String::value_type*,T> = 0> basic_container(T arg) : basic_container(str_type(arg)) {}
   // Other types
   template <typename T, typename std::enable_if<type_traits<T>::is_from_container, int>::type = 0>
-  basic_container(T&& arg) : basic_container(type_proxy<typename type_traits<decltype(arg)>::pure_type>(), std::forward<T>(arg)) {}
+  basic_container(T&& arg) : type_(type_traits<T>::type_value()) { 
+    init_member(std::forward<T>(arg));
+  }
 
   // Initializer lists
-  basic_container(std::initializer_list< attr_init<basic_container> > list) : basic_container(type_proxy<Map>()){
+  basic_container(std::initializer_list< attr_init<basic_container> > list) : type_(value_type::map) {
+    init_member<Map>();
     for(auto const& elem : list) ref_to<Map>().emplace(elem.key(), elem.value());
   }
-  basic_container(std::initializer_list<vector_element_init<basic_container>> list) : basic_container(type_proxy<Vector>()){
+  basic_container(std::initializer_list<vector_element_init<basic_container>> list) : type_(value_type::vector) {
+    init_member<Vector>();
     ref_to<Vector>().reserve(list.size());
     for(auto const& element : list) ref_to<Vector>().emplace_back(element.value());
   }
