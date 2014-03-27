@@ -661,19 +661,7 @@ class basic_container final {
   inline UInt as_uint() const { return as<UInt>(); }
   inline bool as_bool() const { return as<bool>(); }
 
-  // Visiting
-  struct const_visitor {
-    virtual void apply(std::nullptr_t) {}
-    virtual void apply(Map const&) {}
-    virtual void apply(Vector const&) {}
-    virtual void apply(String const&) {}
-    virtual void apply(Float) {}
-    virtual void apply(Int) {}
-    virtual void apply(UInt) {}
-    virtual void apply(bool) {}
-  };
-
-  void visit(const_visitor& v) const {
+  template <typename T> void const_visit(T& v) const {
     switch (type_) {
       case value_type::null:
         v.apply(nullptr);
@@ -746,6 +734,17 @@ template <class Container> class vector_element_init final {
   inline Container value() const { return std::move(value_); }
 };
 
+// Visiting
+template <class Container> struct const_visitor_adapter {
+  virtual void apply(std::nullptr_t) {}
+  virtual void apply(typename Container::map_type const&) {}
+  virtual void apply(typename Container::vector_type const&) {}
+  virtual void apply(typename Container::str_type const&) {}
+  virtual void apply(typename Container::float_type) {}
+  virtual void apply(typename Container::int_type) {}
+  virtual void apply(typename Container::uint_type) {}
+  virtual void apply(bool) {}
+};
 
 }  // namespace nested_container
 

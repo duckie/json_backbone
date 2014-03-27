@@ -70,7 +70,6 @@ template<typename Container, typename Iterator> struct raw_grammar : qi::grammar
 template<typename Container, typename StreamType> serializer_impl_envelop<Container, StreamType>::~serializer_impl_envelop() {}
 
 template<typename Container, typename StreamType> class serializer_impl : public serializer_impl_envelop<Container, StreamType> {
-  using base_visitor_type   = typename Container::const_visitor;
   using string_type         = typename Container::str_type;
   using ostream_type        = std::basic_ostringstream<typename StreamType::value_type, typename StreamType::traits_type>;
   using key_type            = typename Container::key_type;
@@ -85,39 +84,39 @@ template<typename Container, typename StreamType> class serializer_impl : public
   grammar const grammar_;
 
   // Private visitors structures
-  struct visitor_ostream : public base_visitor_type {
+  struct visitor_ostream {
     ostream_type output_stream;
     
-    virtual void apply(std::nullptr_t) override { output_stream << "null"; }
+    void apply(std::nullptr_t) { output_stream << "null"; }
     
-    virtual void apply(map_type const& v) override {
+    void apply(map_type const& v) {
       output_stream << "{";
       bool first = true;
       for(auto const& element : v) {
         if (!first) output_stream << ",";
         first = false;
         output_stream << "\"" << element.first << "\":";
-        element.second.visit(*this);
+        element.second.const_visit(*this);
       }
       output_stream << "}";
     }
     
-    virtual void apply(vector_type const& v) override {
+    void apply(vector_type const& v) {
       output_stream << "[";
       bool first = true;
       for(Container const& element : v) {
         if (!first) output_stream << ",";
         first = false;
-        element.visit(*this);
+        element.const_visit(*this);
       }
       output_stream << "]";
     }
     
-    virtual void apply(string_type const& v) override { output_stream << "\"" << v << "\""; }
-    virtual void apply(float_type v) override { output_stream << v; }
-    virtual void apply(int_type v) override { output_stream << v; }
-    virtual void apply(uint_type v) override { output_stream << v; }
-    virtual void apply(bool v) override { output_stream << (v?"true":"false"); }
+    void apply(string_type const& v) { output_stream << "\"" << v << "\""; }
+    void apply(float_type v) { output_stream << v; }
+    void apply(int_type v) { output_stream << v; }
+    void apply(uint_type v) { output_stream << v; }
+    void apply(bool v) { output_stream << (v?"true":"false"); }
 
     StreamType render() const { return output_stream.str(); }
   };
@@ -127,7 +126,7 @@ template<typename Container, typename StreamType> class serializer_impl : public
 
   StreamType serialize(Container const& input) const override {
     visitor_ostream visitor_;
-    input.visit(visitor_);
+    input.const_visit(visitor_);
     return visitor_.render();
   };
 
