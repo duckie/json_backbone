@@ -180,7 +180,7 @@ template<typename Container, typename StreamType> class serializer_impl : public
     }
     
     void apply(map_type const& v) {
-      karma::generate(buffer_,karma::char_('{'));  
+      karma::generate(buffer_,karma::char_, '{');  
       bool first = true;
       for(auto const& element : v) {
         if (!first) karma::generate(buffer_,karma::char_(','));
@@ -188,31 +188,32 @@ template<typename Container, typename StreamType> class serializer_impl : public
         karma::generate(buffer_, karma::char_('"') << karma::string(element.first) << karma::lit("\":"));
         element.second.const_visit(*this);
       }
-      karma::generate(buffer_,karma::char_('}'));
+      karma::generate(buffer_,karma::char_, '}');
     }
     
     void apply(vector_type const& v) {
-      karma::generate(buffer_,karma::char_('['));  
+      karma::generate(buffer_,karma::char_, '[');  
       bool first = true;
       for(Container const& element : v) {
-        if (!first) karma::generate(buffer_,karma::char_(','));
+        if (!first) karma::generate(buffer_,karma::char_, ',');
         first = false;
         element.const_visit(*this);
       }
-      karma::generate(buffer_,karma::char_(']'));  
+      karma::generate(buffer_,karma::char_, ']');  
     }
     
     void apply(string_type const& v) { 
-      karma::generate(buffer_,karma::char_('"') << karma::string(v) << karma::char_('"'));  
+      //karma::generate(buffer_,karma::char_('"') << karma::string(v) << karma::char_('"'));  
+      karma::generate(buffer_,karma::char_ << karma::string << karma::char_, '"', v, '"');  
     }
     void apply(float_type v) { 
-      karma::generate(buffer_, float_generator_(v));
+      karma::generate(buffer_, float_generator_, v);
     }
     void apply(int_type v) { 
-      karma::generate(buffer_, int_generator_(v));
+      karma::generate(buffer_, int_generator_, v);
     }
     void apply(uint_type v) { 
-      karma::generate(buffer_, uint_generator_(v));
+      karma::generate(buffer_, uint_generator_, v);
     }
     void apply(bool v) { 
       if (v)
@@ -275,7 +276,7 @@ template<typename Container, typename StreamType> class serializer_impl : public
     printer_.init_buffer_ = printer_.buffer_;
     input.const_visit(printer_);
     std::string result(printer_.init_buffer_, printer_.buffer_ - printer_.init_buffer_);
-    std::free(printer_.init_buffer_);
+    //std::free(printer_.init_buffer_);
     return result;
 
     //visitor_ostream visitor_;
