@@ -272,7 +272,7 @@ template<typename Container, typename StreamType> class serializer_impl : public
     input.const_visit(size_calculator_);
 
     // Rendering
-    printer_.buffer_ = reinterpret_cast<char*>(std::malloc(sizeof(typename string_type::value_type)*size_calculator_.size));
+    printer_.buffer_ = reinterpret_cast<char*>(std::malloc(sizeof(typename string_type::value_type)*size_calculator_.size + 1u));
     printer_.init_buffer_ = printer_.buffer_;
     input.const_visit(printer_);
     std::string result(printer_.init_buffer_, printer_.buffer_ - printer_.init_buffer_);
