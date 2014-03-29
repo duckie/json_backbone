@@ -196,14 +196,14 @@ namespace nested_container { \
   extern template typename Container< __VA_ARGS__ >::int_type     Container< __VA_ARGS__ >::convert_to<typename Container< __VA_ARGS__ >::int_type, 0>() const; \
   extern template typename Container< __VA_ARGS__ >::uint_type    Container< __VA_ARGS__ >::convert_to<typename Container< __VA_ARGS__ >::uint_type, 0>() const; \
   extern template bool                                            Container< __VA_ARGS__ >::convert_to<bool, 0>() const; \
-  extern template std::nullptr_t                                  Container< __VA_ARGS__ >::operator std::nullptr_t() const; \
-  extern template typename Container< __VA_ARGS__ >::map_type     Container< __VA_ARGS__ >::operator typename Container< __VA_ARGS__ >::map_type() const; \
-  extern template typename Container< __VA_ARGS__ >::vector_type  Container< __VA_ARGS__ >::operator typename Container< __VA_ARGS__ >::vector_type() const; \
-  extern template typename Container< __VA_ARGS__ >::str_type     Container< __VA_ARGS__ >::operator typename Container< __VA_ARGS__ >::str_type() const; \
-  extern template typename Container< __VA_ARGS__ >::float_type   Container< __VA_ARGS__ >::operator typename Container< __VA_ARGS__ >::float_type() const; \
-  extern template typename Container< __VA_ARGS__ >::int_type     Container< __VA_ARGS__ >::operator typename Container< __VA_ARGS__ >::int_type() const; \
-  extern template typename Container< __VA_ARGS__ >::uint_type    Container< __VA_ARGS__ >::operator typename Container< __VA_ARGS__ >::uint_type() const; \
-  extern template bool                                            Container< __VA_ARGS__ >::operator bool() const; \
+  extern template Container< __VA_ARGS__ >::operator std::nullptr_t() const; \
+  extern template Container< __VA_ARGS__ >::operator typename Container< __VA_ARGS__ >::map_type() const; \
+  extern template Container< __VA_ARGS__ >::operator typename Container< __VA_ARGS__ >::vector_type() const; \
+  extern template Container< __VA_ARGS__ >::operator typename Container< __VA_ARGS__ >::str_type() const; \
+  extern template Container< __VA_ARGS__ >::operator typename Container< __VA_ARGS__ >::float_type() const; \
+  extern template Container< __VA_ARGS__ >::operator typename Container< __VA_ARGS__ >::int_type() const; \
+  extern template Container< __VA_ARGS__ >::operator typename Container< __VA_ARGS__ >::uint_type() const; \
+  extern template Container< __VA_ARGS__ >::operator bool() const; \
   extern template std::nullptr_t                                  Container< __VA_ARGS__ >::as<std::nullptr_t>() const; \
   extern template typename Container< __VA_ARGS__ >::map_type     Container< __VA_ARGS__ >::as<typename Container< __VA_ARGS__ >::map_type>() const; \
   extern template typename Container< __VA_ARGS__ >::vector_type  Container< __VA_ARGS__ >::as<typename Container< __VA_ARGS__ >::vector_type>() const; \
@@ -398,14 +398,14 @@ namespace nested_container { \
   template typename Container< __VA_ARGS__ >::int_type     Container< __VA_ARGS__ >::convert_to<typename Container< __VA_ARGS__ >::int_type, 0>() const; \
   template typename Container< __VA_ARGS__ >::uint_type    Container< __VA_ARGS__ >::convert_to<typename Container< __VA_ARGS__ >::uint_type, 0>() const; \
   template bool                                            Container< __VA_ARGS__ >::convert_to<bool, 0>() const; \
-  template std::nullptr_t                                  Container< __VA_ARGS__ >::operator std::nullptr_t() const; \
-  template typename Container< __VA_ARGS__ >::map_type     Container< __VA_ARGS__ >::operator typename Container< __VA_ARGS__ >::map_type() const; \
-  template typename Container< __VA_ARGS__ >::vector_type  Container< __VA_ARGS__ >::operator typename Container< __VA_ARGS__ >::vector_type() const; \
-  template typename Container< __VA_ARGS__ >::str_type     Container< __VA_ARGS__ >::operator typename Container< __VA_ARGS__ >::str_type() const; \
-  template typename Container< __VA_ARGS__ >::float_type   Container< __VA_ARGS__ >::operator typename Container< __VA_ARGS__ >::float_type() const; \
-  template typename Container< __VA_ARGS__ >::int_type     Container< __VA_ARGS__ >::operator typename Container< __VA_ARGS__ >::int_type() const; \
-  template typename Container< __VA_ARGS__ >::uint_type    Container< __VA_ARGS__ >::operator typename Container< __VA_ARGS__ >::uint_type() const; \
-  template bool                                            Container< __VA_ARGS__ >::operator bool() const; \
+  template Container< __VA_ARGS__ >::operator std::nullptr_t() const; \
+  template Container< __VA_ARGS__ >::operator typename Container< __VA_ARGS__ >::map_type() const; \
+  template Container< __VA_ARGS__ >::operator typename Container< __VA_ARGS__ >::vector_type() const; \
+  template Container< __VA_ARGS__ >::operator typename Container< __VA_ARGS__ >::str_type() const; \
+  template Container< __VA_ARGS__ >::operator typename Container< __VA_ARGS__ >::float_type() const; \
+  template Container< __VA_ARGS__ >::operator typename Container< __VA_ARGS__ >::int_type() const; \
+  template Container< __VA_ARGS__ >::operator typename Container< __VA_ARGS__ >::uint_type() const; \
+  template Container< __VA_ARGS__ >::operator bool() const; \
   template std::nullptr_t                                  Container< __VA_ARGS__ >::as<std::nullptr_t>() const; \
   template typename Container< __VA_ARGS__ >::map_type     Container< __VA_ARGS__ >::as<typename Container< __VA_ARGS__ >::map_type>() const; \
   template typename Container< __VA_ARGS__ >::vector_type  Container< __VA_ARGS__ >::as<typename Container< __VA_ARGS__ >::vector_type>() const; \

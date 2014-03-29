@@ -527,7 +527,6 @@ class basic_container final {
   ~basic_container() { clear(); }  // virtual not needed, this class is final
 
   // Assignement from another type
-  //template <typename T> typename std::enable_if<!type_traits<T>::is_self, basic_container&>::type operator=(T&& arg) { 
   basic_container& operator= (basic_container const& c) { init_member(c); return *this; }
   basic_container& operator= (basic_container&& c) { init_member(c); return *this; }
   basic_container& operator= (basic_container& c) { init_member(c); return *this; }
