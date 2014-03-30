@@ -97,6 +97,9 @@ int main(void) {
     container c4 = container::init_map({ 
       {"Roger",1}
       , {"Marcel","Robert"}
+      , {"Marcel2",2u}
+      , {"Marcel2",2.f}
+      , {"Marcel2", container::init_map({ {"Robert",1} })}
       , {"Robert", container::init_vec({1,2,3u})} 
     });
     ++ c4["Roger"].raw_int();

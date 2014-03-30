@@ -276,7 +276,7 @@ template<typename Container, typename StreamType> class serializer_impl : public
     printer_.init_buffer_ = printer_.buffer_;
     input.const_visit(printer_);
     std::string result(printer_.init_buffer_, printer_.buffer_ - printer_.init_buffer_);
-    //std::free(printer_.init_buffer_);
+    std::free(printer_.init_buffer_);
     return result;
 
     //visitor_ostream visitor_;

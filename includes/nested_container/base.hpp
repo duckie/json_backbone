@@ -200,41 +200,50 @@ class basic_container final {
   inline void init_member(bool v) { value_.bool_ = v; }
 
   // Init with value - move
-  inline void init_member(Map&& v) { value_.dict_ = new Map(v); }
-  inline void init_member(Vector&& v) { value_.vector_ = new Vector(v); }
-  inline void init_member(String&& v) { new (&(value_.str_)) String(v); }
+  inline void init_member(Map&& v) { value_.dict_ = new Map(std::move(v)); }
+  inline void init_member(Vector&& v) { value_.vector_ = new Vector(std::move(v)); }
+  inline void init_member(String&& v) { new (&(value_.str_)) String(std::move(v)); }
   inline void init_member(basic_container&& c) {
-    switch_to_type(c.type_);
-    switch (type_) {
+    bool same_type = (c.type_ == type_);
+    switch (c.type_) {
       case value_type::null:
+        same_type ? void() : clear();
         break; 
       case value_type::map:
+        clear();
         value_.dict_ = c.value_.dict_;
         c.value_.dict_ = nullptr;  // Useless in theory, just in case
         break;
       case value_type::vector:
+        clear();
         value_.vector_ = c.value_.vector_;
         c.value_.vector_ = nullptr;  // Useless in theory, just in case
         break;
       case value_type::string:
+        same_type ? void() : switch_to_type(value_type::string);
         value_.str_ = std::move(c.value_.str_);
         break;
       case value_type::floating:
+        same_type ? void() : clear();
         value_.float_ = c.value_.float_;
         break;
       case value_type::integer:
+        same_type ? void() : clear();
         value_.int_ = c.value_.int_;
         break;
       case value_type::unsigned_integer:
+        same_type ? void() : clear();
         value_.uint_ = c.value_.uint_;
         break;
       case value_type::boolean:
+        same_type ? void() : clear();
         value_.bool_ = c.value_.bool_;
         break;
       default:
         break;
     }
 
+    type_ = c.type_;
     c.type_ = value_type::null;
   }
 
