@@ -17,16 +17,6 @@
 #include <boost/fusion/include/at_c.hpp>
 #include "json_forward.hpp"
 
-
-//namespace boost { namespace spirit { namespace traits {
-//template<> struct char_type_of< nested_container::basic_container<> > : char_type_of<std::string> {};
-//template<> struct extract_c_string< nested_container::basic_container<> > : extract_c_string<std::string> {
-  //static char const* call(nested_container::basic_container<> const& c) {
-    //return c.is_string() ? c.raw_string().c_str() : nullptr;
-  //}
-//};
-//} } } 
-
 namespace nested_container {
 namespace json {
 
@@ -199,19 +189,22 @@ template <typename Container, typename Iterator> struct out_grammar : karma::gra
       | int_generator_ [set_int]
       | uint_generator_ [set_uint]
       | karma::bool_ [set_bool]
+      //| null_value;
       | null_literal;
 
     string_value = '"' << karma::string << '"';
+    //null_value = karma::eps << "null";
     null_literal = "null";
   }
 
   karma::rule<Iterator, Container()> root;
-  karma::rule<Iterator, optional_ref<map_type> ()> object;
+  karma::rule<Iterator, optional_ref<map_type&> ()> object;
   karma::rule<Iterator, optional_ref<std::pair<key_type, Container>> ()> object_pair;
-  karma::rule<Iterator, optional_ref<vector_type> ()> array;
+  karma::rule<Iterator, optional_ref<vector_type&> ()> array;
   karma::rule<Iterator, optional_ref<Container> ()> value;
   karma::rule<Iterator, optional_ref<key_type> ()> key_value;
   karma::rule<Iterator, optional_ref<str_type> ()> string_value;
+  //karma::rule<Iterator, std::nullptr_t()> null_value;
   karma::rule<Iterator, karma::unused_type()> null_literal;
 };
 
@@ -416,6 +409,7 @@ template<typename Container, typename StreamType> class serializer_impl : public
 
   mutable visitor_size size_calculator_;
   mutable visitor_karma printer_;
+  mutable out_grammar<Container, char*> out_grammar_;
 
  public:
   ~serializer_impl() {}
@@ -449,10 +443,7 @@ template<typename Container, typename StreamType> class serializer_impl : public
 
     char* buffer = reinterpret_cast<char*>(std::malloc(sizeof(typename string_type::value_type)*size_calculator_.size + 1u));
     char* init_buffer = buffer;
-
-    out_grammar<Container, char*> g;
-    bool success = karma::generate(buffer, g, input);
-    //input.const_visit(printer_);
+    bool success = karma::generate(buffer, out_grammar_, input);
     std::string result(init_buffer, buffer - init_buffer);
     std::free(init_buffer);
     return result;
