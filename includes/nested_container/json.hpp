@@ -186,51 +186,23 @@ template <typename Container, typename Iterator> struct out_grammar : karma::gra
     result = true;
   }
 
-  static void set_null(std::nullptr_t& attribute, context<Container>& context, bool& result) {
-    Container const& input = context_value(context);
-    if (!input.is_null()) {
-      result = false;
-      return;
-    }
-    attribute = nullptr;
-    result = true;
-  }
-
   out_grammar () : out_grammar ::base_type(root) {
-    //query =  pair << *('&' << pair);
-    //pair  =  karma::string << -('=' << karma::string);
     root = object [set_map] | array [set_vec];
     object = '{' << -(object_pair % ',') << '}';
     array = '[' << -(value % ',') << ']';
-    object_pair = karma::string << -(':' << value);
+    object_pair = '"' << karma::string << '"' << -(':' << value);
     value = 
       object [set_map] 
       | array [set_vec]
       | string_value [set_str]
-      | float_value [set_float]
-      | int_value [set_int]
-      | uint_value [set_uint]
-      | bool_value [set_bool]
-      | null_value [set_null];
+      | float_generator_ [set_float]
+      | int_generator_ [set_int]
+      | uint_generator_ [set_uint]
+      | karma::bool_ [set_bool]
+      | null_literal;
 
-    float_value = float_generator_;
-    int_value = int_generator_;
-    uint_value = uint_generator_;
-    bool_value = 'b';
-    //null_value = 'n';
-    //string_value = karma::char_('"') << karma::string [ karma::_val = karma::_1 ] << karma::char_('"');
-    //root = object [is_map] | array [is_vector];
-    //null_value = qi::lit("null") [ _val = nullptr ];
-    //bool_value = qi::bool_;
-    //int_value = int_parser [_val = _1];
-    //uint_value = uint_parser [_val = _1];
-    //float_value = float_parser [_val = _1];
-    //string_value = '"' >> *(unesc_char | qi::alnum | "\\x" >> qi::hex) >> '"';
-    //key_value = '"' >> *qi::alnum >> '"';
-    //value = float_value | uint_value | int_value | bool_value | null_value | string_value;
-    //array = '[' >> -(value % ',') >>']';
-    //object_pair =  key_value  >> ':' >> (value | array | object);
-//
+    string_value = '"' << karma::string << '"';
+    null_literal = "null";
   }
 
   karma::rule<Iterator, Container()> root;
@@ -240,11 +212,7 @@ template <typename Container, typename Iterator> struct out_grammar : karma::gra
   karma::rule<Iterator, optional_ref<Container> ()> value;
   karma::rule<Iterator, optional_ref<key_type> ()> key_value;
   karma::rule<Iterator, optional_ref<str_type> ()> string_value;
-  karma::rule<Iterator, int_type ()> int_value;
-  karma::rule<Iterator, uint_type ()> uint_value;
-  karma::rule<Iterator, float_type ()> float_value;
-  karma::rule<Iterator, bool ()> bool_value;
-  karma::rule<Iterator, typename std::nullptr_t ()> null_value;
+  karma::rule<Iterator, karma::unused_type()> null_literal;
 };
 
 template <typename T> struct type_traits {
@@ -464,27 +432,30 @@ template<typename Container, typename StreamType> class serializer_impl : public
     //std::string result(printer_.init_buffer_, printer_.buffer_ - printer_.init_buffer_);
     //std::free(printer_.init_buffer_);
     //return result;
-    //char* buffer = reinterpret_cast<char*>(std::malloc(sizeof(typename string_type::value_type)*size_calculator_.size + 1u));
-    //char* init_buffer = buffer;
+    //typedef std::back_insert_iterator<std::string> sink_type;
+    //std::string generated;
+    //sink_type sink(generated);
+    //out_grammar<Container, sink_type> g;
+    //bool success = karma::generate(sink, g, input);
 
-    typedef std::back_insert_iterator<std::string> sink_type;
-    std::string generated;
-    sink_type sink(generated);
-    out_grammar<Container, sink_type> g;
-    bool success = karma::generate(sink, g, input);
-    if (success)
-      std::cout << "OK Karma dump succeeded !" << std::endl;
-    else
-      std::cout << "ERROR Karma dump failed !" << std::endl;
+    
 
+    //if (success)
+      //std::cout << "OK Karma dump succeeded !" << std::endl;
+    //else
+      //std::cout << "ERROR Karma dump failed !" << std::endl;
 
-    return generated;
-    //out_grammar<Container, char const*> g;
-    //bool success = karma::generate(buffer, g, input);
-    ////input.const_visit(printer_);
-    //std::string result(init_buffer, buffer - init_buffer);
-    //std::free(init_buffer);
-    //return result;
+    //return generated;
+
+    char* buffer = reinterpret_cast<char*>(std::malloc(sizeof(typename string_type::value_type)*size_calculator_.size + 1u));
+    char* init_buffer = buffer;
+
+    out_grammar<Container, char*> g;
+    bool success = karma::generate(buffer, g, input);
+    //input.const_visit(printer_);
+    std::string result(init_buffer, buffer - init_buffer);
+    std::free(init_buffer);
+    return result;
 
     //visitor_ostream visitor_;
     //input.const_visit(visitor_);
