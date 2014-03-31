@@ -125,8 +125,13 @@ template<typename container_type> class serializer {
     }
     
     void apply(string_type const& v) { 
-      std::snprintf(cur_buffer, 3u + v.size(), "\"%s\"", v.c_str());
-      cur_buffer += 2u + v.size();
+      std::strncpy(cur_buffer, "\"", 2u);
+      ++cur_buffer;
+      std::strncpy(cur_buffer, v.c_str(), v.size()+1);
+      cur_buffer += v.size();
+      std::strncpy(cur_buffer, "\"", 2u);
+      //std::snprintf(cur_buffer, 3u + v.size(), "\"%s\"", v.c_str());
+      ++cur_buffer;
     }
 
     void apply(float_type v) { 

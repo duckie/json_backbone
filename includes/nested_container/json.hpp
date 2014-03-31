@@ -12,12 +12,26 @@
 #include <boost/spirit/include/karma_int.hpp>
 #include <boost/spirit/include/karma_uint.hpp>
 #include <boost/spirit/include/karma_string.hpp>
+#include <boost/variant.hpp>
+#include <boost/variant/recursive_variant.hpp>
+#include <boost/fusion/include/at_c.hpp>
 #include "json_forward.hpp"
+
+
+//namespace boost { namespace spirit { namespace traits {
+//template<> struct char_type_of< nested_container::basic_container<> > : char_type_of<std::string> {};
+//template<> struct extract_c_string< nested_container::basic_container<> > : extract_c_string<std::string> {
+  //static char const* call(nested_container::basic_container<> const& c) {
+    //return c.is_string() ? c.raw_string().c_str() : nullptr;
+  //}
+//};
+//} } } 
 
 namespace nested_container {
 namespace json {
 
 // namespaces aliases
+namespace spirit = boost::spirit;
 namespace qi = boost::spirit::qi;
 namespace ascii = boost::spirit::ascii;
 namespace phoenix = boost::phoenix;
@@ -71,6 +85,166 @@ template<typename Container, typename Iterator> struct raw_grammar : qi::grammar
   qi::rule<Iterator, bool (), st_t> bool_value;
   qi::rule<Iterator, typename std::nullptr_t (), st_t> null_value;
   qi::symbols<char const, char const> unesc_char;
+};
+
+
+template <typename Container, typename Iterator> struct out_grammar : karma::grammar<Iterator, Container()>
+{
+  using str_type      = typename Container::str_type;
+  //using ostream_type  = std::basic_ostringstream<typename StreamType::value_type, typename StreamType::traits_type>;
+  using key_type      = typename Container::key_type;
+  using map_type      = typename Container::map_type;
+  using vector_type   = typename Container::vector_type;
+  using float_type    = typename Container::float_type;
+  using int_type      = typename Container::int_type;
+  using uint_type     = typename Container::uint_type;
+
+  // Generators
+  karma::real_generator<float_type> float_generator_;
+  karma::int_generator<int_type> int_generator_;
+  karma::uint_generator<uint_type> uint_generator_;
+
+  // Template helpers
+  template <typename T> using refw = std::reference_wrapper<T>;
+  //template <typename T> using optional_ref = boost::optional<std::reference_wrapper<T const>>;
+  //template <typename T> using optional_ref = boost::optional<T>;
+  template <typename T> using optional_ref = T;
+  template <typename T> using context = spirit::context<boost::fusion::cons<const T&, boost::fusion::nil_>, boost::fusion::vector0<void>>;
+  template <typename T> using optional = boost::optional<T>;
+  template <typename T> inline static T const& context_value(context<T> const& context) {
+    return boost::fusion::at_c<0>(context.attributes);
+  }
+          
+  // Semantic actions
+  static void set_map(optional_ref<map_type>& attribute, context<Container>& context, bool& result) {
+    Container const& input = context_value(context);
+    if (!input.is_map()) {
+      result = false;
+      return;
+    }
+    attribute = input.raw_map();
+    result = true;
+  }
+
+  static void set_vec(optional_ref<vector_type>& attribute, context<Container>& context, bool& result) {
+    Container const& input = context_value(context);
+    if (!input.is_vector()) {
+      result = false;
+      return;
+    }
+    attribute = input.raw_vector();
+    result = true;
+  }
+
+  static void set_str(optional_ref<str_type>& attribute, context<Container>& context, bool& result) {
+    Container const& input = context_value(context);
+    if (!input.is_string()) {
+      result = false;
+      return;
+    }
+    attribute = input.raw_string();
+    result = true;
+  }
+
+  static void set_float(float_type& attribute, context<Container>& context, bool& result) {
+    Container const& input = context_value(context);
+    if (!input.is_float()) {
+      result = false;
+      return;
+    }
+    attribute = input.raw_float();
+    result = true;
+  }
+
+  static void set_int(int_type& attribute, context<Container>& context, bool& result) {
+    Container const& input = context_value(context);
+    if (!input.is_int()) {
+      result = false;
+      return;
+    }
+    attribute = input.raw_int();
+    result = true;
+  }
+
+  static void set_uint(uint_type& attribute, context<Container>& context, bool& result) {
+    Container const& input = context_value(context);
+    if (!input.is_uint()) {
+      result = false;
+      return;
+    }
+    attribute = input.raw_uint();
+    result = true;
+  }
+
+  static void set_bool(bool& attribute, context<Container>& context, bool& result) {
+    Container const& input = context_value(context);
+    if (!input.is_bool()) {
+      result = false;
+      return;
+    }
+    attribute = input.raw_bool();
+    result = true;
+  }
+
+  static void set_null(std::nullptr_t& attribute, context<Container>& context, bool& result) {
+    Container const& input = context_value(context);
+    if (!input.is_null()) {
+      result = false;
+      return;
+    }
+    attribute = nullptr;
+    result = true;
+  }
+
+  out_grammar () : out_grammar ::base_type(root) {
+    //query =  pair << *('&' << pair);
+    //pair  =  karma::string << -('=' << karma::string);
+    root = object [set_map] | array [set_vec];
+    object = '{' << -(object_pair % ',') << '}';
+    array = '[' << -(value % ',') << ']';
+    object_pair = karma::string << -(':' << value);
+    value = 
+      object [set_map] 
+      | array [set_vec]
+      | string_value [set_str]
+      | float_value [set_float]
+      | int_value [set_int]
+      | uint_value [set_uint]
+      | bool_value [set_bool]
+      | null_value [set_null];
+
+    float_value = float_generator_;
+    int_value = int_generator_;
+    uint_value = uint_generator_;
+    bool_value = 'b';
+    //null_value = 'n';
+    //string_value = karma::char_('"') << karma::string [ karma::_val = karma::_1 ] << karma::char_('"');
+    //root = object [is_map] | array [is_vector];
+    //null_value = qi::lit("null") [ _val = nullptr ];
+    //bool_value = qi::bool_;
+    //int_value = int_parser [_val = _1];
+    //uint_value = uint_parser [_val = _1];
+    //float_value = float_parser [_val = _1];
+    //string_value = '"' >> *(unesc_char | qi::alnum | "\\x" >> qi::hex) >> '"';
+    //key_value = '"' >> *qi::alnum >> '"';
+    //value = float_value | uint_value | int_value | bool_value | null_value | string_value;
+    //array = '[' >> -(value % ',') >>']';
+    //object_pair =  key_value  >> ':' >> (value | array | object);
+//
+  }
+
+  karma::rule<Iterator, Container()> root;
+  karma::rule<Iterator, optional_ref<map_type> ()> object;
+  karma::rule<Iterator, optional_ref<std::pair<key_type, Container>> ()> object_pair;
+  karma::rule<Iterator, optional_ref<vector_type> ()> array;
+  karma::rule<Iterator, optional_ref<Container> ()> value;
+  karma::rule<Iterator, optional_ref<key_type> ()> key_value;
+  karma::rule<Iterator, optional_ref<str_type> ()> string_value;
+  karma::rule<Iterator, int_type ()> int_value;
+  karma::rule<Iterator, uint_type ()> uint_value;
+  karma::rule<Iterator, float_type ()> float_value;
+  karma::rule<Iterator, bool ()> bool_value;
+  karma::rule<Iterator, typename std::nullptr_t ()> null_value;
 };
 
 template <typename T> struct type_traits {
@@ -174,6 +348,18 @@ template<typename Container, typename StreamType> class serializer_impl : public
     karma::real_generator<float_type> float_generator_;
     karma::int_generator<int_type> int_generator_;
     karma::uint_generator<uint_type> uint_generator_;
+
+    using container_variant = boost::variant< 
+      typename Container::map_type
+      , typename Container::vector_type
+      , typename Container::str_type
+      , typename Container::float_type
+      , typename Container::int_type
+      , typename Container::uint_type
+      , std::nullptr_t
+      , bool
+      >;
+      
     
     void apply(std::nullptr_t) { 
       karma::generate(buffer_,karma::lit("null"));  
@@ -272,12 +458,33 @@ template<typename Container, typename StreamType> class serializer_impl : public
     input.const_visit(size_calculator_);
 
     // Rendering
-    printer_.buffer_ = reinterpret_cast<char*>(std::malloc(sizeof(typename string_type::value_type)*size_calculator_.size + 1u));
-    printer_.init_buffer_ = printer_.buffer_;
-    input.const_visit(printer_);
-    std::string result(printer_.init_buffer_, printer_.buffer_ - printer_.init_buffer_);
-    std::free(printer_.init_buffer_);
-    return result;
+    //printer_.buffer_ = reinterpret_cast<char*>(std::malloc(sizeof(typename string_type::value_type)*size_calculator_.size + 1u));
+    //printer_.init_buffer_ = printer_.buffer_;
+    //input.const_visit(printer_);
+    //std::string result(printer_.init_buffer_, printer_.buffer_ - printer_.init_buffer_);
+    //std::free(printer_.init_buffer_);
+    //return result;
+    //char* buffer = reinterpret_cast<char*>(std::malloc(sizeof(typename string_type::value_type)*size_calculator_.size + 1u));
+    //char* init_buffer = buffer;
+
+    typedef std::back_insert_iterator<std::string> sink_type;
+    std::string generated;
+    sink_type sink(generated);
+    out_grammar<Container, sink_type> g;
+    bool success = karma::generate(sink, g, input);
+    if (success)
+      std::cout << "OK Karma dump succeeded !" << std::endl;
+    else
+      std::cout << "ERROR Karma dump failed !" << std::endl;
+
+
+    return generated;
+    //out_grammar<Container, char const*> g;
+    //bool success = karma::generate(buffer, g, input);
+    ////input.const_visit(printer_);
+    //std::string result(init_buffer, buffer - init_buffer);
+    //std::free(init_buffer);
+    //return result;
 
     //visitor_ostream visitor_;
     //input.const_visit(visitor_);

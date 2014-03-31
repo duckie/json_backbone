@@ -677,6 +677,36 @@ class basic_container final {
   template <typename T>             basic_container const&  operator[] (T const& index) const                                 { return access_collection(index); }
   template <typename T>             basic_container&        operator[] (T&& index) noexcept                                   { return access_collection(std::forward<T&&>(index)); }
 
+  std::type_info const& get_typeid() const {
+    switch (type_) {
+      case value_type::null:
+        return typeid(std::nullptr_t);
+        break; 
+      case value_type::map:
+        return typeid(Map);
+        break;
+      case value_type::vector:
+        return typeid(Vector);
+        break;
+      case value_type::string:
+        return typeid(String);
+        break;
+      case value_type::floating:
+        return typeid(Float);
+        break;
+      case value_type::integer:
+        return typeid(Int);
+        break;
+      case value_type::unsigned_integer:
+        return typeid(UInt);
+        break;
+      case value_type::boolean:
+        return typeid(bool);
+        break;
+      default:
+        break;
+    }
+  };
 
   // Conversion.
   template <typename T> inline operator T () const { return convert_to<T>(); }
