@@ -248,9 +248,21 @@ template <> struct string_conversion_traits<double, void> {
   static size_t constexpr max_size = 3 + DBL_MANT_DIG - DBL_MIN_EXP;
 };
 
-template<typename Container, typename StreamType> serializer_impl_envelop<Container, StreamType>::~serializer_impl_envelop() {}
+template<
+typename Container
+, typename StreamType
+, generation_policies GenPolicy
+, parsing_policies ParsePolicy
+> 
+serializer_impl_envelop<Container, StreamType, GenPolicy, ParsePolicy>::~serializer_impl_envelop() {}
 
-template<typename Container, typename StreamType> class serializer_impl : public serializer_impl_envelop<Container, StreamType> {
+template<
+typename Container
+, typename StreamType
+, generation_policies GenPolicy
+, parsing_policies ParsePolicy
+> 
+class serializer_impl : public serializer_impl_envelop<Container, StreamType, GenPolicy, ParsePolicy> {
   using string_type         = typename Container::str_type;
   using ostream_type        = std::basic_ostringstream<typename StreamType::value_type, typename StreamType::traits_type>;
   using key_type            = typename Container::key_type;
@@ -464,13 +476,18 @@ template<typename Container, typename StreamType> class serializer_impl : public
   };
 };
 
-template<typename Container, typename StreamType> serializer<Container, StreamType>::serializer() 
-  : serializer_impl_(new serializer_impl<Container, StreamType>)
+template<typename Container, typename StreamType, generation_policies GenPolicy , parsing_policies ParsePolicy> 
+serializer<Container, StreamType, GenPolicy, ParsePolicy>::serializer() 
+  : serializer_impl_(new serializer_impl<Container, StreamType, GenPolicy, ParsePolicy>)
 {}
-template<typename Container, typename StreamType> StreamType serializer<Container, StreamType>::serialize(Container const& input) const {
+
+template<typename Container, typename StreamType, generation_policies GenPolicy , parsing_policies ParsePolicy> 
+StreamType serializer<Container, StreamType, GenPolicy, ParsePolicy>::serialize(Container const& input) const {
   return serializer_impl_->serialize(input); 
 }
-template<typename Container, typename StreamType> Container serializer<Container, StreamType>::deserialize(StreamType const& input) const {
+
+template<typename Container, typename StreamType, generation_policies GenPolicy , parsing_policies ParsePolicy> 
+Container serializer<Container, StreamType, GenPolicy, ParsePolicy>::deserialize(StreamType const& input) const {
   return serializer_impl_->deserialize(input); 
 }
 

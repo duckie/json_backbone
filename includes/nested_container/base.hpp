@@ -252,7 +252,7 @@ class basic_container final {
   inline void init_member(Vector const& v) { value_.vector_ = new Vector(v); }
   inline void init_member(String const& v) { new (&(value_.str_)) String(v); }
   inline void init_member(basic_container const& c) {
-    std::cout << "Copy !!!" << std::endl;
+    //std::cout << "Copy !!!" << std::endl;
     value_type previous_type = type_;
     if (type_ != c.type_ && is_collection(type_) && is_collection(c.type_)){
       // We have to handle the special case of an affectation from a container

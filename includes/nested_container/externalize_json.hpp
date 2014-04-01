@@ -7,8 +7,12 @@
 #define NESTED_COMPILER_JSON_EXTERNALIZE(Container, ...) \
 namespace nested_container { \
 namespace json { \
-  extern template class serializer_impl_envelop <Container< __VA_ARGS__ >, typename Container< __VA_ARGS__ >::str_type>; \
-  extern template class serializer<Container< __VA_ARGS__ >, typename Container< __VA_ARGS__ >::str_type>; \
+  extern template class serializer_impl_envelop <Container< __VA_ARGS__ >, typename Container< __VA_ARGS__ >::str_type, generation_policies::visitor_ostream, parsing_policies::full_spirit>; \
+  extern template class serializer<Container< __VA_ARGS__ >, typename Container< __VA_ARGS__ >::str_type, generation_policies::visitor_ostream, parsing_policies::full_spirit>; \
+  extern template class serializer_impl_envelop <Container< __VA_ARGS__ >, typename Container< __VA_ARGS__ >::str_type, generation_policies::visitor_partial_karma, parsing_policies::full_spirit>; \
+  extern template class serializer<Container< __VA_ARGS__ >, typename Container< __VA_ARGS__ >::str_type, generation_policies::visitor_partial_karma, parsing_policies::full_spirit>; \
+  extern template class serializer_impl_envelop <Container< __VA_ARGS__ >, typename Container< __VA_ARGS__ >::str_type, generation_policies::full_karma, parsing_policies::full_spirit>; \
+  extern template class serializer<Container< __VA_ARGS__ >, typename Container< __VA_ARGS__ >::str_type, generation_policies::full_karma, parsing_policies::full_spirit>; \
 }  /* namespace json */ \
 }  /* namespace nested_container */ \
 // -- macro end --
@@ -16,8 +20,12 @@ namespace json { \
 # define NESTED_COMPILER_JSON_IMPLEMENT(Container,...) \
 namespace nested_container { \
 namespace json { \
-  template class serializer_impl_envelop <Container< __VA_ARGS__ >, typename Container< __VA_ARGS__ >::str_type>; \
-  template class serializer<Container< __VA_ARGS__ >, typename Container< __VA_ARGS__ >::str_type>; \
+  template class serializer_impl_envelop <Container< __VA_ARGS__ >, typename Container< __VA_ARGS__ >::str_type, generation_policies::visitor_ostream, parsing_policies::full_spirit>; \
+  template class serializer<Container< __VA_ARGS__ >, typename Container< __VA_ARGS__ >::str_type, generation_policies::visitor_ostream, parsing_policies::full_spirit>; \
+  template class serializer_impl_envelop <Container< __VA_ARGS__ >, typename Container< __VA_ARGS__ >::str_type, generation_policies::visitor_partial_karma, parsing_policies::full_spirit>; \
+  template class serializer<Container< __VA_ARGS__ >, typename Container< __VA_ARGS__ >::str_type, generation_policies::visitor_partial_karma, parsing_policies::full_spirit>; \
+  template class serializer_impl_envelop <Container< __VA_ARGS__ >, typename Container< __VA_ARGS__ >::str_type, generation_policies::full_karma, parsing_policies::full_spirit>; \
+  template class serializer<Container< __VA_ARGS__ >, typename Container< __VA_ARGS__ >::str_type, generation_policies::full_karma, parsing_policies::full_spirit>; \
 }  /* namespace json */ \
 }  /* namespace nested_container */ \
 // -- macro end --
