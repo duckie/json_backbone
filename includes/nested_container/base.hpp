@@ -1,5 +1,5 @@
-#ifndef __NESTED_COMPILER_BASE__
-#define __NESTED_COMPILER_BASE__
+#ifndef HEADER_GARD_NESTED_COMPILER_BASE
+#define HEADER_GARD_NESTED_COMPILER_BASE
 
 #include <map>
 #include <vector>
@@ -808,4 +808,4 @@ template <class Container> struct const_visitor_adapter {
 
 }  // namespace nested_container
 
-#endif  // __NESTED_COMPILER__
+#endif  // HEADER_GUARD_NESTED_COMPILER

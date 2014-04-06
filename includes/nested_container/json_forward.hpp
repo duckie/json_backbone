@@ -1,5 +1,5 @@
-#ifndef __NESTED_COMPILER_JSON_FORWARD__
-#define __NESTED_COMPILER_JSON_FORWARD__
+#ifndef HEADER_GARD_NESTED_COMPILER_JSON_FORWARD
+#define HEADER_GARD_NESTED_COMPILER_JSON_FORWARD
 #include <memory>
 
 namespace nested_container {
