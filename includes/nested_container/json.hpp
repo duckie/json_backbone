@@ -1,5 +1,5 @@
-#ifndef NESTED_COMPILER_JSON
-#define NESTED_COMPILER_JSON
+#ifndef HEADER_GUARD_NESTED_COMPILER_JSON
+#define HEADER_GUARD_NESTED_COMPILER_JSON
 
 #include <boost/spirit/include/qi.hpp>
 #include <boost/spirit/include/phoenix.hpp>
