@@ -538,7 +538,7 @@ class basic_container final {
 
   // Assignement from another type
   basic_container& operator= (basic_container const& c) { init_member(c); return *this; }
-  basic_container& operator= (basic_container&& c) { init_member(c); return *this; }
+  basic_container& operator= (basic_container&& c) { init_member(std::move(c)); return *this; }
   basic_container& operator= (basic_container& c) { init_member(c); return *this; }
   template <size_t Length> basic_container& operator=(typename str_type::value_type const (& arg) [Length] ) {
     switch_to_type<str_type>();

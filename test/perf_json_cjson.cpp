@@ -1,6 +1,7 @@
 #include <iostream>
 #include <nested_container/container.hpp>
 #include <nested_container/json_forward.hpp>
+#include <nested_container/test/random.hpp>
 //#include <nested_container/experimental/cjson.hpp>
 #include <vector>
 #include <list>
@@ -16,43 +17,47 @@ NESTED_COMPILER_JSON_EXTERNALIZE(basic_container);
 
 using nested_container::container;
 using namespace nested_container::json;
+using namespace nested_container::test::random;
 template <typename C> using json_karma = serializer<C, typename C::str_type, generation_policies::visitor_partial_karma>;
 template <typename C> using json_stream = serializer<C, typename C::str_type, generation_policies::visitor_ostream>;
-//template <typename C> using json_cstring = nested_container::experimental::cjson::serializer<C>;
+
+void compare_dump_time(container const& c) {
+  size_t constexpr max_iter = 1e1;
+  using std::chrono::high_resolution_clock;
+  using std::chrono::time_point;
+  using std::chrono::duration_cast;
+  using std::chrono::milliseconds;
+
+  json_karma<container> karma_driver;
+  json_stream<container> stream_driver;
+  time_point<high_resolution_clock> start, end;
+  // Fast
+  start = high_resolution_clock::now();
+  for(size_t i=0u; i < max_iter; ++i) karma_driver.serialize(c);
+  end = high_resolution_clock::now();
+  std::cout << "Partial karma test took " << duration_cast<milliseconds>(end-start).count() << "ms" << std::endl;
+
+  // Generic
+  start = high_resolution_clock::now();
+  for(size_t i=0u; i < max_iter; ++i) stream_driver.serialize(c);
+  end = high_resolution_clock::now();
+  std::cout << "Sstream test took " << duration_cast<milliseconds>(end-start).count() << "ms" << std::endl;
+}
 
 int main(void) {
   {
-    std::cout << "Begin test 7" << std::endl;
-    container c = container::init_vec({});
-    size_t nb_elements = 1e6;
-    for(size_t i=0u; i < nb_elements; ++i) {
-      c.raw_vector().push_back(static_cast<unsigned int>(i));
-    }
+    generator<container> random_gen;
+
+    // Totally random
+    compare_dump_time(random_gen.generate(5, 30, 60, 30, 60));
+
+    // Only arrays of integer
+    compare_dump_time(random_gen.generate(4, 0, 0, 50, 80, 0, 0, 0, 0, false, false, true, false, false, true, true, false));
     
-    json_karma<container> karma_driver;
-    json_stream<container> stream_driver;
-
-    size_t constexpr max_iter = 1e1;
-    using std::chrono::high_resolution_clock;
-    using std::chrono::time_point;
-    using std::chrono::duration_cast;
-    using std::chrono::milliseconds;
-
-    time_point<high_resolution_clock> start, end;
-
-    // Fast
-    start = high_resolution_clock::now();
-    for(size_t i=0u; i < max_iter; ++i) karma_driver.serialize(c);
-    end = high_resolution_clock::now();
-    std::cout << "Partial karma test took " << duration_cast<milliseconds>(end-start).count() << "ms" << std::endl;
-
-    // Generic
-    start = high_resolution_clock::now();
-    for(size_t i=0u; i < max_iter; ++i) stream_driver.serialize(c);
-    end = high_resolution_clock::now();
-    std::cout << "Sstream test took " << duration_cast<milliseconds>(end-start).count() << "ms" << std::endl;
-
-    // Ultra generic and SLOW
+    // Not any number
+    //compare_dump_time(random_gen.generate(4, 30, 50, 30, 50, 0, 12, 1, 12, true, true, true, true, false, false, false, true));
+    //json_stream<container> stream_driver;
+    //std::cout << stream_driver.serialize(c) << std::endl;
   }
   return 0;
 }

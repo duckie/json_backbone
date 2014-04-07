@@ -81,7 +81,6 @@ template<typename Container, typename Iterator> struct raw_grammar : qi::grammar
 template <typename Container, typename Iterator> struct out_grammar : karma::grammar<Iterator, Container()>
 {
   using str_type      = typename Container::str_type;
-  //using ostream_type  = std::basic_ostringstream<typename StreamType::value_type, typename StreamType::traits_type>;
   using key_type      = typename Container::key_type;
   using map_type      = typename Container::map_type;
   using vector_type   = typename Container::vector_type;
@@ -493,8 +492,6 @@ template <typename Container, typename StreamType> struct parser_impl<Container,
     typename string_type::const_iterator iter = input.begin();
     typename string_type::const_iterator end = input.end();
     bool success = qi::phrase_parse(iter, end, grammar_, boost::spirit::ascii::space, result);
-    //bool success = qi::phrase_parse(iter, end, grammar_, boost::spirit::ascii::space);
-    //std::cout << "Parsing " << (success ? "succeeded":"failed") << std::endl;
     return result;
   }
 };
