@@ -16,6 +16,8 @@
 #include <boost/variant/recursive_variant.hpp>
 #include <boost/fusion/include/at_c.hpp>
 #include "json_forward.hpp"
+#include <stack>
+#include <list>
 
 namespace nested_container {
 namespace json {
@@ -79,6 +81,68 @@ template<typename Container, typename Iterator> struct raw_grammar : qi::grammar
   qi::symbols<char const, char const> unesc_char;
 };
 
+template<typename Container, typename Iterator> struct parsing_action_grammar : qi::grammar<Iterator, boost::spirit::ascii::space_type> {
+  template <typename T> struct strict_real_policies : qi::real_policies<T> { static bool constexpr expect_dot = true; };
+
+  parsing_action_grammar() : parsing_action_grammar<Container, Iterator>::base_type(root) {
+    namespace ascii = boost::spirit::ascii;
+    using namespace qi::labels;
+    using phoenix::at_c;
+    using phoenix::push_back;
+
+    unesc_char.add("\\a", '\a')("\\b", '\b')("\\f", '\f')("\\n", '\n')
+      ("\\r", '\r')("\\t", '\t')("\\v", '\v')
+      ("\\\\", '\\')("\\\'", '\'')("\\\"", '\"')
+      (" ",' ')("/",'/')
+      ;
+
+    qi::int_parser< typename Container::int_type> int_parser;
+    qi::uint_parser< typename Container::uint_type> uint_parser;
+    qi::real_parser< typename Container::float_type, strict_real_policies<typename Container::float_type> > float_parser;
+
+    root = object | array;
+    null_value = qi::lit("null") [ _val = nullptr ];
+    bool_value = qi::bool_;
+    int_value = int_parser [_val = _1];
+    uint_value = uint_parser [_val = _1];
+    float_value = float_parser [_val = _1];
+    string_value = '"' >> *(unesc_char | qi::alnum | "\\x" >> qi::hex) >> '"';
+    key_value = '"' >> *qi::alnum >> '"';
+    value = float_value | uint_value | int_value | bool_value | null_value | string_value;
+    array = '[' >> -( extended_value % ',') >>']';
+    object = '{' >> -(object_pair % ',') >>'}';
+    object_pair =  key_value  >> ':' >> extended_value;
+    extended_value = value | array | object;
+  }
+
+
+  using st_t = ascii::space_type;
+  qi::rule<Iterator, st_t> root;
+  qi::rule<Iterator, st_t> extended_value;
+  qi::rule<Iterator, st_t> object;
+  qi::rule<Iterator, st_t> object_pair;
+  qi::rule<Iterator, st_t> array;
+  qi::rule<Iterator, st_t> value;
+  qi::rule<Iterator, st_t> key_value;
+  qi::rule<Iterator, st_t> string_value;
+  qi::rule<Iterator, st_t> int_value;
+  qi::rule<Iterator, st_t> uint_value;
+  qi::rule<Iterator, st_t> float_value;
+  qi::rule<Iterator, st_t> bool_value;
+  qi::rule<Iterator, st_t> null_value;
+  qi::symbols<char const, char const> unesc_char;
+
+  std::stack<std::reference_wrapper<Container>, std::list<std::reference_wrapper<Container>>> stack_;
+  bool has_root_ = false;
+  Container root_;
+  typename Container::str_type key_;
+  Container value_;
+
+  void prepare() {
+    has_root_ = false;
+    stack_.clear();
+  }
+};
 
 template <typename Container, typename Iterator> struct out_grammar : karma::grammar<Iterator, Container()>
 {
