@@ -6,6 +6,8 @@
 #include <functional>
 #include <sstream>
 #include <cassert>
+#include <set>
+#include <utility>
 
 // This header is a tool to generate randomized containers
 
@@ -53,7 +55,8 @@ template <typename Container> class generator {
   Container generate_container_once(int type, std::uniform_int_distribution<>& str_gen) {
     if (to_map == type) return Container::template init<typename Container::map_type>();
     else if (to_vec == type) return Container::template init<typename Container::vector_type>();
-    else if (to_str == type) return generate_string(str_gen(gen_));
+    else if (to_str == type) return Container(generate_string(str_gen(gen_)));
+    else if (to_str == type) return Container("Allloo");
     else if (to_float == type) return float_chooser_(gen_);
     else if (to_int == type) return int_chooser_(gen_);
     else if (to_uint == type) return uint_chooser_(gen_);
@@ -106,38 +109,47 @@ template <typename Container> class generator {
       std::uniform_int_distribution<> str_size_gen(min_string_size, max_string_size);
       std::uniform_int_distribution<> key_size_gen(min_key_size, max_key_size);
 
+
       std::list< std::reference_wrapper<Container> > to_process;
       std::list< std::reference_wrapper<Container> > next_to_process;
     
-      to_process.emplace_back(root);
+      to_process.push_back(root);
 
       while(max_depth) {
+
         while(to_process.size()) {
           Container & current = to_process.front().get();
           if(current.is_map()) {
+            std::set<typename container::key_type> used_keys;
             size_t size = map_size_gen(gen_);
             for (size_t index = 0u; index < size; ++index) {
-              current[generate_string(key_size_gen(gen_))] = generate_container_once(type_chooser(gen_), str_size_gen);
-              Container& inserted = current[generate_string(key_size_gen(gen_))];
-              if (inserted.is_map() || inserted.is_vector()) next_to_process.emplace_back(inserted);
+              typename container::key_type new_key(generate_string(key_size_gen(gen_)));
+              auto insertion_result = used_keys.insert(new_key);
+              if (!insertion_result.second) {  // Key already used
+                --index;
+                continue;
+              }
+
+              auto container_insert_result = current.raw_map().insert(std::make_pair(new_key, generate_container_once(type_chooser(gen_), str_size_gen)));
+              assert(container_insert_result.second);
+              Container& inserted = container_insert_result.first->second;
+              if (inserted.is_map() || inserted.is_vector()) next_to_process.push_back(inserted);
             }
           }
           else if (current.is_vector()) {
             size_t size = vec_size_gen(gen_);
-            current.raw_vector().reserve(size);
+            current.ref_vector().reserve(size);
             for (size_t index = 0u; index < size; ++index) {
-              current.raw_vector().push_back(generate_container_once(type_chooser(gen_), str_size_gen));
+              current.ref_vector().push_back(generate_container_once(type_chooser(gen_), str_size_gen));
               Container& inserted = current.raw_vector().back();
-              if (inserted.is_map() || inserted.is_vector()) next_to_process.emplace_back(inserted);
+              if (inserted.is_map() || inserted.is_vector()) next_to_process.push_back(inserted);
             }
           }
           else {
             assert(false);  // Should never happen
           }
-
           to_process.pop_front();
         }
-
         
         std::swap(to_process, next_to_process);
         --max_depth;

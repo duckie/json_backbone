@@ -221,7 +221,8 @@ class basic_container final {
         break;
       case value_type::string:
         same_type ? void() : switch_to_type(value_type::string);
-        value_.str_ = std::move(c.value_.str_);
+        //value_.str_ = std::move(c.value_.str_);
+        std::swap(value_.str_, c.value_.str_);
         break;
       case value_type::floating:
         same_type ? void() : clear();
@@ -545,15 +546,15 @@ class basic_container final {
     init_member(str_type(arg, Length));
     return *this;
   }
-  template <typename T> basic_container& operator=(T&& arg) { 
-    switch_to_type<typename type_traits<T>::pure_type>();
-    init_member(std::forward<T>(arg));
-    return *this;
-  }
   // Handling char* case
   basic_container& operator=(typename str_type::value_type const* arg) {
     switch_to_type<str_type>();
     init_member(str_type(arg));
+    return *this;
+  }
+  template <typename T> basic_container& operator=(T&& arg) { 
+    switch_to_type<typename type_traits<T>::pure_type>();
+    init_member(std::forward<T>(arg));
     return *this;
   }
 

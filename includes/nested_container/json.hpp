@@ -260,7 +260,7 @@ template <typename Container> struct visitor_size {
 
   size_t size_ = 0u;
 
-  void apply(std::nullptr_t) { size_ += 3u; }
+  void apply(std::nullptr_t) { size_ += 4u; }
   void apply(map_type const& v) {
     size_ += 2u; 
     bool first = true;
@@ -286,7 +286,7 @@ template <typename Container> struct visitor_size {
   void apply(float_type v) { size_ += string_conversion_traits<float_type, void>::max_size; }
   void apply(int_type v) { size_ += string_conversion_traits<int_type, void>::max_size; }
   void apply(uint_type v) { size_ += string_conversion_traits<uint_type, void>::max_size; }
-  void apply(bool v) { size_ += 5; }
+  void apply(bool v) { size_ += 5u; }
 
   void reset() { size_ = 0u; }
   size_t size() const { return size_; }

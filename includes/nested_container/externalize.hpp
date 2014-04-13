@@ -140,17 +140,17 @@ namespace nested_container { \
   extern template Container< __VA_ARGS__ > const& Container< __VA_ARGS__ >::operator[](typename Container< __VA_ARGS__ >::key_type::value_type const*) const; \
   extern template Container< __VA_ARGS__ > const& Container< __VA_ARGS__ >::operator[](typename Container< __VA_ARGS__ >::key_type const&) const; \
   extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator[](typename Container< __VA_ARGS__ >::key_type::value_type const*); \
-  extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator[](typename Container< __VA_ARGS__ >::key_type&); \
+  extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator[](typename Container< __VA_ARGS__ >::key_type&);\
   extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator[](typename Container< __VA_ARGS__ >::key_type const&); \
   extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator[](typename Container< __VA_ARGS__ >::key_type&&); \
   extern template Container< __VA_ARGS__ > const& Container< __VA_ARGS__ >::operator[](typename Container< __VA_ARGS__ >::vec_size_type const&) const; \
-  extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator[](typename Container< __VA_ARGS__ >::vec_size_type&); \
-  extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator[](typename Container< __VA_ARGS__ >::vec_size_type const&); \
-  extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator[](typename Container< __VA_ARGS__ >::vec_size_type&&); \
+  extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator[](typename Container< __VA_ARGS__ >::vec_size_type&);\
+  extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator[](typename Container< __VA_ARGS__ >::vec_size_type const&);\
+  extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator[](typename Container< __VA_ARGS__ >::vec_size_type&&);\
   extern template Container< __VA_ARGS__ > const& Container< __VA_ARGS__ >::operator[](int const&) const; \
-  extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator[](int&); \
+  extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator[](int&);\
   extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator[](int const&); \
-  extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator[](int &&); \
+  extern template Container< __VA_ARGS__ >& Container< __VA_ARGS__ >::operator[](int &&);\
   /* Accessors */ \
   extern template typename Container< __VA_ARGS__ >::map_type*    Container< __VA_ARGS__ >::ptr_to<typename Container< __VA_ARGS__ >::map_type, 0>(); \
   extern template typename Container< __VA_ARGS__ >::vector_type* Container< __VA_ARGS__ >::ptr_to<typename Container< __VA_ARGS__ >::vector_type, 0>(); \
@@ -259,8 +259,8 @@ namespace nested_container { \
   template class Container< __VA_ARGS__ >::type_traits<bool const&>; \
   template class Container< __VA_ARGS__ >::type_traits<bool&&>; \
   /* Ctors */ \
-  template Container< __VA_ARGS__ >::Container(typename Container< __VA_ARGS__ >::str_type::value_type const*); \
-  template Container< __VA_ARGS__ >::Container(typename Container< __VA_ARGS__ >::str_type::value_type*); \
+  template Container< __VA_ARGS__ >::Container(typename Container< __VA_ARGS__ >::str_type::value_type const*);\
+  template Container< __VA_ARGS__ >::Container(typename Container< __VA_ARGS__ >::str_type::value_type*);\
   template Container< __VA_ARGS__ >::Container(std::nullptr_t&); \
   template Container< __VA_ARGS__ >::Container(std::nullptr_t const&); \
   template Container< __VA_ARGS__ >::Container(std::nullptr_t&&); \

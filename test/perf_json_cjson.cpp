@@ -55,9 +55,7 @@ int main(void) {
     compare_dump_time(random_gen.generate(4, 0, 0, 50, 80, 0, 0, 0, 0, false, false, true, false, false, true, true, false));
     
     // Not any number
-    //compare_dump_time(random_gen.generate(4, 30, 50, 30, 50, 0, 12, 1, 12, true, true, true, true, false, false, false, true));
-    //json_stream<container> stream_driver;
-    //std::cout << stream_driver.serialize(c) << std::endl;
+    compare_dump_time(random_gen.generate(4, 30, 50, 30, 50, 0, 12, 1, 12, true, true, true, true, false, false, false, true));
   }
   return 0;
 }
