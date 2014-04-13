@@ -55,14 +55,16 @@ template<typename Container, typename Iterator> struct raw_grammar : qi::grammar
     string_value = '"' >> *(unesc_char | qi::alnum | "\\x" >> qi::hex) >> '"';
     key_value = '"' >> *qi::alnum >> '"';
     value = float_value | uint_value | int_value | bool_value | null_value | string_value;
-    array = '[' >> -(value % ',') >>']';
+    array = '[' >> -( extended_value % ',') >>']';
     object = '{' >> -(object_pair % ',') >>'}';
-    object_pair =  key_value  >> ':' >> (value | array | object);
+    object_pair =  key_value  >> ':' >> extended_value;
+    extended_value = value | array | object;
   }
 
 
   using st_t = ascii::space_type;
   qi::rule<Iterator, Container(), st_t> root;
+  qi::rule<Iterator, Container(), st_t> extended_value;
   qi::rule<Iterator, typename Container::map_type (), st_t> object;
   qi::rule<Iterator, std::pair<typename Container::key_type, Container> (), st_t> object_pair;
   qi::rule<Iterator, typename Container::vector_type (), st_t> array;
@@ -481,6 +483,27 @@ template <typename Container, typename StreamType> struct generator_impl<Contain
 
 template <typename Container, typename StreamType, parsing_policies GenPolicy> struct parser_impl {};
 template <typename Container, typename StreamType> struct parser_impl<Container, StreamType, parsing_policies::full_spirit> {
+  using string_type = typename Container::str_type;
+
+  // Grammar member
+  using grammar = raw_grammar<Container, typename StreamType::const_iterator>;
+  grammar const grammar_;
+
+  Container deserialize(StreamType const& input) const {
+    Container result;
+    typename string_type::const_iterator iter = input.begin();
+    typename string_type::const_iterator end = input.end();
+    bool success = qi::phrase_parse(iter, end, grammar_, boost::spirit::ascii::space, result);
+    if (!success) {
+      std::string parsed(input.begin(), iter);
+      std::string failed(iter, input.end());
+      std::cout << "=== Parsed ===\n" << parsed << "\n=== Failed ===\n" << failed << std::endl;
+    }
+    return result;
+  }
+};
+
+template <typename Container, typename StreamType> struct parser_impl<Container, StreamType, parsing_policies::partial_spirit> {
   using string_type = typename Container::str_type;
 
   // Grammar member

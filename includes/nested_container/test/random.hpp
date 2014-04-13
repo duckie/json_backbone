@@ -100,7 +100,7 @@ template <typename Container> class generator {
         , include_uint ? 1. : 0.
         , include_bool ? 1. : 0.
     };
-    std::discrete_distribution<> root_chooser = {include_map ? 1. : 0., 1.};
+    std::discrete_distribution<> root_chooser = {(include_map ? 1. : 0.), (include_vector ? 1. : 0.)};
     Container root(root_chooser(gen_) ? Container::template init<typename Container::vector_type>() : Container::template init<typename Container::map_type>());
 
     if(max_depth) {
@@ -133,7 +133,7 @@ template <typename Container> class generator {
               auto container_insert_result = current.raw_map().insert(std::make_pair(new_key, generate_container_once(type_chooser(gen_), str_size_gen)));
               assert(container_insert_result.second);
               Container& inserted = container_insert_result.first->second;
-              if (inserted.is_map() || inserted.is_vector()) next_to_process.push_back(inserted);
+              if (inserted.is_map() || inserted.is_vector()) next_to_process.emplace_back(inserted);
             }
           }
           else if (current.is_vector()) {
@@ -142,7 +142,7 @@ template <typename Container> class generator {
             for (size_t index = 0u; index < size; ++index) {
               current.ref_vector().push_back(generate_container_once(type_chooser(gen_), str_size_gen));
               Container& inserted = current.raw_vector().back();
-              if (inserted.is_map() || inserted.is_vector()) next_to_process.push_back(inserted);
+              if (inserted.is_map() || inserted.is_vector()) next_to_process.emplace_back(inserted);
             }
           }
           else {

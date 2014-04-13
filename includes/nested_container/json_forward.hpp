@@ -13,6 +13,7 @@ enum class generation_policies : unsigned char {
 
 enum class parsing_policies : unsigned char {
   full_spirit
+  , partial_spirit
 };
 
 template<

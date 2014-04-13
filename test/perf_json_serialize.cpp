@@ -2,7 +2,6 @@
 #include <nested_container/container.hpp>
 #include <nested_container/json_forward.hpp>
 #include <nested_container/test/random.hpp>
-//#include <nested_container/experimental/cjson.hpp>
 #include <vector>
 #include <list>
 #include <chrono>
@@ -16,6 +15,7 @@ NESTED_COMPILER_EXTERNALIZE(basic_container);
 NESTED_COMPILER_JSON_EXTERNALIZE(basic_container);
 
 using nested_container::container;
+using nested_container::vector_element_init;
 using namespace nested_container::json;
 using namespace nested_container::test::random;
 template <typename C> using json_karma = serializer<C, typename C::str_type, generation_policies::visitor_partial_karma>;
