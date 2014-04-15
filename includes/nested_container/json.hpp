@@ -15,6 +15,7 @@
 #include <boost/variant.hpp>
 #include <boost/variant/recursive_variant.hpp>
 #include <boost/fusion/include/at_c.hpp>
+#include <boost/bind.hpp>
 #include "json_forward.hpp"
 #include <stack>
 #include <list>
@@ -51,9 +52,9 @@ template<typename Container, typename Iterator> struct raw_grammar : qi::grammar
     root = object | array;
     null_value = qi::lit("null") [ _val = nullptr ];
     bool_value = qi::bool_;
-    int_value = int_parser [_val = _1];
-    uint_value = uint_parser [_val = _1];
-    float_value = float_parser [_val = _1];
+    int_value = int_parser [_val = qi::_1];
+    uint_value = uint_parser [_val = qi::_1];
+    float_value = float_parser [_val = qi::_1];
     string_value = '"' >> *(unesc_char | qi::alnum | "\\x" >> qi::hex) >> '"';
     key_value = '"' >> *qi::alnum >> '"';
     value = float_value | uint_value | int_value | bool_value | null_value | string_value;
@@ -83,12 +84,22 @@ template<typename Container, typename Iterator> struct raw_grammar : qi::grammar
 
 template<typename Container, typename Iterator> struct parsing_action_grammar : qi::grammar<Iterator, boost::spirit::ascii::space_type> {
   template <typename T> struct strict_real_policies : qi::real_policies<T> { static bool constexpr expect_dot = true; };
+  using string_type         = typename Container::str_type;
+  using key_type            = typename Container::key_type;
+  using map_type            = typename Container::map_type;
+  using vector_type         = typename Container::vector_type;
+  using float_type          = typename Container::float_type;
+  using int_type            = typename Container::int_type;
+  using uint_type           = typename Container::uint_type;
+  using self                = parsing_action_grammar;
 
   parsing_action_grammar() : parsing_action_grammar<Container, Iterator>::base_type(root) {
     namespace ascii = boost::spirit::ascii;
     using namespace qi::labels;
     using phoenix::at_c;
     using phoenix::push_back;
+    using phoenix::bind;
+    using qi::_1;
 
     unesc_char.add("\\a", '\a')("\\b", '\b')("\\f", '\f')("\\n", '\n')
       ("\\r", '\r')("\\t", '\t')("\\v", '\v')
@@ -101,20 +112,106 @@ template<typename Container, typename Iterator> struct parsing_action_grammar : 
     qi::real_parser< typename Container::float_type, strict_real_policies<typename Container::float_type> > float_parser;
 
     root = object | array;
-    null_value = qi::lit("null") [ _val = nullptr ];
-    bool_value = qi::bool_;
-    int_value = int_parser [_val = _1];
-    uint_value = uint_parser [_val = _1];
-    float_value = float_parser [_val = _1];
+    null_value = qi::lit("null") [ bind(&self::push_null_value,this) ];
+    bool_value = qi::bool_ [phoenix::bind(&self::push_bool,this,_1)];
+    int_value = int_parser [phoenix::bind(&self::push_int,this,_1)];
+    uint_value = uint_parser [phoenix::bind(&self::push_uint,this,_1)];
+    float_value = float_parser [phoenix::bind(&self::push_float,this,_1)];
     string_value = '"' >> *(unesc_char | qi::alnum | "\\x" >> qi::hex) >> '"';
-    key_value = '"' >> *qi::alnum >> '"';
-    value = float_value | uint_value | int_value | bool_value | null_value | string_value;
-    array = '[' >> -( extended_value % ',') >>']';
-    object = '{' >> -(object_pair % ',') >>'}';
-    object_pair =  key_value  >> ':' >> extended_value;
+    key_value = '"' >> *qi::alnum>> '"';
+    value = float_value | uint_value | int_value | bool_value | null_value | string_value [phoenix::bind(&self::push_string,this,_1)];
+    array = qi::lit('[') [bind(&self::begin_vector,this)] >> -( extended_value % ',') >> qi::lit(']') [bind(&self::end_vector,this)] ;
+    object = qi::lit('{') [bind(&self::begin_map,this)] >> -(object_pair % ',') >> qi::lit('}') [bind(&self::end_map,this)] ;
+    object_pair =  key_value [phoenix::bind(&self::push_key,this,_1)] >> ':' >> extended_value;
     extended_value = value | array | object;
   }
 
+  void begin_map() {
+    if (!has_root_) {
+      root_.transform_map();
+      stack_.push(root_);
+      has_root_ = true;
+    }
+    else {
+      Container & current = stack_.top().get();
+      if (current.is_map()) {
+        Container & new_container = current[key_];
+        new_container = Container::template init<map_type>();
+        stack_.push(new_container);
+      }
+      else if (current.is_vector()) {
+        current.raw_vector().push_back(Container::template init<map_type>());
+        stack_.push(current.raw_vector().back());
+      }
+    }
+  }
+
+  void end_map() { stack_.pop(); }
+
+  void begin_vector() {
+    if (!has_root_) {
+      root_.transform_vector();
+      stack_.push(root_);
+      has_root_ = true;
+    }
+    else {
+      Container & current = stack_.top().get();
+      if (current.is_map()) {
+        Container & new_container = current[key_];
+        new_container = Container::template init<vector_type>();
+        stack_.push(new_container);
+      }
+      else if (current.is_vector()) {
+        current.raw_vector().push_back(Container::template init<vector_type>());
+        stack_.push(current.raw_vector().back());
+      }
+    }
+      Container & current = stack_.top().get();
+      current.raw_vector().reserve(50);
+  }
+
+  void end_vector() { stack_.pop(); }
+
+  void push_key(key_type & v) {
+    //key_ = std::move(v);
+    std::swap(key_,v);
+  }
+
+  void push_string(string_type& v) {
+    Container & current = stack_.top().get();
+    if (current.is_map()) current[key_] = std::move(v);
+    else current.raw_vector().emplace_back(std::move(v));
+  }
+
+  void push_float(float_type v) {
+    Container & current = stack_.top().get();
+    if (current.is_map()) current[key_] = v;
+    else current.raw_vector().emplace_back(v);
+  }
+
+  void push_int(int_type v) {
+    Container & current = stack_.top().get();
+    if (current.is_map()) current[key_] = v;
+    else current.raw_vector().emplace_back(v);
+  }
+
+  void push_uint(uint_type v) {
+    Container & current = stack_.top().get();
+    if (current.is_map()) current[key_] = v;
+    else current.raw_vector().emplace_back(v);
+  }
+
+  void push_null_value() {
+    Container & current = stack_.top().get();
+    if (current.is_map()) current[key_] = nullptr;
+    else current.raw_vector().emplace_back(nullptr);
+  }
+
+  void push_bool(bool v) {
+    Container & current = stack_.top().get();
+    if (current.is_map()) current[key_] = v;
+    else current.raw_vector().emplace_back(v);
+  }
 
   using st_t = ascii::space_type;
   qi::rule<Iterator, st_t> root;
@@ -123,8 +220,8 @@ template<typename Container, typename Iterator> struct parsing_action_grammar : 
   qi::rule<Iterator, st_t> object_pair;
   qi::rule<Iterator, st_t> array;
   qi::rule<Iterator, st_t> value;
-  qi::rule<Iterator, st_t> key_value;
-  qi::rule<Iterator, st_t> string_value;
+  qi::rule<Iterator, key_type(), st_t> key_value;
+  qi::rule<Iterator, string_type(), st_t> string_value;
   qi::rule<Iterator, st_t> int_value;
   qi::rule<Iterator, st_t> uint_value;
   qi::rule<Iterator, st_t> float_value;
@@ -132,15 +229,16 @@ template<typename Container, typename Iterator> struct parsing_action_grammar : 
   qi::rule<Iterator, st_t> null_value;
   qi::symbols<char const, char const> unesc_char;
 
-  std::stack<std::reference_wrapper<Container>, std::list<std::reference_wrapper<Container>>> stack_;
+  using stack_type = std::stack<std::reference_wrapper<Container>, std::list<std::reference_wrapper<Container>>>;
+  stack_type stack_;
   bool has_root_ = false;
   Container root_;
-  typename Container::str_type key_;
+  key_type key_;
   Container value_;
 
   void prepare() {
     has_root_ = false;
-    stack_.clear();
+    stack_ = stack_type();
   }
 };
 
@@ -571,15 +669,15 @@ template <typename Container, typename StreamType> struct parser_impl<Container,
   using string_type = typename Container::str_type;
 
   // Grammar member
-  using grammar = raw_grammar<Container, typename StreamType::const_iterator>;
-  grammar const grammar_;
+  using grammar = parsing_action_grammar<Container, typename StreamType::const_iterator>;
+  mutable grammar grammar_;
 
   Container deserialize(StreamType const& input) const {
-    Container result;
     typename string_type::const_iterator iter = input.begin();
     typename string_type::const_iterator end = input.end();
-    bool success = qi::phrase_parse(iter, end, grammar_, boost::spirit::ascii::space, result);
-    return result;
+    grammar_.prepare();
+    bool success = qi::phrase_parse(iter, end, grammar_, boost::spirit::ascii::space);
+    return std::move(grammar_.root_);
   }
 };
 
