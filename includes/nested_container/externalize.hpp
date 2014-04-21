@@ -222,7 +222,7 @@ namespace nested_container { \
 }  // namespace nested_Container<>  
 
 
-# define NESTED_CONTAINER_IMPLEMENT(Container,...) \
+# define NESTED_CONTAINER_INSTANTIATE(Container,...) \
 namespace nested_container { \
   template class Container< __VA_ARGS__ >; \
   /* Traits */ \

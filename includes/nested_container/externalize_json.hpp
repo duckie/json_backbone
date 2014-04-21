@@ -23,7 +23,7 @@ namespace json { \
 }  /* namespace nested_container */ \
 // -- macro end --
 
-# define NESTED_CONTAINER_JSON_IMPLEMENT(Container,...) \
+# define NESTED_CONTAINER_JSON_INSTANTIATE(Container,...) \
 namespace nested_container { \
 namespace json { \
   template class serializer_impl_envelop <Container< __VA_ARGS__ >, typename Container< __VA_ARGS__ >::str_type, generation_policies::visitor_ostream, parsing_policies::full_spirit>; \

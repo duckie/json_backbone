@@ -5,12 +5,10 @@
 #include <vector>
 #include <list>
 #include <chrono>
-
-#include <nested_container/externalize.hpp>
-NESTED_CONTAINER_EXTERNALIZE(basic_container);
-
 #include <nested_container/externalize_json.hpp>
-NESTED_CONTAINER_JSON_EXTERNALIZE(basic_container);
+
+NESTED_CONTAINER_EXTERNALIZE_CONTAINER();
+NESTED_CONTAINER_JSON_INSTANTIATE(basic_container);
 
 using nested_container::container;
 using nested_container::vector_element_init;
