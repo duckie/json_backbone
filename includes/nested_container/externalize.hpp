@@ -1,5 +1,5 @@
-#ifndef __NESTED_COMPILER_EXTERNALIZE__
-#define __NESTED_COMPILER_EXTERNALIZE__
+#ifndef HEADER_GUARD_NESTED_CONTAINER_EXTERNALIZE
+#define HEADER_GUARD_NESTED_CONTAINER_EXTERNALIZE
 
 #include <map>
 #include <vector>
@@ -17,8 +17,8 @@
 #include <cfloat>
 #include <limits>
 
-#ifdef NESTED_COMPILER_USE_EXTERNALIZATION_MACROS
-#define NESTED_COMPILER_EXTERNALIZE(Container, ...) \
+//#ifdef NESTED_CONTAINER_USE_EXTERNALIZATION_MACROS
+#define NESTED_CONTAINER_EXTERNALIZE(Container, ...) \
 namespace nested_container { \
   extern template class Container<>; \
   /* Traits */ \
@@ -222,7 +222,7 @@ namespace nested_container { \
 }  // namespace nested_Container<>  
 
 
-# define NESTED_COMPILER_IMPLEMENT(Container,...) \
+# define NESTED_CONTAINER_IMPLEMENT(Container,...) \
 namespace nested_container { \
   template class Container< __VA_ARGS__ >; \
   /* Traits */ \
@@ -420,9 +420,9 @@ namespace nested_container { \
   template typename Container< __VA_ARGS__ >::uint_type lexical_cast<typename Container< __VA_ARGS__ >::uint_type, typename Container< __VA_ARGS__ >::str_type>(typename Container< __VA_ARGS__ >::str_type const&); \
   template bool lexical_cast<bool, typename Container< __VA_ARGS__ >::str_type>(typename Container< __VA_ARGS__ >::str_type const&); \
 }  // namespace nested_container  
-#else
-# define NESTED_COMPILER_EXTERNALIZE(...)
-# define NESTED_COMPILER_IMPLEMENT(...)
-#endif
+//#else
+//# define NESTED_COMPILER_EXTERNALIZE(...)
+//# define NESTED_COMPILER_IMPLEMENT(...)
+//#endif
 
-#endif  // __NESTED_COMPILER_EXTERNALIZE__
+#endif  // HEADER_GUARD_NESTED_CONTANER_EXTERNALIZE_

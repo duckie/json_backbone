@@ -1,5 +1,5 @@
-#ifndef __NESTED_COMPILER_CONTAINER__
-#define __NESTED_COMPILER_CONTAINER__
+#ifndef NESTED_CONTAINER_CONTAINER
+#define NESTED_CONTAINER_CONTAINER
 
 #include "base.hpp"
 
@@ -7,4 +7,4 @@ namespace nested_container {
 using container = basic_container<>;
 }  // namespace nested_container
 
-#endif  // __NESTED_COMPILER_CONTAINER__
+#endif  // NESTED_CONTAINER_CONTAINER

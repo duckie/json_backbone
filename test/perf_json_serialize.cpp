@@ -6,13 +6,11 @@
 #include <list>
 #include <chrono>
 
-#define NESTED_COMPILER_USE_EXTERNALIZATION_MACROS
 #include <nested_container/externalize.hpp>
-NESTED_COMPILER_EXTERNALIZE(basic_container);
+NESTED_CONTAINER_EXTERNALIZE(basic_container);
 
-#define NESTED_COMPILER_JSON_USE_EXTERNALIZATION_MACROS
 #include <nested_container/externalize_json.hpp>
-NESTED_COMPILER_JSON_EXTERNALIZE(basic_container);
+NESTED_CONTAINER_JSON_EXTERNALIZE(basic_container);
 
 using nested_container::container;
 using nested_container::vector_element_init;
