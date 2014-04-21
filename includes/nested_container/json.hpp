@@ -135,8 +135,9 @@ template<typename Container, typename Iterator> struct parsing_action_grammar : 
     else {
       Container & current = stack_.top().get();
       if (current.is_map()) {
-        Container & new_container = current[key_];
-        new_container = Container::template init<map_type>();
+        auto insert_result = current.raw_map().emplace(key_, Container::template init<map_type>());
+        Container & new_container = insert_result.first->second;
+        if (!insert_result.second) new_container = Container::template init<map_type>();
         stack_.push(new_container);
       }
       else if (current.is_vector()) {
@@ -157,8 +158,9 @@ template<typename Container, typename Iterator> struct parsing_action_grammar : 
     else {
       Container & current = stack_.top().get();
       if (current.is_map()) {
-        Container & new_container = current[key_];
-        new_container = Container::template init<vector_type>();
+        auto insert_result = current.raw_map().emplace(key_, Container::template init<vector_type>());
+        Container & new_container = insert_result.first->second;
+        if (!insert_result.second) new_container = Container::template init<vector_type>();
         stack_.push(new_container);
       }
       else if (current.is_vector()) {
@@ -166,8 +168,8 @@ template<typename Container, typename Iterator> struct parsing_action_grammar : 
         stack_.push(current.raw_vector().back());
       }
     }
-      Container & current = stack_.top().get();
-      current.raw_vector().reserve(50);
+    Container & current = stack_.top().get();
+    current.raw_vector().reserve(vector_reserve_);
   }
 
   void end_vector() { stack_.pop(); }
@@ -232,12 +234,14 @@ template<typename Container, typename Iterator> struct parsing_action_grammar : 
   using stack_type = std::stack<std::reference_wrapper<Container>, std::list<std::reference_wrapper<Container>>>;
   stack_type stack_;
   bool has_root_ = false;
+  size_t vector_reserve_ = 0u;
   Container root_;
   key_type key_;
   Container value_;
 
-  void prepare() {
+  void reset(size_t vector_reserve) {
     has_root_ = false;
+    vector_reserve_ = vector_reserve;
     stack_ = stack_type();
   }
 };
@@ -672,10 +676,10 @@ template <typename Container, typename StreamType> struct parser_impl<Container,
   using grammar = parsing_action_grammar<Container, typename StreamType::const_iterator>;
   mutable grammar grammar_;
 
-  Container deserialize(StreamType const& input) const {
+  Container deserialize(StreamType const& input, size_t vector_reserve = 0u) const {
     typename string_type::const_iterator iter = input.begin();
     typename string_type::const_iterator end = input.end();
-    grammar_.prepare();
+    grammar_.reset(vector_reserve);
     bool success = qi::phrase_parse(iter, end, grammar_, boost::spirit::ascii::space);
     return std::move(grammar_.root_);
   }
@@ -693,6 +697,13 @@ template<
 typename Container
 , typename StreamType
 , generation_policies GenPolicy
+> 
+serializer_impl_envelop<Container, StreamType, GenPolicy, parsing_policies::partial_spirit>::~serializer_impl_envelop() {}
+
+template<
+typename Container
+, typename StreamType
+, generation_policies GenPolicy
 , parsing_policies ParsePolicy
 > 
 class serializer_impl : public serializer_impl_envelop<Container, StreamType, GenPolicy, ParsePolicy> {
@@ -703,6 +714,21 @@ class serializer_impl : public serializer_impl_envelop<Container, StreamType, Ge
   ~serializer_impl() {}
   StreamType serialize(Container const& input) const override { return generator_.serialize(input); };
   Container deserialize(StreamType const& input) const override { return parser_.deserialize(input); };
+};
+
+template<
+typename Container
+, typename StreamType
+, generation_policies GenPolicy
+> 
+class serializer_impl<Container, StreamType, GenPolicy, parsing_policies::partial_spirit> : public serializer_impl_envelop<Container, StreamType, GenPolicy, parsing_policies::partial_spirit> {
+  generator_impl<Container, StreamType, GenPolicy> generator_;
+  parser_impl<Container, StreamType, parsing_policies::partial_spirit> parser_;
+
+ public:
+  ~serializer_impl() {}
+  StreamType serialize(Container const& input) const override { return generator_.serialize(input); };
+  Container deserialize(StreamType const& input, size_t vector_reserve) const override { return parser_.deserialize(input, vector_reserve); };
 };
 
 template<typename Container, typename StreamType, generation_policies GenPolicy , parsing_policies ParsePolicy> 
@@ -718,6 +744,21 @@ StreamType serializer<Container, StreamType, GenPolicy, ParsePolicy>::serialize(
 template<typename Container, typename StreamType, generation_policies GenPolicy , parsing_policies ParsePolicy> 
 Container serializer<Container, StreamType, GenPolicy, ParsePolicy>::deserialize(StreamType const& input) const {
   return serializer_impl_->deserialize(input); 
+}
+
+template<typename Container, typename StreamType, generation_policies GenPolicy> 
+serializer<Container, StreamType, GenPolicy, parsing_policies::partial_spirit>::serializer() 
+  : serializer_impl_(new serializer_impl<Container, StreamType, GenPolicy, parsing_policies::partial_spirit>)
+{}
+
+template<typename Container, typename StreamType, generation_policies GenPolicy> 
+StreamType serializer<Container, StreamType, GenPolicy, parsing_policies::partial_spirit>::serialize(Container const& input) const {
+  return serializer_impl_->serialize(input); 
+}
+
+template<typename Container, typename StreamType, generation_policies GenPolicy> 
+Container serializer<Container, StreamType, GenPolicy, parsing_policies::partial_spirit>::deserialize(StreamType const& input, size_t vector_reserve) const {
+  return serializer_impl_->deserialize(input, vector_reserve); 
 }
 
 }  // namespace json

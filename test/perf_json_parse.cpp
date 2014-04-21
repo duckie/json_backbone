@@ -22,7 +22,7 @@ template <typename C> using json = nested_container::json::serializer<C>;
 template <typename C> using json_full_spirit = serializer<C, typename C::str_type, generation_policies::visitor_ostream, parsing_policies::full_spirit>;
 template <typename C> using json_partial_spirit = serializer<C, typename C::str_type, generation_policies::visitor_ostream, parsing_policies::partial_spirit>;
 
-void compare_parse_time(container const& c) {
+void compare_parse_time(container const& c, size_t vector_reserve = 0u) {
   size_t constexpr max_iter = 1e1;
   using std::chrono::high_resolution_clock;
   using std::chrono::time_point;
@@ -52,6 +52,10 @@ void compare_parse_time(container const& c) {
   //std::cout << result_full_str << std::endl;
   end = high_resolution_clock::now();
   std::cout << "Partial spirit took " << duration_cast<milliseconds>(end-start).count() << "ms" << std::endl;
+  start = high_resolution_clock::now();
+  for(size_t i=0u; i < max_iter; ++i) partial_driver.deserialize(to_parse, vector_reserve);
+  end = high_resolution_clock::now();
+  std::cout << "Partial spirit with pre-reserve took " << duration_cast<milliseconds>(end-start).count() << "ms" << std::endl;
 }
 
 int main(void) {
@@ -84,13 +88,13 @@ int main(void) {
   generator<container> random_gen;
 
   // Totally random
-  compare_parse_time(random_gen.generate(4, 30, 60, 30, 60));
+  compare_parse_time(random_gen.generate(4, 30, 60, 30, 60), 60u);
 
   // Only arrays of integer
-  compare_parse_time(random_gen.generate(3, 0, 0, 50, 80, 0, 0, 0, 0, false, false, true, false, false, true, true, false));
+  compare_parse_time(random_gen.generate(3, 0, 0, 50, 80, 0, 0, 0, 0, false, false, true, false, false, true, true, false), 80u);
 
   // Not any number
-  compare_parse_time(random_gen.generate(3, 30, 50, 30, 50, 0, 12, 1, 12, true, true, true, true, false, false, false, true));
+  compare_parse_time(random_gen.generate(3, 30, 50, 30, 50, 0, 12, 1, 12, true, true, true, true, false, false, false, true), 50u);
 
   return 0;
 }
