@@ -8,12 +8,12 @@ CppNestedContainer
 The aim of `nested_container` is to reproduce the ease of use of some dynamic languages (JSON objects in Javascript, dictionaries in Python, arrays in PHP) in C++ while keeping good performances and type safety. A `nested_container` can hold eight type of data :
 
 * A `null` value
-* A associative container (default is `std::map`)
+* An associative container (default is `std::map`)
 * A dynamic array (default is `std::vector`)
 * A string (default is `std::string`)
 * A floating point number (default is `float`)
-* A integer (default is `int`)
-* A unsigned integer (default is `unsigned int`)
+* An integer (default is `int`)
+* An unsigned integer (default is `unsigned int`)
 * A boolean
 
 Since accessing dynamically typed data in C++ can be done in a lot of different ways, particularly regarding the error cases, `nested_container` tries to provide enough of them to match every use and constraint.
