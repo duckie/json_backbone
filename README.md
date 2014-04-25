@@ -70,7 +70,7 @@ int main(void) {
 }
 ```
 
-## Acessing data
+## Accessing data
 
 The example is shown for a string, but every other contained type can be accessed the same way.
 
@@ -170,7 +170,7 @@ int main(void) {
 
 # Externalisation
 
-Compilation can be long, particularly when you use the JSON driver which is based on `boost::spirit` a great too but slow to compile due to the higly templated architecture. `nested_container` is provided with macros to help you externalize the templates and save compile time, link time and disk space.
+Compilation can be long, particularly when you use the JSON driver which is based on `boost::spirit` a great tool but slow to compile due to the highly templated architecture. `nested_container` is provided with macros to help you externalize the templates and save compile time, link time and disk space.
 
 #### To instantiate the templates
 
@@ -204,6 +204,7 @@ NESTED_CONTAINER_JSON_INSTANTIATE(basic_container);
 Some ideas:
 * Genericity : `std::wstring` has not been tested 
 * Key ordering : when creating network messages, key order in a message can play a role. A specific underlying collection will be provided to bring this feature.
+* Support for "strict" containers : trying to change the type after initialisation would be considered an error.
 
 ## Other drivers
 
@@ -212,6 +213,10 @@ Other drivers are planned:
 * BJSON driver
 * Lua driver
 * Python driver
+
+Suggested by others:
+
+* Log file reader
 
 # Contact
 
