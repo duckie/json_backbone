@@ -1,5 +1,5 @@
-#ifndef HEADER_GUARD_NESTED_CONTAINER_EXTERNALIZE
-#define HEADER_GUARD_NESTED_CONTAINER_EXTERNALIZE
+#ifndef NESTED_CONTAINER_EXTERNALIZE_HEADER
+#define NESTED_CONTAINER_EXTERNALIZE_HEADER
 
 #include <map>
 #include <vector>
@@ -17,8 +17,7 @@
 #include <cfloat>
 #include <limits>
 
-//#ifdef NESTED_CONTAINER_USE_EXTERNALIZATION_MACROS
-#define NESTED_CONTAINER_EXTERNALIZE(Container, ...) \
+#define NESTED_CONTAINER_EXTERNALIZE_TEMPLATE(Container, ...) \
 namespace nested_container { \
   extern template class Container<>; \
   /* Traits */ \
@@ -219,10 +218,10 @@ namespace nested_container { \
   extern template bool lexical_cast<bool, typename Container< __VA_ARGS__ >::str_type>(typename Container< __VA_ARGS__ >::str_type const&); \
   /* STL */ \
   /*extern template class Container< __VA_ARGS__ >::vector_template< Container< __VA_ARGS__ > >;*/ \
-}  // namespace nested_Container<>  
+}  /* namespace nested_Container<> */ \
+// -- macro end --
 
-
-# define NESTED_CONTAINER_INSTANTIATE(Container,...) \
+#define NESTED_CONTAINER_INSTANTIATE_TEMPLATE(Container,...) \
 namespace nested_container { \
   template class Container< __VA_ARGS__ >; \
   /* Traits */ \
@@ -419,10 +418,10 @@ namespace nested_container { \
   template typename Container< __VA_ARGS__ >::int_type lexical_cast<typename Container< __VA_ARGS__ >::int_type, typename Container< __VA_ARGS__ >::str_type>(typename Container< __VA_ARGS__ >::str_type const&); \
   template typename Container< __VA_ARGS__ >::uint_type lexical_cast<typename Container< __VA_ARGS__ >::uint_type, typename Container< __VA_ARGS__ >::str_type>(typename Container< __VA_ARGS__ >::str_type const&); \
   template bool lexical_cast<bool, typename Container< __VA_ARGS__ >::str_type>(typename Container< __VA_ARGS__ >::str_type const&); \
-}  // namespace nested_container  
-//#else
-//# define NESTED_COMPILER_EXTERNALIZE(...)
-//# define NESTED_COMPILER_IMPLEMENT(...)
-//#endif
+}  /* namespace nested_container*/ \
+// -- macro end --
 
-#endif  // HEADER_GUARD_NESTED_CONTANER_EXTERNALIZE_
+#define NESTED_CONTAINER_EXTERNALIZE(...) NESTED_CONTAINER_EXTERNALIZE_TEMPLATE(basic_container, __VA_ARGS__)
+#define NESTED_CONTAINER_INSTANTIATE(...) NESTED_CONTAINER_INSTANTIATE_TEMPLATE(basic_container, __VA_ARGS__)
+
+#endif  // NESTED_CONTAINER_EXTERNALIZE_HEADER

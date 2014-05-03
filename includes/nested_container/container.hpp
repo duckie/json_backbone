@@ -1,14 +1,11 @@
-#ifndef NESTED_CONTAINER_CONTAINER
-#define NESTED_CONTAINER_CONTAINER
-
+#ifndef NESTED_CONTAINER_CONTAINER_HEADER
+#define NESTED_CONTAINER_CONTAINER_HEADER
 #include "base.hpp"
-#include "externalize.hpp"
+
+#define NESTED_CONTAINER_CONTAINER_SIGNATURE(...) std::string, std::string, int, unsigned int, float
 
 namespace nested_container {
-using container = basic_container<>;
+using container = basic_container<NESTED_CONTAINER_CONTAINER_SIGNATURE()>;
 }  // namespace nested_container
 
-#define NESTED_CONTAINER_EXTERNALIZE_CONTAINER(...) NESTED_CONTAINER_EXTERNALIZE(basic_container, std::string, std::string, int, unsigned int, float)
-#define NESTED_CONTAINER_INSTANTIATE_CONTAINER(...) NESTED_CONTAINER_INSTANTIATE(basic_container, std::string, std::string, int, unsigned int, float)
-
-#endif  // NESTED_CONTAINER_CONTAINER
+#endif  // NESTED_CONTAINER_CONTAINER_HEADER

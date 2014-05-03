@@ -5,10 +5,11 @@
 #include <vector>
 #include <list>
 #include <chrono>
+#include <nested_container/externalize.hpp>
 #include <nested_container/externalize_json.hpp>
 
-NESTED_CONTAINER_EXTERNALIZE_CONTAINER();
-NESTED_CONTAINER_JSON_INSTANTIATE(basic_container);
+NESTED_CONTAINER_EXTERNALIZE(NESTED_CONTAINER_CONTAINER_SIGNATURE());
+NESTED_CONTAINER_EXTERNALIZE_JSON(NESTED_CONTAINER_CONTAINER_SIGNATURE());
 
 using nested_container::container;
 using namespace nested_container::json;

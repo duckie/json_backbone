@@ -1,6 +1,8 @@
 #include <nested_container/container.hpp>
-#include <nested_container/externalize_json.hpp>
-#include <nested_container/json.hpp>
+#include <nested_container/externalize.hpp>
+NESTED_CONTAINER_INSTANTIATE(NESTED_CONTAINER_CONTAINER_SIGNATURE());
 
-NESTED_CONTAINER_INSTANTIATE_CONTAINER();
-NESTED_CONTAINER_JSON_INSTANTIATE(basic_container);
+#include <nested_container/json.hpp>
+#include <nested_container/externalize_json.hpp>
+NESTED_CONTAINER_INSTANTIATE_JSON(NESTED_CONTAINER_CONTAINER_SIGNATURE());
+
