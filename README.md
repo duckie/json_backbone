@@ -3,6 +3,39 @@ CppNestedContainer
 
 `nested_container` is a dynamic C++11 container to hold dynamically structured data. `nested_container` is easy to use, generic, type safe and light in memory.
 
+```c++
+#include <nested_container/container.hpp>  // Requires C++11
+#include <nested_container/driver/json/json.hpp>  // Requires boost::spirit
+#include <string>
+#include <iostream>
+
+using nested_container::container;  // Default container with default types
+template <typename C> using json = nested_container::json::serializer<C>;
+
+int main(void) {
+  using _ = nested_container::attr_init<container>;
+  container c = {
+    _("nom") = "Roger",
+    _("prenom") = "Marcel",
+    _("attributs") = {
+      _("poids") = 95u,
+      _("liste") = {1,2.f,"yeah"}
+    }
+  };
+
+  json<container> serializer;
+  std::string json_str = serializer.serialize(c);
+  container parsed_c = serializer.deserialize(json_str);
+  
+  if (parsed_c["attributs"]["poids"].is_uint()) {
+    std::cout << parsed_c["attributs"]["liste"][2].ref_string() << std::endl;
+    return 0;
+  }
+
+  return 1;
+}
+```
+
 # Introduction
 
 The aim of `nested_container` is to reproduce the ease of use of some dynamic languages (JSON objects in Javascript, dictionaries in Python, arrays in PHP) in C++ while keeping good performances and type safety. A `nested_container` can hold eight type of data :
@@ -66,7 +99,7 @@ int main(void) {
     }
   };
   
-  std::cout << c["attributs"]["liste"][2] << std::endl;
+  std::cout << c["attributs"]["liste"][2].ref_string() << std::endl;
 }
 ```
 
@@ -110,7 +143,7 @@ int main(void) {
   {
     std::string s1 = c2;
     std::string const& s2 = c2.ref_string();
-    std::string const * ps3 = c.get_string();
+    std::string const * ps3 = c2.get_string();
     std::string s4;
     bool success = c2.get(s4);
     std::string const& s5 = c2.raw_string();
@@ -135,7 +168,7 @@ The JSON parser directly converts numbers : a number with a dot will be a floati
 
 ```c++
 #include <nested_container/container.hpp>
-#include <nested_container/json.hpp>
+#include <nested_container/driver/json/json.hpp>
 #include <string>
 #include <iostream>
 
@@ -154,7 +187,7 @@ int main(void) {
 
 ```c++
 #include <nested_container/container.hpp>
-#include <nested_container/json.hpp>
+#include <nested_container/driver/json/json.hpp>
 #include <iostream>
 
 using nested_container::container;
@@ -177,11 +210,11 @@ Compilation can be long, particularly when you use the JSON driver which is base
 ```c++
 #include <nested_container/container.hpp>
 #include <nested_container/externalize.hpp>
-#include <nested_container/json.hpp>
-#include <nested_container/externalize_json.hpp>
+#include <nested_container/driver/json/json.hpp>
+#include <nested_container/driver/json/externalize_json.hpp>
 
-NESTED_CONTAINER_INSTANTIATE_CONTAINER();
-NESTED_CONTAINER_JSON_INSTANTIATE(basic_container);
+NESTED_CONTAINER_INSTANTIATE(NESTED_CONTAINER_CONTAINER_SIGNATURE());
+NESTED_CONTAINER_INSTANTIATE_JSON(NESTED_CONTAINER_CONTAINER_SIGNATURE());
 ```
 
 #### To use them without instantiating them
@@ -189,11 +222,11 @@ NESTED_CONTAINER_JSON_INSTANTIATE(basic_container);
 ```c++
 #include <nested_container/container.hpp>
 #include <nested_container/externalize.hpp>
-#include <nested_container/json_forward.hpp>
-#include <nested_container/externalize_json.hpp>
+#include <nested_container/driver/json/json_forward.hpp>
+#include <nested_container/driver/json/externalize_json.hpp>
 
-NESTED_CONTAINER_EXTERNALIZE_CONTAINER();
-NESTED_CONTAINER_JSON_INSTANTIATE(basic_container);
+NESTED_CONTAINER_EXTERNALIZE(NESTED_CONTAINER_CONTAINER_SIGNATURE());
+NESTED_CONTAINER_EXTERNALIZE_JSON(NESTED_CONTAINER_CONTAINER_SIGNATURE());
 ```
 
 
@@ -204,7 +237,8 @@ NESTED_CONTAINER_JSON_INSTANTIATE(basic_container);
 Some ideas:
 * Genericity : `std::wstring` has not been tested 
 * Key ordering : when creating network messages, key order in a message can play a role. A specific underlying collection will be provided to bring this feature.
-* Support for "strict" containers : trying to change the type after initialisation would be considered an error.
+* Support for "strict" containers : trying to change the type after initialisation would be considered an error. Accessing on non existing key would be an error.
+* UTF-8 : supported in theory but not tested at all.
 
 ## Other drivers
 
@@ -220,8 +254,5 @@ Suggested by others:
 
 # Contact
 
-Any critic, bug report or idea to improve it is welcome.
-
-
-
+Any feedback, critic, bug report or idea to improve it is welcome.
 
