@@ -53,7 +53,9 @@ Since accessing dynamically typed data in C++ can be done in a lot of different 
 
 #### Note to C++ developers
 
-If you are an experienced C++ developer, you may feel uncomfortable with `nested_container`, and thinking of type erasure and other kinky concepts. Lets put things clear : `nested_container` has been written to ease the communication between C++ code and its external world, meaning here other languages and messaging protocols. It is focused on small size datasets. Yes, a beginner could (easily) write unmaintainable and unefficient code by using it in the wrong place. Dont blame the tool for allowing bad use, C++ allows a lot of bad uses of its own features.
+If you are an experienced C++ developer, you may feel uncomfortable with `nested_container`, and thinking of type erasure and other kinky concepts. Lets put things clear : `nested_container` has been written to ease the communication between C++ code and its external world, meaning here other languages and messaging protocols. It is focused on small size datasets. Yes, a beginner could (easily) write unmaintainable and unefficient code by using it in the wrong place. Please do not blame the tool for allowing bad use, as the whole C++ language allows a lot of bad uses of itself.
+
+If you are interested about implementation details and the reasons behind their choice, please let me know.
 
 # Examples
 
@@ -248,7 +250,7 @@ Some ideas:
 
 Other drivers are planned:
 
-* BJSON driver
+* BSON driver
 * Lua driver
 * Python driver
 
