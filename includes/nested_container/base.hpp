@@ -20,36 +20,6 @@
 
 namespace nested_container {
 
-// boost lexical cast, simple non-throwing version
-// TODO: Replace with Karma generators and Qi parsers
-template<typename Target, typename Source> 
-typename std::enable_if<std::is_fundamental<Source>::value, Target>::type
-lexical_cast(Source arg) {
-  std::stringstream interpreter;
-  Target result;
-
-  if(!(interpreter << arg)
-      || !(interpreter >> result)
-      || !(interpreter >> std::ws).eof())
-    return Target();
-
-  return result;
-}
-
-template<typename Target, typename Source> 
-typename std::enable_if<!std::is_fundamental<Source>::value, Target>::type
-lexical_cast(Source const& arg) {
-  std::stringstream interpreter;
-  Target result;
-
-  if(!(interpreter << arg)
-      || !(interpreter >> result)
-      || !(interpreter >> std::ws).eof())
-    return Target();
-
-  return result;
-}
-
 template <typename key_type, typename value_type> using std_map_default_allocators = std::map<key_type, value_type>;
 template <typename value_type> using std_vector_default_allocators = std::vector<value_type>;
 template <class Container> class attr_init;
@@ -150,6 +120,39 @@ class basic_container final {
 
     //static_assert(is_from_container, "Type must be one of container's internal types");
   };
+
+  // boost lexical cast, simple non-throwing version
+  // TODO: Replace with Karma generators and Qi parsers
+  // Putting the lexical cast here as a member is ugly but needed to avoid
+  // externalization conflicts when two different containers shared a same type
+  // which is the case of container_double and container_longint_double
+  template<typename Target, typename Source> 
+  static typename std::enable_if<std::is_fundamental<Source>::value, Target>::type
+  lexical_cast(Source arg) {
+    std::stringstream interpreter;
+    Target result;
+
+    if(!(interpreter << arg)
+        || !(interpreter >> result)
+        || !(interpreter >> std::ws).eof())
+      return Target();
+
+    return result;
+  }
+
+  template<typename Target, typename Source> 
+  static typename std::enable_if<!std::is_fundamental<Source>::value, Target>::type
+  lexical_cast(Source const& arg) {
+    std::stringstream interpreter;
+    Target result;
+
+    if(!(interpreter << arg)
+        || !(interpreter >> result)
+        || !(interpreter >> std::ws).eof())
+      return Target();
+
+    return result;
+  }
 
   static bool is_lexical(value_type type) { 
     return value_type::boolean == type 

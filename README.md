@@ -164,7 +164,7 @@ int main(void) {
 
 ## JSON
 
-A powerful JSON parser and serializer is provided. Different parsing and serializaing strategies are available, see the test sources for more information. The best one may depend on your particular data.
+A JSON parser and serializer is provided. Different parsing and serializaing strategies are available, see the test sources for more information. The best one may depend on your particular data.
 
 ### Parsing JSON
 

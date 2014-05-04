@@ -212,10 +212,10 @@ namespace nested_container { \
   extern template typename Container< __VA_ARGS__ >::uint_type    Container< __VA_ARGS__ >::as<typename Container< __VA_ARGS__ >::uint_type>() const; \
   extern template bool                                            Container< __VA_ARGS__ >::as<bool>() const; \
   /* lexical cast */ \
-  extern template typename Container< __VA_ARGS__ >::float_type lexical_cast<typename Container< __VA_ARGS__ >::float_type, typename Container< __VA_ARGS__ >::str_type>(typename Container< __VA_ARGS__ >::str_type const&); \
-  extern template typename Container< __VA_ARGS__ >::int_type lexical_cast<typename Container< __VA_ARGS__ >::int_type, typename Container< __VA_ARGS__ >::str_type>(typename Container< __VA_ARGS__ >::str_type const&); \
-  extern template typename Container< __VA_ARGS__ >::uint_type lexical_cast<typename Container< __VA_ARGS__ >::uint_type, typename Container< __VA_ARGS__ >::str_type>(typename Container< __VA_ARGS__ >::str_type const&); \
-  extern template bool lexical_cast<bool, typename Container< __VA_ARGS__ >::str_type>(typename Container< __VA_ARGS__ >::str_type const&); \
+  extern template typename Container< __VA_ARGS__ >::float_type Container< __VA_ARGS__ >::lexical_cast<typename Container< __VA_ARGS__ >::float_type, typename Container< __VA_ARGS__ >::str_type>(typename Container< __VA_ARGS__ >::str_type const&); \
+  extern template typename Container< __VA_ARGS__ >::int_type Container< __VA_ARGS__ >::lexical_cast<typename Container< __VA_ARGS__ >::int_type, typename Container< __VA_ARGS__ >::str_type>(typename Container< __VA_ARGS__ >::str_type const&); \
+  extern template typename Container< __VA_ARGS__ >::uint_type Container< __VA_ARGS__ >::lexical_cast<typename Container< __VA_ARGS__ >::uint_type, typename Container< __VA_ARGS__ >::str_type>(typename Container< __VA_ARGS__ >::str_type const&); \
+  extern template bool Container< __VA_ARGS__ >::lexical_cast<bool, typename Container< __VA_ARGS__ >::str_type>(typename Container< __VA_ARGS__ >::str_type const&); \
   /* STL */ \
   /*extern template class Container< __VA_ARGS__ >::vector_template< Container< __VA_ARGS__ > >;*/ \
 }  /* namespace nested_Container<> */ \
@@ -414,10 +414,10 @@ namespace nested_container { \
   template typename Container< __VA_ARGS__ >::uint_type    Container< __VA_ARGS__ >::as<typename Container< __VA_ARGS__ >::uint_type>() const; \
   template bool                                            Container< __VA_ARGS__ >::as<bool>() const; \
   /* lexical cast */ \
-  template typename Container< __VA_ARGS__ >::float_type lexical_cast<typename Container< __VA_ARGS__ >::float_type, typename Container< __VA_ARGS__ >::str_type>(typename Container< __VA_ARGS__ >::str_type const&); \
-  template typename Container< __VA_ARGS__ >::int_type lexical_cast<typename Container< __VA_ARGS__ >::int_type, typename Container< __VA_ARGS__ >::str_type>(typename Container< __VA_ARGS__ >::str_type const&); \
-  template typename Container< __VA_ARGS__ >::uint_type lexical_cast<typename Container< __VA_ARGS__ >::uint_type, typename Container< __VA_ARGS__ >::str_type>(typename Container< __VA_ARGS__ >::str_type const&); \
-  template bool lexical_cast<bool, typename Container< __VA_ARGS__ >::str_type>(typename Container< __VA_ARGS__ >::str_type const&); \
+  template typename Container< __VA_ARGS__ >::float_type Container< __VA_ARGS__ >::lexical_cast<typename Container< __VA_ARGS__ >::float_type, typename Container< __VA_ARGS__ >::str_type>(typename Container< __VA_ARGS__ >::str_type const&); \
+  template typename Container< __VA_ARGS__ >::int_type Container< __VA_ARGS__ >::lexical_cast<typename Container< __VA_ARGS__ >::int_type, typename Container< __VA_ARGS__ >::str_type>(typename Container< __VA_ARGS__ >::str_type const&); \
+  template typename Container< __VA_ARGS__ >::uint_type Container< __VA_ARGS__ >::lexical_cast<typename Container< __VA_ARGS__ >::uint_type, typename Container< __VA_ARGS__ >::str_type>(typename Container< __VA_ARGS__ >::str_type const&); \
+  template bool Container< __VA_ARGS__ >::lexical_cast<bool, typename Container< __VA_ARGS__ >::str_type>(typename Container< __VA_ARGS__ >::str_type const&); \
 }  /* namespace nested_container*/ \
 // -- macro end --
 

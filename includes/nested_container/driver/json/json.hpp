@@ -416,6 +416,10 @@ template <> struct string_conversion_traits<double, void> {
   static size_t constexpr max_size = 3 + DBL_MANT_DIG - DBL_MIN_EXP;
 };
 
+template <> struct string_conversion_traits<long double, void> {
+  static size_t constexpr max_size = 3 + LDBL_MANT_DIG - LDBL_MIN_EXP;
+};
+
 // Utility to compute a max size of the container once converted in string
 template <typename Container> struct visitor_size {
   using string_type         = typename Container::str_type;
