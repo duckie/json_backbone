@@ -49,13 +49,22 @@ The aim of `nested_container` is to reproduce the ease of use of some dynamic la
 * An unsigned integer (default is `unsigned int`)
 * A boolean
 
+Prefined templates for use with other integral types (`long`, `long long`, `unsigned long`, `unsigned long long`, `double` and `long double`) are available, along with predefined ones using `std::unordered_map`.
+
 Since accessing dynamically typed data in C++ can be done in a lot of different ways, particularly regarding the error cases, `nested_container` tries to provide enough of them to match every use and constraint.
 
-#### Note to C++ developers
+#### References
 
-If you are an experienced C++ developer, you may feel uncomfortable with `nested_container`, and thinking of type erasure and other kinky concepts. Lets put things clear : `nested_container` has been written to ease the communication between C++ code and its external world, meaning here other languages and messaging protocols. It is focused on small size datasets. Yet a beginner could easily write unmaintainable and unefficient code by using it in the wrong place. Please do not blame the tool for allowing bad use, as the whole C++ language allows a lot of bad uses of itself.
+This is not the first project with such objectives. You might consider the following resources:
+* [Alex Fabijanic's talk at C++Now 2013 about Dynamic C++](https://github.com/boostcon/cppnow_presentations_2013/blob/master/thu/DynamicCpp.pdf?raw=true)
+* [Christopher Chedeau's talk at JSCONF about using C++ to mimic Javascript](http://blip.tv/jsconf/jsconf2012-christopher-chedeau-6145646)
 
-If you are interested about implementation details and the reasons behind their choice, please let me know.
+`nested_container` is different on some points and common on others. If you are interested about implementation details and the reasons behind their choice, please let me know.
+
+If you are looking for similar things but at compile time, check out those resources:
+* [Named tuples](https://github.com/duckie/named_tuple)
+* [Inline Object Declaration](https://github.com/matt-42/iod)
+* Discussions on [StackOverflow](http://stackoverflow.com/questions/13065166/c11-tagged-tuple) and [GoogleGroups](https://groups.google.com/a/isocpp.org/forum/#!topic/std-proposals/N-kIXNrkTUk)
 
 # Examples
 
