@@ -1,6 +1,7 @@
 cmake_minimum_required(VERSION 2.8)
 
 project(CppNestedContainer)
+enable_testing()
 
 include_directories(
   ${PROJECT_SOURCE_DIR}/includes/
@@ -12,19 +13,20 @@ include_directories(
 )
 
 # C++11
-#list(APPEND CMAKE_CXX_FLAGS "-std=c++11")
-set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+include(CheckCXXCompilerFlag)
+check_cxx_compiler_flag(-std=c++11 HAVE_STD_CPP11_FLAG)
+if (HAVE_STD_CPP11_FLAG)
+  message("-- C++11 support found.")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++11")
+else()
+  message(FATAL_ERROR "Your compiler must support at least C++11 to compile ${PROJECT_NAME}.")
+endif()
 
 ### Boost support ###
 FIND_PACKAGE(Boost REQUIRED)
 if(Boost_FOUND)
 	include_directories(${Boost_INCLUDE_DIRS})
-  #link_directories(${Boost_LIBRARY_DIRS})
-  #  # GCC does not support the boost auto link feature
-  #  if(CMAKE_COMPILER_IS_GNUCXX)
-  #      set(LIBRARIES "${LIBRARIES}" "${Boost_LIBRARIES}")
-  #  endif(CMAKE_COMPILER_IS_GNUCXX)
 endif()
 
-#add_subdirectory(src)
+#add_subdirectory(test EXCLUDE_FROM_ALL)
 add_subdirectory(test)
