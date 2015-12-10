@@ -5,7 +5,7 @@ CppNestedContainer
 
 ```c++
 #include <nested_container/container.hpp>  // Requires C++11
-#include <nested_container/driver/json/json.hpp>  // Requires boost::spirit
+#include <nested_container/extensions/boost_spirit_json/json.hpp>  // Requires boost::spirit
 #include <string>
 #include <iostream>
 
@@ -183,7 +183,7 @@ The JSON parser directly converts numbers : a number with a dot will be a floati
 
 ```c++
 #include <nested_container/container.hpp>
-#include <nested_container/driver/json/json.hpp>
+#include <nested_container/extensions/boost_spirit_json/json.hpp>
 #include <string>
 #include <iostream>
 
@@ -202,7 +202,7 @@ int main(void) {
 
 ```c++
 #include <nested_container/container.hpp>
-#include <nested_container/driver/json/json.hpp>
+#include <nested_container/extensions/boost_spirit_json/json.hpp>
 #include <iostream>
 
 using nested_container::container;
@@ -225,8 +225,8 @@ Compilation can be long, particularly when you use the JSON driver which is base
 ```c++
 #include <nested_container/container.hpp>
 #include <nested_container/externalize.hpp>
-#include <nested_container/driver/json/json.hpp>
-#include <nested_container/driver/json/externalize_json.hpp>
+#include <nested_container/extensions/boost_spirit_json/json.hpp>
+#include <nested_container/extensions/boost_spirit_json/externalize_json.hpp>
 
 NESTED_CONTAINER_INSTANTIATE(NESTED_CONTAINER_CONTAINER_SIGNATURE());
 NESTED_CONTAINER_INSTANTIATE_JSON(NESTED_CONTAINER_CONTAINER_SIGNATURE());
@@ -237,8 +237,8 @@ NESTED_CONTAINER_INSTANTIATE_JSON(NESTED_CONTAINER_CONTAINER_SIGNATURE());
 ```c++
 #include <nested_container/container.hpp>
 #include <nested_container/externalize.hpp>
-#include <nested_container/driver/json/json_forward.hpp>
-#include <nested_container/driver/json/externalize_json.hpp>
+#include <nested_container/extensions/boost_spirit_json/json_forward.hpp>
+#include <nested_container/extensions/boost_spirit_json/externalize_json.hpp>
 
 NESTED_CONTAINER_EXTERNALIZE(NESTED_CONTAINER_CONTAINER_SIGNATURE());
 NESTED_CONTAINER_EXTERNALIZE_JSON(NESTED_CONTAINER_CONTAINER_SIGNATURE());

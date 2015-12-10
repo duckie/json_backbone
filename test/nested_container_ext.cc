@@ -8,8 +8,8 @@
 #include <nested_container/container_ll_ldbl_u.hpp>
 
 #include <nested_container/externalize.hpp>
-#include <nested_container/driver/json/json.hpp>
-#include <nested_container/driver/json/externalize_json.hpp>
+#include <nested_container/extensions/boost_spirit_json/json.hpp>
+#include <nested_container/extensions/boost_spirit_json/externalize_json.hpp>
 
 NESTED_CONTAINER_INSTANTIATE(NESTED_CONTAINER_CONTAINER_DBL_SIGNATURE());
 NESTED_CONTAINER_INSTANTIATE(NESTED_CONTAINER_CONTAINER_L_DBL_SIGNATURE());
