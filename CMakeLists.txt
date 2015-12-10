@@ -12,6 +12,9 @@ include_directories(
   ${PROJECT_BINARY_DIR}/test/
 )
 
+# Referencing local modules
+set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/test/cmake)
+
 # C++11
 include(CheckCXXCompilerFlag)
 check_cxx_compiler_flag(-std=c++11 HAVE_STD_CPP11_FLAG)
