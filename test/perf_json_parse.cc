@@ -7,6 +7,8 @@
 #include <chrono>
 #include <nested_container/externalize.hpp>
 #include <nested_container/extensions/boost_spirit_json/externalize_json.hpp>
+#include <nested_container/extensions/rapidjson/rapidjson.hpp>
+#include <rapidjson/error/en.h>
 
 NESTED_CONTAINER_EXTERNALIZE(NESTED_CONTAINER_CONTAINER_SIGNATURE());
 NESTED_CONTAINER_EXTERNALIZE_JSON(NESTED_CONTAINER_CONTAINER_SIGNATURE());
@@ -25,6 +27,7 @@ void compare_parse_time(container const& c, size_t vector_reserve = 0u) {
   using std::chrono::time_point;
   using std::chrono::duration_cast;
   using std::chrono::milliseconds;
+  using nested_container::extensions::rapidjson::make_reader_handler;
 
   json<container> serialize_driver;
   std::string to_parse(serialize_driver.serialize(c));
@@ -34,6 +37,7 @@ void compare_parse_time(container const& c, size_t vector_reserve = 0u) {
   json_full_spirit<container> full_driver;
   json_partial_spirit<container> partial_driver;
   time_point<high_resolution_clock> start, end;
+
   // Fast
   start = high_resolution_clock::now();
   for(size_t i=0u; i < max_iter; ++i) full_driver.deserialize(to_parse);
@@ -49,10 +53,35 @@ void compare_parse_time(container const& c, size_t vector_reserve = 0u) {
   //std::cout << result_full_str << std::endl;
   end = high_resolution_clock::now();
   std::cout << "Partial spirit took " << duration_cast<milliseconds>(end-start).count() << "ms" << std::endl;
+
   start = high_resolution_clock::now();
   for(size_t i=0u; i < max_iter; ++i) partial_driver.deserialize(to_parse, vector_reserve);
   end = high_resolution_clock::now();
   std::cout << "Partial spirit with pre-reserve took " << duration_cast<milliseconds>(end-start).count() << "ms" << std::endl;
+
+  start = high_resolution_clock::now();
+  ::rapidjson::Reader reader;
+  container output;  
+  bool success = false;
+  for(size_t i=0u; i < max_iter; ++i) {
+    output = nullptr;
+    auto handler = make_reader_handler(output);
+    ::rapidjson::StringStream ss(to_parse.c_str());
+    success = reader.Parse(ss, handler);
+    if (!success)
+      break;
+  }
+  end = high_resolution_clock::now();
+  if (success) {
+    std::cout << "Rapidjson took " << duration_cast<milliseconds>(end-start).count() << "ms" << std::endl;
+  }
+  else {
+    std::cout << "Rapidjson failed." << std::endl;
+    rapidjson::ParseErrorCode e = reader.GetParseErrorCode();
+    size_t o = reader.GetErrorOffset();
+    std::cout << "Error: " << rapidjson::GetParseError_En(e) << std::endl;;
+    std::cout << " at offset " << o << " near '" << to_parse.substr(o, 10) << "...'" << std::endl;
+  }
 }
 
 int main(void) {
@@ -85,6 +114,7 @@ int main(void) {
   generator<container> random_gen;
 
   // Totally random
+  //compare_parse_time(random_gen.generate(3, 3, 6, 3, 6), 60u);
   compare_parse_time(random_gen.generate(4, 30, 60, 30, 60), 60u);
 
   // Only arrays of integer
