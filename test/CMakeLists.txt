@@ -3,9 +3,9 @@ Find_Package(GTest)
 Find_Package(rapidjson)
 
 # Externalized container
-add_library(nested_container OBJECT nested_container.cc)
+add_library(json_backbone OBJECT json_backbone.cc)
 # This one is only used to test it compiles correctly
-add_library(nested_container_ext OBJECT EXCLUDE_FROM_ALL nested_container_ext.cc)
+add_library(json_backbone_ext OBJECT EXCLUDE_FROM_ALL json_backbone_ext.cc)
 # GTest runner
 if (${GTEST_FOUND})
   add_library(test-main OBJECT test-main.cc)
@@ -15,7 +15,7 @@ endif()
 include_directories(${GTEST_INCLUDE_DIRS})
 add_custom_target(build-test)
 function(add_nc_test name)
-  set(test_obj_libs $<TARGET_OBJECTS:nested_container>)
+  set(test_obj_libs $<TARGET_OBJECTS:json_backbone>)
   if("${ARGV1}" STREQUAL "GT")
     if (GTEST_FOUND)
       add_executable(${name} ${name}.cc $<TARGET_OBJECTS:test-main> ${test_obj_libs} ${HEADER_FILES})
