@@ -8,15 +8,16 @@ NESTED_CONTAINER_EXTERNALIZE_JSON(NESTED_CONTAINER_CONTAINER_SIGNATURE());
 
 using nested_container::container;
 template <typename C> using json = nested_container::json::serializer<C>;
+nested_container::attr_init<container> operator""_m (char const* name, size_t length) { return nested_container::attr_init<container>(typename container::str_type(name,length)); }
 
 int intro() {
   using _ = nested_container::attr_init<container>;
   container c = {
-    _("nom") = "Roger",
-    _("prenom") = "Marcel",
-    _("attributs") = {
-      _("poids") = 95u,
-      _("liste") = {1,2.f,"yeah"}
+    "nom"_m = "Roger",
+    "prenom"_m = "Marcel",
+    "attributs"_m = {
+      "poids"_m = 95u,
+      "liste"_m = {1,2.f,"yeah"}
     }
   };
 
