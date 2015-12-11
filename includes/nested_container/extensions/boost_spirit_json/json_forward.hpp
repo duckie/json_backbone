@@ -2,7 +2,7 @@
 #define HEADER_GUARD_NESTED_COMPILER_JSON_FORWARD
 #include <memory>
 
-namespace nested_container {
+namespace json_backbone {
 namespace json {
 
 enum class generation_policies : unsigned char {
@@ -77,6 +77,6 @@ class serializer<Container, StreamType, GenPolicy, parsing_policies::partial_spi
   Container deserialize(StreamType const& input, size_t vector_reserve = 0u) const;
 };
 }  // namespace json
-}  // namespace nested_container
+}  // namespace json_backbone
 
 #endif  // __NESTED_COMPILER_JSON_FORWARD__

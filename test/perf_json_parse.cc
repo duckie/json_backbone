@@ -1,23 +1,23 @@
 #include <iostream>
-#include <nested_container/container.hpp>
-#include <nested_container/extensions/boost_spirit_json/json_forward.hpp>
-#include <nested_container/test/random.hpp>
+#include <json_backbone/container.hpp>
+#include <json_backbone/extensions/boost_spirit_json/json_forward.hpp>
+#include <json_backbone/test/random.hpp>
 #include <vector>
 #include <list>
 #include <chrono>
-#include <nested_container/externalize.hpp>
-#include <nested_container/extensions/boost_spirit_json/externalize_json.hpp>
-#include <nested_container/extensions/rapidjson/rapidjson.hpp>
+#include <json_backbone/externalize.hpp>
+#include <json_backbone/extensions/boost_spirit_json/externalize_json.hpp>
+#include <json_backbone/extensions/rapidjson/rapidjson.hpp>
 #include <rapidjson/error/en.h>
 
-NESTED_CONTAINER_EXTERNALIZE(NESTED_CONTAINER_CONTAINER_SIGNATURE());
-NESTED_CONTAINER_EXTERNALIZE_JSON(NESTED_CONTAINER_CONTAINER_SIGNATURE());
+JSON_BACKBONE_EXTERNALIZE(JSON_BACKBONE_CONTAINER_SIGNATURE());
+JSON_BACKBONE_EXTERNALIZE_JSON(JSON_BACKBONE_CONTAINER_SIGNATURE());
 
-using nested_container::container;
-using namespace nested_container::json;
-using namespace nested_container::test::random;
+using json_backbone::container;
+using namespace json_backbone::json;
+using namespace json_backbone::test::random;
 
-template <typename C> using json = nested_container::json::serializer<C>;
+template <typename C> using json = json_backbone::json::serializer<C>;
 template <typename C> using json_full_spirit = serializer<C, typename C::str_type, generation_policies::visitor_ostream, parsing_policies::full_spirit>;
 template <typename C> using json_partial_spirit = serializer<C, typename C::str_type, generation_policies::visitor_ostream, parsing_policies::partial_spirit>;
 
@@ -27,7 +27,7 @@ void compare_parse_time(container const& c, size_t vector_reserve = 0u) {
   using std::chrono::time_point;
   using std::chrono::duration_cast;
   using std::chrono::milliseconds;
-  using nested_container::extensions::rapidjson::make_reader_handler;
+  using json_backbone::extensions::rapidjson::make_reader_handler;
 
   json<container> serialize_driver;
   std::string to_parse(serialize_driver.serialize(c));

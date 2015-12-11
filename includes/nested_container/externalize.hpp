@@ -1,5 +1,5 @@
-#ifndef NESTED_CONTAINER_EXTERNALIZE_HEADER
-#define NESTED_CONTAINER_EXTERNALIZE_HEADER
+#ifndef JSON_BACKBONE_EXTERNALIZE_HEADER
+#define JSON_BACKBONE_EXTERNALIZE_HEADER
 
 #include <map>
 #include <vector>
@@ -17,8 +17,8 @@
 #include <cfloat>
 #include <limits>
 
-#define NESTED_CONTAINER_EXTERNALIZE_TEMPLATE(Container, ...) \
-namespace nested_container { \
+#define JSON_BACKBONE_EXTERNALIZE_TEMPLATE(Container, ...) \
+namespace json_backbone { \
   extern template class Container<>; \
   /* Traits */ \
   extern template class Container< __VA_ARGS__ >::type_traits<std::nullptr_t>; \
@@ -221,8 +221,8 @@ namespace nested_container { \
 }  /* namespace nested_Container<> */ \
 // -- macro end --
 
-#define NESTED_CONTAINER_INSTANTIATE_TEMPLATE(Container,...) \
-namespace nested_container { \
+#define JSON_BACKBONE_INSTANTIATE_TEMPLATE(Container,...) \
+namespace json_backbone { \
   template class Container< __VA_ARGS__ >; \
   /* Traits */ \
   template class Container< __VA_ARGS__ >::type_traits<std::nullptr_t>; \
@@ -418,10 +418,10 @@ namespace nested_container { \
   template typename Container< __VA_ARGS__ >::int_type Container< __VA_ARGS__ >::lexical_cast<typename Container< __VA_ARGS__ >::int_type, typename Container< __VA_ARGS__ >::str_type>(typename Container< __VA_ARGS__ >::str_type const&); \
   template typename Container< __VA_ARGS__ >::uint_type Container< __VA_ARGS__ >::lexical_cast<typename Container< __VA_ARGS__ >::uint_type, typename Container< __VA_ARGS__ >::str_type>(typename Container< __VA_ARGS__ >::str_type const&); \
   template bool Container< __VA_ARGS__ >::lexical_cast<bool, typename Container< __VA_ARGS__ >::str_type>(typename Container< __VA_ARGS__ >::str_type const&); \
-}  /* namespace nested_container*/ \
+}  /* namespace json_backbone*/ \
 // -- macro end --
 
-#define NESTED_CONTAINER_EXTERNALIZE(...) NESTED_CONTAINER_EXTERNALIZE_TEMPLATE(basic_container, __VA_ARGS__)
-#define NESTED_CONTAINER_INSTANTIATE(...) NESTED_CONTAINER_INSTANTIATE_TEMPLATE(basic_container, __VA_ARGS__)
+#define JSON_BACKBONE_EXTERNALIZE(...) JSON_BACKBONE_EXTERNALIZE_TEMPLATE(basic_container, __VA_ARGS__)
+#define JSON_BACKBONE_INSTANTIATE(...) JSON_BACKBONE_INSTANTIATE_TEMPLATE(basic_container, __VA_ARGS__)
 
-#endif  // NESTED_CONTAINER_EXTERNALIZE_HEADER
+#endif  // JSON_BACKBONE_EXTERNALIZE_HEADER

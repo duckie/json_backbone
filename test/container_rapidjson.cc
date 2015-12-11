@@ -1,13 +1,13 @@
 #include <gtest/gtest.h>
-#include <nested_container/container.hpp>
-#include <nested_container/externalize.hpp>
-#include <nested_container/extensions/rapidjson/rapidjson.hpp>
+#include <json_backbone/container.hpp>
+#include <json_backbone/externalize.hpp>
+#include <json_backbone/extensions/rapidjson/rapidjson.hpp>
 
-NESTED_CONTAINER_EXTERNALIZE(NESTED_CONTAINER_CONTAINER_SIGNATURE());
+JSON_BACKBONE_EXTERNALIZE(JSON_BACKBONE_CONTAINER_SIGNATURE());
 
-using nested_container::container;
+using json_backbone::container;
 
-nested_container::attr_init<container> operator ""_m (char const* value, size_t length) { return nested_container::attr_init<container>(value); }
+json_backbone::attr_init<container> operator ""_m (char const* value, size_t length) { return json_backbone::attr_init<container>(value); }
 
 class UnitTests : public ::testing::Test {
  protected:
@@ -23,7 +23,7 @@ class UnitTests : public ::testing::Test {
 };
 
 TEST_F(UnitTests, RapidJson1) {
-  using nested_container::extensions::rapidjson::make_reader_handler;
+  using json_backbone::extensions::rapidjson::make_reader_handler;
 
   std::string input = R"json({"age":57,"name":"Marcelo","size":1.8})json";
   container output;  

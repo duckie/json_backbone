@@ -20,7 +20,7 @@
 #include <stack>
 #include <list>
 
-namespace nested_container {
+namespace json_backbone {
 namespace json {
 
 // namespaces aliases
@@ -766,6 +766,6 @@ Container serializer<Container, StreamType, GenPolicy, parsing_policies::partial
 }
 
 }  // namespace json
-}  // namespace nested_container
+}  // namespace json_backbone
 
 #endif  // __NESTED_COMPILER_JSON__

@@ -1,14 +1,14 @@
 #include <gtest/gtest.h>
-#include <nested_container/container.hpp>
-#include <nested_container/extensions/boost_spirit_json/json_forward.hpp>
-#include <nested_container/externalize.hpp>
-//#include <nested_container/extensions/boost_spirit_json/externalize_json.hpp>
+#include <json_backbone/container.hpp>
+#include <json_backbone/extensions/boost_spirit_json/json_forward.hpp>
+#include <json_backbone/externalize.hpp>
+//#include <json_backbone/extensions/boost_spirit_json/externalize_json.hpp>
 
-NESTED_CONTAINER_EXTERNALIZE(NESTED_CONTAINER_CONTAINER_SIGNATURE());
-//NESTED_CONTAINER_EXTERNALIZE_JSON(NESTED_CONTAINER_CONTAINER_SIGNATURE());
+JSON_BACKBONE_EXTERNALIZE(JSON_BACKBONE_CONTAINER_SIGNATURE());
+//JSON_BACKBONE_EXTERNALIZE_JSON(JSON_BACKBONE_CONTAINER_SIGNATURE());
 
-using nested_container::container;
-using _ = nested_container::attr_init<container>;
+using json_backbone::container;
+using _ = json_backbone::attr_init<container>;
 
 class UnitTests : public ::testing::Test {
  protected:

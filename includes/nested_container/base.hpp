@@ -1,5 +1,5 @@
-#ifndef NESTED_CONTAINER_BASE_HEADER
-#define NESTED_CONTAINER_BASE_HEADER
+#ifndef JSON_BACKBONE_BASE_HEADER
+#define JSON_BACKBONE_BASE_HEADER
 
 #include <map>
 #include <vector>
@@ -18,7 +18,7 @@
 #include <limits>
 #include <iostream>
 
-namespace nested_container {
+namespace json_backbone {
 
 template <typename key_type, typename value_type> using std_map_default_allocators = std::map<key_type, value_type>;
 template <typename value_type> using std_vector_default_allocators = std::vector<value_type>;
@@ -810,6 +810,6 @@ template <class Container> struct const_visitor_adapter {
   virtual void apply(bool) {}
 };
 
-}  // namespace nested_container
+}  // namespace json_backbone
 
 #endif  // NESTED_COMPILER_BASE_HEADER

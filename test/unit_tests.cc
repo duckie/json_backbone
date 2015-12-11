@@ -1,23 +1,23 @@
 #include <iostream>
-#include <nested_container/container.hpp>
-#include <nested_container/extensions/boost_spirit_json/json_forward.hpp>
+#include <json_backbone/container.hpp>
+#include <json_backbone/extensions/boost_spirit_json/json_forward.hpp>
 #include <vector>
 #include <list>
 #include <chrono>
-#include <nested_container/externalize.hpp>
-#include <nested_container/extensions/boost_spirit_json/externalize_json.hpp>
+#include <json_backbone/externalize.hpp>
+#include <json_backbone/extensions/boost_spirit_json/externalize_json.hpp>
 
-NESTED_CONTAINER_EXTERNALIZE(NESTED_CONTAINER_CONTAINER_SIGNATURE());
-NESTED_CONTAINER_EXTERNALIZE_JSON(NESTED_CONTAINER_CONTAINER_SIGNATURE());
+JSON_BACKBONE_EXTERNALIZE(JSON_BACKBONE_CONTAINER_SIGNATURE());
+JSON_BACKBONE_EXTERNALIZE_JSON(JSON_BACKBONE_CONTAINER_SIGNATURE());
 
-using nested_container::container;
-template <typename C> using json = nested_container::json::serializer<C>;
+using json_backbone::container;
+template <typename C> using json = json_backbone::json::serializer<C>;
 
 std::string str1() {
   return "Roger";
 }
 
-nested_container::container str2() {
+json_backbone::container str2() {
   return "Roger";
 }
 
@@ -108,7 +108,7 @@ int main(void) {
 
   {
     std::cout << "Begin test 6" << std::endl;
-    using _ = nested_container::attr_init<container>;
+    using _ = json_backbone::attr_init<container>;
     
     container c2 = {"Marcel", 2, 1.f};
     container c = { 

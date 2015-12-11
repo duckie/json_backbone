@@ -5,7 +5,7 @@
 #include <functional>
 #include <rapidjson/reader.h>
 
-namespace nested_container {
+namespace json_backbone {
 namespace extensions {
 namespace rapidjson {
 

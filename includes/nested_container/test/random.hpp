@@ -11,7 +11,7 @@
 
 // This header is a tool to generate randomized containers
 
-namespace nested_container {
+namespace json_backbone {
 namespace test {
 namespace random {
 
@@ -162,8 +162,8 @@ template <typename Container> class generator {
 
 
 
-}  // namespace nested_container::test::random
-}  // namespace nested_container::test
-}  // namespace nested_container
+}  // namespace json_backbone::test::random
+}  // namespace json_backbone::test
+}  // namespace json_backbone
 
 #endif  // HEADER_GUARD_NESTED_COMPILER_TEST_RANDOM
