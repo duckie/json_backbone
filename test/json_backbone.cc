@@ -5,4 +5,3 @@ JSON_BACKBONE_INSTANTIATE(JSON_BACKBONE_CONTAINER_SIGNATURE());
 #include <json_backbone/extensions/boost_spirit_json/json.hpp>
 #include <json_backbone/extensions/boost_spirit_json/externalize_json.hpp>
 JSON_BACKBONE_INSTANTIATE_JSON(JSON_BACKBONE_CONTAINER_SIGNATURE());
-

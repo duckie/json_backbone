@@ -13,14 +13,9 @@ JSON_BACKBONE_EXTERNALIZE_JSON(JSON_BACKBONE_CONTAINER_SIGNATURE());
 using json_backbone::container;
 template <typename C> using json = json_backbone::json::serializer<C>;
 
-std::string str1() {
-  return "Roger";
-}
+std::string str1() { return "Roger"; }
 
-json_backbone::container str2() {
-  return "Roger";
-}
-
+json_backbone::container str2() { return "Roger"; }
 
 int main(void) {
 
@@ -33,7 +28,7 @@ int main(void) {
     container c4(4);
     container c5(4u);
 
-    //std::string roger = c2;
+    // std::string roger = c2;
     std::cout << c2.is_string() << std::endl;
   }
 
@@ -67,10 +62,10 @@ int main(void) {
 
     float& test1 = c1["value2"].transform_float();
     std::cout << test1 << std::endl;
-    test1 = 2.f;  // Modifies the underlying container !
+    test1 = 2.f; // Modifies the underlying container !
     std::cout << c1["value2"].ref_float() << std::endl;
   }
-  
+
   {
     std::cout << "Begin test 4" << std::endl;
     container c1(str1());
@@ -81,25 +76,26 @@ int main(void) {
     container c2(1);
     std::vector<container> t;
     t.push_back(c2);
-    
+
     std::cout << "Move of container" << std::endl;
     container c5(str2());
     std::cout << c5.is_string() << std::endl;
 
     std::cout << "Init by vector" << std::endl;
-    container c1 = container::init_vec({ "Al1", "Allo", "Deloin", "Roger","Marcel"});
-    std::cout << c1[static_cast<typename container::vec_size_type>(0u)].is_int() << std::endl;
+    container c1 =
+        container::init_vec({"Al1", "Allo", "Deloin", "Roger", "Marcel"});
+    std::cout << c1[static_cast<typename container::vec_size_type>(0u)].is_int()
+              << std::endl;
 
     std::cout << "Init by map" << std::endl;
-    container c4 = container::init_map({ 
-      {"Roger",1}
-      , {"Marcel","Robert"}
-      , {"Marcel2",2u}
-      , {"Marcel2",2.f}
-      , {"Marcel2", container::init_map({ {"Robert",1} })}
-      , {"Robert", container::init_vec({1,2,3u})} 
-    });
-    ++ c4["Roger"].raw_int();
+    container c4 =
+        container::init_map({{"Roger", 1},
+                             {"Marcel", "Robert"},
+                             {"Marcel2", 2u},
+                             {"Marcel2", 2.f},
+                             {"Marcel2", container::init_map({{"Robert", 1}})},
+                             {"Robert", container::init_vec({1, 2, 3u})}});
+    ++c4["Roger"].raw_int();
     std::cout << c4["Roger"].ref_int() << std::endl;
     std::cout << c4["Roger"].is_int() << std::endl;
     std::cout << c4["Marcel"].is_string() << std::endl;
@@ -109,16 +105,11 @@ int main(void) {
   {
     std::cout << "Begin test 6" << std::endl;
     using _ = json_backbone::attr_init<container>;
-    
+
     container c2 = {"Marcel", 2, 1.f};
-    container c = { 
-      _("nom") = "Roger",
-      _("prenom") = "Marcel",
-      _("attributs") = {
-        _("poids") = 95u,
-        _("liste") = {1,2.f,"yeah"}
-      }
-    };
+    container c = {
+        _("nom") = "Roger", _("prenom") = "Marcel",
+        _("attributs") = {_("poids") = 95u, _("liste") = {1, 2.f, "yeah"}}};
 
     c["attributs"]["sub_attributes"][0] = true;
     c["attributs"]["sub_attributes"][3] = "falsy man";
@@ -135,7 +126,9 @@ int main(void) {
     std::cout << "\nSstream json" << std::endl;
     json<container> json_sstream_driver;
     std::cout << json_sstream_driver.serialize(c) << std::endl;
-    //std::cout << json_sstream_driver.serialize(c["attributs"]["sub_attributes"]) << std::endl;
+    // std::cout <<
+    // json_sstream_driver.serialize(c["attributs"]["sub_attributes"]) <<
+    // std::endl;
 
     std::string test1("Yeah ma poule");
     container c3(test1.c_str());
@@ -143,4 +136,3 @@ int main(void) {
 
   return 0;
 }
-

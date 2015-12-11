@@ -13,8 +13,7 @@ template <class RootType, class Encoding> class reader_handler;
 
 template <class RootType, class Encoding>
 class reader_handler : public ::rapidjson::BaseReaderHandler<
-                           Encoding,
-                           reader_handler<RootType, Encoding>> {
+                           Encoding, reader_handler<RootType, Encoding>> {
   enum class State {
     empty,
     wait_start_object,
@@ -40,118 +39,128 @@ class reader_handler : public ::rapidjson::BaseReaderHandler<
       : ::rapidjson::BaseReaderHandler<Encoding, reader_handler>()
       , root_(root)
       , state_(State::empty)
-      , current_key_()
-   {}
+      , current_key_() {}
 
   bool Null() {
     if (State::wait_value == state_ && nodes_.top().get().is_map()) {
       nodes_.top().get()[current_key_].transform_null();
       state_ = State::wait_key;
       return true;
-    } else if (State::wait_element == state_ && nodes_.top().get().is_vector()) {
+    } else if (State::wait_element == state_ &&
+               nodes_.top().get().is_vector()) {
       nodes_.top().get().ref_vector().push_back(nullptr);
       return true;
     }
-    std::cout << "Failure " << static_cast<unsigned>(state_) << " " << __FUNCTION__ << " " << __LINE__ << std::endl;
     return false;
   }
 
   bool Bool(bool value) {
     if (State::wait_value == state_ && nodes_.top().get().is_map()) {
-      nodes_.top().get()[current_key_].transform_bool() = static_cast<bool>(value);
+      nodes_.top().get()[current_key_].transform_bool() =
+          static_cast<bool>(value);
       state_ = State::wait_key;
       return true;
-    } else if (State::wait_element == state_ && nodes_.top().get().is_vector()) {
+    } else if (State::wait_element == state_ &&
+               nodes_.top().get().is_vector()) {
       nodes_.top().get().ref_vector().push_back(static_cast<bool>(value));
       return true;
     }
-    std::cout << "Failure " << static_cast<unsigned>(state_) << " " << __FUNCTION__ << " " << __LINE__ << std::endl;
     return false;
   }
 
   bool Int(int value) {
     if (State::wait_value == state_ && nodes_.top().get().is_map()) {
-      nodes_.top().get()[current_key_].transform_int() = static_cast<typename RootType::int_type>(value);
+      nodes_.top().get()[current_key_].transform_int() =
+          static_cast<typename RootType::int_type>(value);
       state_ = State::wait_key;
       return true;
-    } else if (State::wait_element == state_ && nodes_.top().get().is_vector()) {
-      nodes_.top().get().ref_vector().push_back(static_cast<typename RootType::int_type>(value));
+    } else if (State::wait_element == state_ &&
+               nodes_.top().get().is_vector()) {
+      nodes_.top().get().ref_vector().push_back(
+          static_cast<typename RootType::int_type>(value));
       return true;
     }
-    std::cout << "Failure " << static_cast<unsigned>(state_) << " " << __FUNCTION__ << " " << __LINE__ << std::endl;
     return false;
   }
 
   bool Uint(unsigned value) {
     if (State::wait_value == state_ && nodes_.top().get().is_map()) {
-      nodes_.top().get()[current_key_].transform_uint() = static_cast<typename RootType::uint_type>(value);
+      nodes_.top().get()[current_key_].transform_uint() =
+          static_cast<typename RootType::uint_type>(value);
       state_ = State::wait_key;
       return true;
-    } else if (State::wait_element == state_ && nodes_.top().get().is_vector()) {
-      nodes_.top().get().ref_vector().push_back(static_cast<typename RootType::uint_type>(value));
+    } else if (State::wait_element == state_ &&
+               nodes_.top().get().is_vector()) {
+      nodes_.top().get().ref_vector().push_back(
+          static_cast<typename RootType::uint_type>(value));
       return true;
     }
-    std::cout << "Failure " << static_cast<unsigned>(state_) << " " << __FUNCTION__ << " " << __LINE__ << std::endl;
     return false;
   }
 
   bool Int64(int64_t value) {
     if (State::wait_value == state_ && nodes_.top().get().is_map()) {
-      nodes_.top().get()[current_key_].transform_int() = static_cast<typename RootType::int_type>(value);
+      nodes_.top().get()[current_key_].transform_int() =
+          static_cast<typename RootType::int_type>(value);
       state_ = State::wait_key;
       return true;
-    } else if (State::wait_element == state_ && nodes_.top().get().is_vector()) {
-      nodes_.top().get().ref_vector().push_back(static_cast<typename RootType::int_type>(value));
+    } else if (State::wait_element == state_ &&
+               nodes_.top().get().is_vector()) {
+      nodes_.top().get().ref_vector().push_back(
+          static_cast<typename RootType::int_type>(value));
       return true;
     }
-    std::cout << "Failure " << static_cast<unsigned>(state_) << " " << __FUNCTION__ << " " << __LINE__ << std::endl;
     return false;
   }
 
   bool Uint64(uint64_t value) {
     if (State::wait_value == state_ && nodes_.top().get().is_map()) {
-      nodes_.top().get()[current_key_].transform_uint() = static_cast<typename RootType::uint_type>(value);
+      nodes_.top().get()[current_key_].transform_uint() =
+          static_cast<typename RootType::uint_type>(value);
       state_ = State::wait_key;
       return true;
-    } else if (State::wait_element == state_ && nodes_.top().get().is_vector()) {
-      nodes_.top().get().ref_vector().push_back(static_cast<typename RootType::uint_type>(value));
+    } else if (State::wait_element == state_ &&
+               nodes_.top().get().is_vector()) {
+      nodes_.top().get().ref_vector().push_back(
+          static_cast<typename RootType::uint_type>(value));
       return true;
     }
-    std::cout << "Failure " << static_cast<unsigned>(state_) << " " << __FUNCTION__ << " " << __LINE__ << std::endl;
     return false;
   }
 
   bool Double(double value) {
     if (State::wait_value == state_ && nodes_.top().get().is_map()) {
-      nodes_.top().get()[current_key_].transform_float() = static_cast<typename RootType::float_type>(value);
+      nodes_.top().get()[current_key_].transform_float() =
+          static_cast<typename RootType::float_type>(value);
       state_ = State::wait_key;
       return true;
-    } else if (State::wait_element == state_ && nodes_.top().get().is_vector()) {
-      nodes_.top().get().ref_vector().push_back(static_cast<typename RootType::float_type>(value));
+    } else if (State::wait_element == state_ &&
+               nodes_.top().get().is_vector()) {
+      nodes_.top().get().ref_vector().push_back(
+          static_cast<typename RootType::float_type>(value));
       return true;
     }
-    std::cout << "Failure " << static_cast<unsigned>(state_) << " " << __FUNCTION__ << " " << __LINE__ << std::endl;
     return false;
   }
 
   bool String(const Ch* data, SizeType length, bool) {
     if (State::wait_value == state_ && nodes_.top().get().is_map()) {
-      nodes_.top().get()[current_key_].transform_string() = StdString(data, length);
+      nodes_.top().get()[current_key_].transform_string() =
+          StdString(data, length);
       state_ = State::wait_key;
       return true;
-    } else if (State::wait_element == state_ && nodes_.top().get().is_vector()) {
+    } else if (State::wait_element == state_ &&
+               nodes_.top().get().is_vector()) {
       nodes_.top().get().ref_vector().push_back(StdString(data, length));
       return true;
     }
-    std::cout << "Failure " << static_cast<unsigned>(state_) << " " << __FUNCTION__ << " " << __LINE__ << std::endl;
     return false;
   }
 
   bool StartObject() {
-    if (State::empty != state_ && State::wait_start_object != state_ && State::wait_value != state_ &&
-        State::wait_element != state_)
+    if (State::empty != state_ && State::wait_start_object != state_ &&
+        State::wait_value != state_ && State::wait_element != state_)
       return false;
-
 
     bool object_created = false;
     if (nodes_.empty()) {
@@ -163,7 +172,6 @@ class reader_handler : public ::rapidjson::BaseReaderHandler<
       nodes_.emplace(nodes_.top().get()[current_key_]);
       object_created = true;
     } else if (nodes_.top().get().is_vector()) {
-      //nodes_.top().get().ref_vector().push_back(typename RootType::map_type());
       nodes_.top().get().ref_vector().push_back(nullptr);
       nodes_.top().get().ref_vector().back().transform_map();
       nodes_.emplace(nodes_.top().get().ref_vector().back());
@@ -175,7 +183,6 @@ class reader_handler : public ::rapidjson::BaseReaderHandler<
       return true;
     }
 
-    std::cout << "Failure " << static_cast<unsigned>(state_) << " " << __FUNCTION__ << " " << __LINE__ << std::endl;
     return false;
   }
 
@@ -193,18 +200,18 @@ class reader_handler : public ::rapidjson::BaseReaderHandler<
       return false;
     nodes_.pop();
     if (!nodes_.empty()) {
-      state_ = nodes_.top().get().is_map() ? State::wait_key : State::wait_element;
-    }
-    else {
-      //state_ = State::empty;
-      //current_key_.clear();
+      state_ =
+          nodes_.top().get().is_map() ? State::wait_key : State::wait_element;
+    } else {
+      // state_ = State::empty;
+      // current_key_.clear();
     }
     return true;
   }
 
   bool StartArray() {
-    if (State::empty != state_ && State::wait_start_sequence != state_ && State::wait_value != state_ &&
-        State::wait_element != state_)
+    if (State::empty != state_ && State::wait_start_sequence != state_ &&
+        State::wait_value != state_ && State::wait_element != state_)
       return false;
 
     bool object_created = false;
@@ -217,19 +224,17 @@ class reader_handler : public ::rapidjson::BaseReaderHandler<
       nodes_.emplace(nodes_.top().get()[current_key_]);
       object_created = true;
     } else if (nodes_.top().get().is_vector()) {
-      //nodes_.top().get().ref_vector().push_back(typename RootType::vector_type());
       nodes_.top().get().ref_vector().push_back(nullptr);
       nodes_.top().get().ref_vector().back().transform_vector();
       nodes_.emplace(nodes_.top().get().ref_vector().back());
       object_created = true;
     }
 
-    if (object_created ) {
+    if (object_created) {
       state_ = State::wait_element;
       return true;
     }
 
-    std::cout << "Failure " << static_cast<unsigned>(state_) << " " << __FUNCTION__ << " " << __LINE__ << std::endl;
     return false;
   }
 
@@ -238,11 +243,11 @@ class reader_handler : public ::rapidjson::BaseReaderHandler<
       return false;
     nodes_.pop();
     if (!nodes_.empty()) {
-      state_ = nodes_.top().get().is_map() ? State::wait_key : State::wait_element;
-    }
-    else {
-      //state_ = State::empty;
-      //current_key_.clear();
+      state_ =
+          nodes_.top().get().is_map() ? State::wait_key : State::wait_element;
+    } else {
+      // state_ = State::empty;
+      // current_key_.clear();
     }
     return true;
   }

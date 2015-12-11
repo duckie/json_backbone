@@ -5,36 +5,29 @@
 //#include <json_backbone/extensions/boost_spirit_json/externalize_json.hpp>
 
 JSON_BACKBONE_EXTERNALIZE(JSON_BACKBONE_CONTAINER_SIGNATURE());
-//JSON_BACKBONE_EXTERNALIZE_JSON(JSON_BACKBONE_CONTAINER_SIGNATURE());
+// JSON_BACKBONE_EXTERNALIZE_JSON(JSON_BACKBONE_CONTAINER_SIGNATURE());
 
 using json_backbone::container;
 using _ = json_backbone::attr_init<container>;
 
 class UnitTests : public ::testing::Test {
  protected:
-   container c1 = { 
-     _("nom") = "Roger",
-     _("prenom") = "Marcel",
-     _("attributs") = {
-       _("poids") = 95u,
-       _("liste") = {1,-3,2.f,"yeah"}
-     },
-     _("isaman") = true
-   };
+  container c1 = {
+      _("nom") = "Roger", _("prenom") = "Marcel",
+      _("attributs") = {_("poids") = 95u, _("liste") = {1, -3, 2.f, "yeah"}},
+      _("isaman") = true};
 };
 
 TEST_F(UnitTests, Construction) {
   container c_null;
   EXPECT_EQ(true, c_null.is_null());
-  //EXPECT_EQ(true, c_null.is
+  // EXPECT_EQ(true, c_null.is
 
-  container c_map = container::init_map({
-      {"Roger",nullptr},
-      {"Marcel",nullptr}
-      });
+  container c_map =
+      container::init_map({{"Roger", nullptr}, {"Marcel", nullptr}});
   EXPECT_EQ(true, c_map.is_map());
-  
-  container c_vec {1 ,2 ,nullptr};
+
+  container c_vec{1, 2, nullptr};
   EXPECT_EQ(true, c_vec.is_vector());
 
   container c_str(std::string("Roger"));
