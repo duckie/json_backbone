@@ -4,10 +4,10 @@ project(CppNestedContainer)
 enable_testing()
 
 include_directories(
-  ${PROJECT_SOURCE_DIR}/includes/
+  ${PROJECT_SOURCE_DIR}/include/
   ${PROJECT_SOURCE_DIR}/src/
   ${PROJECT_SOURCE_DIR}/test/
-  ${PROJECT_BINARY_DIR}/includes/
+  ${PROJECT_BINARY_DIR}/include/
   ${PROJECT_BINARY_DIR}/src/
   ${PROJECT_BINARY_DIR}/test/
 )
