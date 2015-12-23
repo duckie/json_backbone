@@ -1,6 +1,5 @@
 #ifndef JSON_BACKBONE_BASE_HEADER
 #define JSON_BACKBONE_BASE_HEADER
-
 #include <map>
 #include <vector>
 #include <type_traits>
@@ -174,6 +173,13 @@ class basic_container final {
     return value_type::map == type || value_type::vector == type;
   }
 
+  // Static instance is used while in constant context
+  // and using operator[]
+  static basic_container const& get_static_const_default() {
+    static basic_container const default_container {};
+    return default_container;
+  }
+
   value value_;
   value_type type_ = value_type::null;
 
@@ -250,7 +256,6 @@ class basic_container final {
       break;
     case value_type::string:
       same_type ? void() : switch_to_type(value_type::string);
-      // value_.str_ = std::move(c.value_.str_);
       std::swap(value_.str_, c.value_.str_);
       break;
     case value_type::floating:
@@ -282,7 +287,6 @@ class basic_container final {
   inline void init_member(Vector const& v) { value_.vector_ = new Vector(v); }
   inline void init_member(String const& v) { new (&(value_.str_)) String(v); }
   inline void init_member(basic_container const& c) {
-    // std::cout << "Copy !!!" << std::endl;
     value_type previous_type = type_;
     if (type_ != c.type_ && is_collection(type_) && is_collection(c.type_)) {
       // We have to handle the special case of an affectation from a container
@@ -493,17 +497,20 @@ class basic_container final {
 
   // [] accessors, Key != size_type version
   template <ifneq<Key, VecSize> = 0>
-  basic_container const& access_collection(Key const& index) const {
+  basic_container const& access_collection(Key const& index) const noexcept {
     if (!is_map())
-      throw exception_type();
-    return ref_to<Map>().at(index);
+      return get_static_const_default();
+    auto value_iterator = ref_to<Map>().find(index);
+    if (end(ref_to<Map>()) == value_iterator)
+      return get_static_const_default();
+    return value_iterator->second;
   }
 
   template <ifneq<Key, VecSize> = 0>
-  basic_container const& access_collection(vec_size_type index) const {
-    if (!is_vector())
-      throw exception_type();
-    return ref_to<Vector>().at(index);
+  basic_container const& access_collection(vec_size_type index) const noexcept {
+    if (!is_vector() || ref_to<Vector>().size() <= index)
+      return get_static_const_default();
+    return ref_to<Vector>()[index];
   }
 
   template <ifneq<Key, VecSize> = 0>
