@@ -1,48 +1,57 @@
+#include <gtest/gtest.h>
 #include <iostream>
 #include <json_backbone/container.hpp>
-#include <json_backbone/extensions/boost_spirit_json/json_forward.hpp>
 #include <vector>
 #include <list>
 #include <chrono>
 #include <json_backbone/externalize.hpp>
-#include <json_backbone/extensions/boost_spirit_json/externalize_json.hpp>
+//#include <json_backbone/extensions/boost_spirit_json/json_forward.hpp>
+//#include <json_backbone/extensions/boost_spirit_json/externalize_json.hpp>
 
-JSON_BACKBONE_EXTERNALIZE(JSON_BACKBONE_CONTAINER_SIGNATURE());
-JSON_BACKBONE_EXTERNALIZE_JSON(JSON_BACKBONE_CONTAINER_SIGNATURE());
+//JSON_BACKBONE_EXTERNALIZE(JSON_BACKBONE_CONTAINER_SIGNATURE());
+//JSON_BACKBONE_EXTERNALIZE_JSON(JSON_BACKBONE_CONTAINER_SIGNATURE());
 
 using json_backbone::container;
-template <typename C> using json = json_backbone::json::serializer<C>;
+//template <typename C> using json = json_backbone::json::serializer<C>;
 
-std::string str1() { return "Roger"; }
+class UnitTests : public ::testing::Test {
+ protected:
+  std::string str1() { return "Roger"; }
+  json_backbone::container str2() { return "Roger"; }
+  //container c1 = {
+      //_("nom") = "Roger", _("prenom") = "Marcel",
+      //_("attributs") = {_("poids") = 95u, _("liste") = {1, -3, 2.f, "yeah"}},
+      //_("isaman") = true};
+};
 
-json_backbone::container str2() { return "Roger"; }
+TEST_F(UnitTests, Construction1) {
+  container c1;
+  EXPECT_TRUE(c1.is_null());
 
-int main(void) {
+  container c2("Roger");
+  EXPECT_TRUE(c2.is_string());
 
-  // Construction
-  {
-    container c1;
-    std::cout << c1.is_null() << std::endl;
-    container c2("Roger");
-    container c3(3.f);
-    container c4(4);
-    container c5(4u);
+  container c3(3.f);
+  EXPECT_TRUE(c3.is_float());
 
-    // std::string roger = c2;
-    std::cout << c2.is_string() << std::endl;
-  }
+  container c4(4);
+  EXPECT_TRUE(c4.is_int());
 
+  container c5(4u);
+  EXPECT_TRUE(c5.is_uint());
+}
+
+TEST_F(UnitTests, Construction2) {
   {
     container c1 = container::init<std::string>();
-    std::cout << c1.is_int() << std::endl;
-    std::cout << c1.is_string() << std::endl;
+    EXPECT_FALSE(c1.is_int());
+    EXPECT_TRUE(c1.is_string());
 
     std::string const roger(std::string("Marcel"));
     container c2(roger);
   }
 
   {
-    std::cout << "Begin test 3" << std::endl;
     int roger = 2;
     container c1(roger);
 
@@ -53,41 +62,34 @@ int main(void) {
     c1["value4"]["s_value2"] = true;
 
     int value2 = c1["value2"];
+    EXPECT_EQ(123,value2);
     unsigned int value3 = c1["value3"];
-    std::cout << value2 << std::endl;
-    std::cout << value3 << std::endl;
-    if (c1["value4"]["s_value2"]) {
-      std::cout << c1["value4"]["s_value1"].ref_string() << std::endl;
-    }
+    EXPECT_EQ(1u, value3);
+    EXPECT_TRUE(static_cast<bool>(c1["value4"]["s_value2"]));
+    EXPECT_EQ("Hello subsection",c1["value4"]["s_value1"].ref_string());
 
     float& test1 = c1["value2"].transform_float();
-    std::cout << test1 << std::endl;
+    EXPECT_EQ(123.f,test1);
     test1 = 2.f; // Modifies the underlying container !
-    std::cout << c1["value2"].ref_float() << std::endl;
+    EXPECT_EQ(2.f,c1["value2"].ref_float());
   }
 
   {
-    std::cout << "Begin test 4" << std::endl;
     container c1(str1());
   }
 
   {
-    std::cout << "Begin test 5" << std::endl;
     container c2(1);
     std::vector<container> t;
     t.push_back(c2);
 
-    std::cout << "Move of container" << std::endl;
     container c5(str2());
-    std::cout << c5.is_string() << std::endl;
+    EXPECT_TRUE(c5.is_string());
 
-    std::cout << "Init by vector" << std::endl;
     container c1 =
         container::init_vec({"Al1", "Allo", "Deloin", "Roger", "Marcel"});
-    std::cout << c1[static_cast<typename container::vec_size_type>(0u)].is_int()
-              << std::endl;
+    EXPECT_FALSE(c1[0u].is_int());
 
-    std::cout << "Init by map" << std::endl;
     container c4 =
         container::init_map({{"Roger", 1},
                              {"Marcel", "Robert"},
@@ -96,13 +98,13 @@ int main(void) {
                              {"Marcel2", container::init_map({{"Robert", 1}})},
                              {"Robert", container::init_vec({1, 2, 3u})}});
     ++c4["Roger"].raw_int();
-    std::cout << c4["Roger"].ref_int() << std::endl;
-    std::cout << c4["Roger"].is_int() << std::endl;
-    std::cout << c4["Marcel"].is_string() << std::endl;
-    std::cout << c4["Rober"].is_vector() << std::endl;
+    EXPECT_EQ(2,c4["Roger"].ref_int());
+    EXPECT_TRUE(c4["Roger"].is_int());
+    EXPECT_TRUE(c4["Marcel"].is_string());
+    EXPECT_FALSE(c4["Rober"].is_vector());
   }
 
-  {
+  /*{
     std::cout << "Begin test 6" << std::endl;
     using _ = json_backbone::attr_init<container>;
 
@@ -132,7 +134,6 @@ int main(void) {
 
     std::string test1("Yeah ma poule");
     container c3(test1.c_str());
-  }
+  }*/
 
-  return 0;
 }

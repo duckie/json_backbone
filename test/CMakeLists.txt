@@ -33,7 +33,7 @@ endfunction()
 
 # Test declarations
 add_nc_test(readme_demos)
-add_nc_test(unit_tests)
+add_nc_test(unit_tests GT)
 add_nc_test(perf_json_serialize)
 add_nc_test(container_default GT)
 if (${RAPIDJSON_FOUND})
