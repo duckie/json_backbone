@@ -3,7 +3,7 @@ Find_Package(GTest)
 Find_Package(rapidjson)
 
 # Externalized container
-add_library(json_backbone OBJECT json_backbone.cc)
+add_library(json_backbone OBJECT json_backbone.cc json_backbone_spirit.cc)
 # This one is only used to test it compiles correctly
 add_library(json_backbone_ext OBJECT EXCLUDE_FROM_ALL json_backbone_ext.cc)
 # GTest runner
