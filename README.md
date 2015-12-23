@@ -171,9 +171,9 @@ int main(void) {
 
 # Serialization
 
-`json_backbone` has been written to help serialize and deserialize data. 
-
 ## JSON
+
+*Though examples are shown with the `boost::spirit` parser, the new reference parser is based on `rapidjson`. Examples will be updated soon.*
 
 A JSON parser and serializer is provided. Different parsing and serializaing strategies are available, see the test sources for more information. The best one may depend on your particular data.
 
