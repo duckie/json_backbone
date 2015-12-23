@@ -259,13 +259,9 @@ Some ideas:
 
 Other drivers are planned:
 
-* BSON driver
-* Lua driver
-* Python driver
-
-Suggested by others:
-
-* Log file reader
+* BSON extension
+* Lua extension
+* Python extension
 
 # Contact
 
