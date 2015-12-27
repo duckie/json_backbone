@@ -47,8 +47,8 @@ class reader_handler : public ::rapidjson::BaseReaderHandler<
       state_ = State::wait_key;
       return true;
     } else if (State::wait_element == state_ &&
-               nodes_.top().get().is_vector()) {
-      nodes_.top().get().ref_vector().push_back(nullptr);
+               nodes_.top().get().is_array()) {
+      nodes_.top().get().ref_array().push_back(nullptr);
       return true;
     }
     return false;
@@ -61,8 +61,8 @@ class reader_handler : public ::rapidjson::BaseReaderHandler<
       state_ = State::wait_key;
       return true;
     } else if (State::wait_element == state_ &&
-               nodes_.top().get().is_vector()) {
-      nodes_.top().get().ref_vector().push_back(static_cast<bool>(value));
+               nodes_.top().get().is_array()) {
+      nodes_.top().get().ref_array().push_back(static_cast<bool>(value));
       return true;
     }
     return false;
@@ -75,8 +75,8 @@ class reader_handler : public ::rapidjson::BaseReaderHandler<
       state_ = State::wait_key;
       return true;
     } else if (State::wait_element == state_ &&
-               nodes_.top().get().is_vector()) {
-      nodes_.top().get().ref_vector().push_back(
+               nodes_.top().get().is_array()) {
+      nodes_.top().get().ref_array().push_back(
           static_cast<typename RootType::int_type>(value));
       return true;
     }
@@ -90,8 +90,8 @@ class reader_handler : public ::rapidjson::BaseReaderHandler<
       state_ = State::wait_key;
       return true;
     } else if (State::wait_element == state_ &&
-               nodes_.top().get().is_vector()) {
-      nodes_.top().get().ref_vector().push_back(
+               nodes_.top().get().is_array()) {
+      nodes_.top().get().ref_array().push_back(
           static_cast<typename RootType::uint_type>(value));
       return true;
     }
@@ -105,8 +105,8 @@ class reader_handler : public ::rapidjson::BaseReaderHandler<
       state_ = State::wait_key;
       return true;
     } else if (State::wait_element == state_ &&
-               nodes_.top().get().is_vector()) {
-      nodes_.top().get().ref_vector().push_back(
+               nodes_.top().get().is_array()) {
+      nodes_.top().get().ref_array().push_back(
           static_cast<typename RootType::int_type>(value));
       return true;
     }
@@ -120,8 +120,8 @@ class reader_handler : public ::rapidjson::BaseReaderHandler<
       state_ = State::wait_key;
       return true;
     } else if (State::wait_element == state_ &&
-               nodes_.top().get().is_vector()) {
-      nodes_.top().get().ref_vector().push_back(
+               nodes_.top().get().is_array()) {
+      nodes_.top().get().ref_array().push_back(
           static_cast<typename RootType::uint_type>(value));
       return true;
     }
@@ -135,8 +135,8 @@ class reader_handler : public ::rapidjson::BaseReaderHandler<
       state_ = State::wait_key;
       return true;
     } else if (State::wait_element == state_ &&
-               nodes_.top().get().is_vector()) {
-      nodes_.top().get().ref_vector().push_back(
+               nodes_.top().get().is_array()) {
+      nodes_.top().get().ref_array().push_back(
           static_cast<typename RootType::float_type>(value));
       return true;
     }
@@ -150,8 +150,8 @@ class reader_handler : public ::rapidjson::BaseReaderHandler<
       state_ = State::wait_key;
       return true;
     } else if (State::wait_element == state_ &&
-               nodes_.top().get().is_vector()) {
-      nodes_.top().get().ref_vector().push_back(StdString(data, length));
+               nodes_.top().get().is_array()) {
+      nodes_.top().get().ref_array().push_back(StdString(data, length));
       return true;
     }
     return false;
@@ -171,10 +171,10 @@ class reader_handler : public ::rapidjson::BaseReaderHandler<
       nodes_.top().get()[current_key_].transform_object();
       nodes_.emplace(nodes_.top().get()[current_key_]);
       object_created = true;
-    } else if (nodes_.top().get().is_vector()) {
-      nodes_.top().get().ref_vector().push_back(nullptr);
-      nodes_.top().get().ref_vector().back().transform_object();
-      nodes_.emplace(nodes_.top().get().ref_vector().back());
+    } else if (nodes_.top().get().is_array()) {
+      nodes_.top().get().ref_array().push_back(nullptr);
+      nodes_.top().get().ref_array().back().transform_object();
+      nodes_.emplace(nodes_.top().get().ref_array().back());
       object_created = true;
     }
 
@@ -216,17 +216,17 @@ class reader_handler : public ::rapidjson::BaseReaderHandler<
 
     bool object_created = false;
     if (nodes_.empty()) {
-      root_.transform_vector();
+      root_.transform_array();
       nodes_.emplace(root_);
       object_created = true;
     } else if (nodes_.top().get().is_object()) {
-      nodes_.top().get()[current_key_].transform_vector();
+      nodes_.top().get()[current_key_].transform_array();
       nodes_.emplace(nodes_.top().get()[current_key_]);
       object_created = true;
-    } else if (nodes_.top().get().is_vector()) {
-      nodes_.top().get().ref_vector().push_back(nullptr);
-      nodes_.top().get().ref_vector().back().transform_vector();
-      nodes_.emplace(nodes_.top().get().ref_vector().back());
+    } else if (nodes_.top().get().is_array()) {
+      nodes_.top().get().ref_array().push_back(nullptr);
+      nodes_.top().get().ref_array().back().transform_array();
+      nodes_.emplace(nodes_.top().get().ref_array().back());
       object_created = true;
     }
 

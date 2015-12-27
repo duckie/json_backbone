@@ -132,9 +132,9 @@ struct parsing_action_grammar
     key_value = '"' >> *qi::alnum >> '"';
     value = float_value | uint_value | int_value | bool_value | null_value |
             string_value[phoenix::bind(&self::push_string, this, _1)];
-    array = qi::lit('[')[bind(&self::begin_vector, this)] >>
+    array = qi::lit('[')[bind(&self::begin_array, this)] >>
             -(extended_value % ',') >>
-            qi::lit(']')[bind(&self::end_vector, this)];
+            qi::lit(']')[bind(&self::end_array, this)];
     object = qi::lit('{')[bind(&self::begin_object, this)] >>
              -(object_pair % ',') >> qi::lit('}')[bind(&self::end_object, this)];
     object_pair = key_value[phoenix::bind(&self::push_key, this, _1)] >> ':' >>
@@ -156,18 +156,18 @@ struct parsing_action_grammar
         if (!insert_result.second)
           new_container = Container::template init<object_type>();
         stack_.push(new_container);
-      } else if (current.is_vector()) {
-        current.raw_vector().push_back(Container::template init<object_type>());
-        stack_.push(current.raw_vector().back());
+      } else if (current.is_array()) {
+        current.raw_array().push_back(Container::template init<object_type>());
+        stack_.push(current.raw_array().back());
       }
     }
   }
 
   void end_object() { stack_.pop(); }
 
-  void begin_vector() {
+  void begin_array() {
     if (!has_root_) {
-      root_.transform_vector();
+      root_.transform_array();
       stack_.push(root_);
       has_root_ = true;
     } else {
@@ -179,16 +179,16 @@ struct parsing_action_grammar
         if (!insert_result.second)
           new_container = Container::template init<array_type>();
         stack_.push(new_container);
-      } else if (current.is_vector()) {
-        current.raw_vector().push_back(Container::template init<array_type>());
-        stack_.push(current.raw_vector().back());
+      } else if (current.is_array()) {
+        current.raw_array().push_back(Container::template init<array_type>());
+        stack_.push(current.raw_array().back());
       }
     }
     Container& current = stack_.top().get();
-    current.raw_vector().reserve(array_reserve_);
+    current.raw_array().reserve(array_reserve_);
   }
 
-  void end_vector() { stack_.pop(); }
+  void end_array() { stack_.pop(); }
 
   void push_key(key_type& v) {
     // key_ = std::move(v);
@@ -200,7 +200,7 @@ struct parsing_action_grammar
     if (current.is_object())
       current[key_] = std::move(v);
     else
-      current.raw_vector().emplace_back(std::move(v));
+      current.raw_array().emplace_back(std::move(v));
   }
 
   void push_float(float_type v) {
@@ -208,7 +208,7 @@ struct parsing_action_grammar
     if (current.is_object())
       current[key_] = v;
     else
-      current.raw_vector().emplace_back(v);
+      current.raw_array().emplace_back(v);
   }
 
   void push_int(int_type v) {
@@ -216,7 +216,7 @@ struct parsing_action_grammar
     if (current.is_object())
       current[key_] = v;
     else
-      current.raw_vector().emplace_back(v);
+      current.raw_array().emplace_back(v);
   }
 
   void push_uint(uint_type v) {
@@ -224,7 +224,7 @@ struct parsing_action_grammar
     if (current.is_object())
       current[key_] = v;
     else
-      current.raw_vector().emplace_back(v);
+      current.raw_array().emplace_back(v);
   }
 
   void push_null_value() {
@@ -232,7 +232,7 @@ struct parsing_action_grammar
     if (current.is_object())
       current[key_] = nullptr;
     else
-      current.raw_vector().emplace_back(nullptr);
+      current.raw_array().emplace_back(nullptr);
   }
 
   void push_bool(bool v) {
@@ -240,7 +240,7 @@ struct parsing_action_grammar
     if (current.is_object())
       current[key_] = v;
     else
-      current.raw_vector().emplace_back(v);
+      current.raw_array().emplace_back(v);
   }
 
   using st_t = ascii::space_type;
@@ -321,11 +321,11 @@ struct out_grammar : karma::grammar<Iterator, Container()> {
   static void set_vec(optional_ref<array_type>& attribute,
                       context<Container>& context, bool& result) {
     Container const& input = context_value(context);
-    if (!input.is_vector()) {
+    if (!input.is_array()) {
       result = false;
       return;
     }
-    attribute = input.raw_vector();
+    attribute = input.raw_array();
     result = true;
   }
 

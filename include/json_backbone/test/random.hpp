@@ -81,7 +81,7 @@ template <typename Container> class generator {
     , size_t max_key_size = 12u
     , bool include_null = true
     , bool include_object = true
-    , bool include_vector = true
+    , bool include_array = true
     , bool include_string = true
     , bool include_float = true
     , bool include_int = true
@@ -93,14 +93,14 @@ template <typename Container> class generator {
     std::discrete_distribution<> type_chooser = {
       include_null ? 1.: 0.
         , include_object ? 1. : 0.
-        , include_vector ? 1. : 0.
+        , include_array ? 1. : 0.
         , include_string ? 1. : 0.
         , include_float ? 1. : 0.
         , include_int ? 1. : 0.
         , include_uint ? 1. : 0.
         , include_bool ? 1. : 0.
     };
-    std::discrete_distribution<> root_chooser = {(include_object ? 1. : 0.), (include_vector ? 1. : 0.)};
+    std::discrete_distribution<> root_chooser = {(include_object ? 1. : 0.), (include_array ? 1. : 0.)};
     Container root(root_chooser(gen_) ? Container::template init<typename Container::array_type>() : Container::template init<typename Container::object_type>());
 
     if(max_depth) {
@@ -133,16 +133,16 @@ template <typename Container> class generator {
               auto container_insert_result = current.raw_object().insert(std::make_pair(new_key, generate_container_once(type_chooser(gen_), str_size_gen)));
               assert(container_insert_result.second);
               Container& inserted = container_insert_result.first->second;
-              if (inserted.is_object() || inserted.is_vector()) next_to_process.emplace_back(inserted);
+              if (inserted.is_object() || inserted.is_array()) next_to_process.emplace_back(inserted);
             }
           }
-          else if (current.is_vector()) {
+          else if (current.is_array()) {
             size_t size = vec_size_gen(gen_);
-            current.ref_vector().reserve(size);
+            current.ref_array().reserve(size);
             for (size_t index = 0u; index < size; ++index) {
-              current.ref_vector().push_back(generate_container_once(type_chooser(gen_), str_size_gen));
-              Container& inserted = current.raw_vector().back();
-              if (inserted.is_object() || inserted.is_vector()) next_to_process.emplace_back(inserted);
+              current.ref_array().push_back(generate_container_once(type_chooser(gen_), str_size_gen));
+              Container& inserted = current.raw_array().back();
+              if (inserted.is_object() || inserted.is_array()) next_to_process.emplace_back(inserted);
             }
           }
           else {

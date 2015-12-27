@@ -92,7 +92,7 @@ TEST_F(UnitTests, Construction5) {
   EXPECT_EQ(2, c4["Roger"].ref_int());
   EXPECT_TRUE(c4["Roger"].is_int());
   EXPECT_TRUE(c4["Marcel"].is_string());
-  EXPECT_FALSE(c4["Rober"].is_vector());
+  EXPECT_FALSE(c4["Rober"].is_array());
 }
 
 namespace {
@@ -113,8 +113,8 @@ TEST_F(UnitTests, Construction6) {
   c["attributs"]["sub_attributes"][0] = true;
   c["attributs"]["sub_attributes"][3] = "falsy man";
 
-  c["attributs"]["sub_attributes2"].transform_vector().emplace_back(nullptr);
-  c["attributs"]["sub_attributes2"].ref_vector().emplace_back(-1);
+  c["attributs"]["sub_attributes2"].transform_array().emplace_back(nullptr);
+  c["attributs"]["sub_attributes2"].ref_array().emplace_back(-1);
 
   EXPECT_EQ(std::string("Roger"),c["nom"].ref_string());
   std::cout << c["attributs"]["liste"][2].ref_string() << std::endl;

@@ -28,7 +28,7 @@ TEST_F(UnitTests, Construction) {
   EXPECT_EQ(true, c_object.is_object());
 
   container c_vec{1, 2, nullptr};
-  EXPECT_EQ(true, c_vec.is_vector());
+  EXPECT_EQ(true, c_vec.is_array());
 
   container c_str(std::string("Roger"));
   EXPECT_EQ(true, c_str.is_string());
@@ -48,8 +48,8 @@ TEST_F(UnitTests, Construction) {
   EXPECT_EQ(true, c1.is_object());
   EXPECT_EQ(true, c1["nom"].is_string());
   EXPECT_EQ(true, c1["prenom"].is_string());
-  EXPECT_EQ(true, c1["attributs"]["liste"].is_vector());
-  EXPECT_EQ(true, c1["attributs"]["liste"].is_vector());
+  EXPECT_EQ(true, c1["attributs"]["liste"].is_array());
+  EXPECT_EQ(true, c1["attributs"]["liste"].is_array());
   EXPECT_EQ(true, c1["isaman"].is_bool());
   EXPECT_EQ(true, c1["nothing"].is_null());
 }

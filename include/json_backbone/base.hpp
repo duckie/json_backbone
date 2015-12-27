@@ -462,7 +462,7 @@ class basic_container final {
 
   template <ifneq<Key, ArraySizeType> = 0>
   basic_container const& access_collection(array_size_type index) const noexcept {
-    if (!is_vector() || ref_to<Array>().size() <= index)
+    if (!is_array() || ref_to<Array>().size() <= index)
       return get_static_const_default();
     return ref_to<Array>()[index];
   }
@@ -483,7 +483,7 @@ class basic_container final {
 
   template <ifneq<Key, ArraySizeType> = 0>
   basic_container& access_collection(array_size_type index) noexcept {
-    if (!is_vector())
+    if (!is_array())
       switch_to_type<Array>();
     if (ref_to<Array>().size() <= index)
       ref_to<Array>().resize(index + 1);
@@ -658,7 +658,7 @@ class basic_container final {
 
   inline bool is_null() const noexcept { return value_type::null == type_; }
   inline bool is_object() const noexcept { return value_type::object == type_; }
-  inline bool is_vector() const noexcept { return value_type::array == type_; }
+  inline bool is_array() const noexcept { return value_type::array == type_; }
   inline bool is_string() const noexcept { return value_type::string == type_; }
   inline bool is_float() const noexcept {
     return value_type::floating == type_;
@@ -679,7 +679,7 @@ class basic_container final {
   }
   inline Null ref_null() const { return nullptr; }
   inline Object const& ref_object() const { return ref<Object>(); }
-  inline Array const& ref_vector() const { return ref<Array>(); }
+  inline Array const& ref_array() const { return ref<Array>(); }
   inline String const& ref_string() const { return ref<String>(); }
   inline Float const& ref_float() const { return ref<Float>(); }
   inline Int const& ref_int() const { return ref<Int>(); }
@@ -694,7 +694,7 @@ class basic_container final {
     return ref_to<T>();
   }
   inline Object& ref_object() { return ref<Object>(); }
-  inline Array& ref_vector() { return ref<Array>(); }
+  inline Array& ref_array() { return ref<Array>(); }
   inline String& ref_string() { return ref<String>(); }
   inline Float& ref_float() { return ref<Float>(); }
   inline Int& ref_int() { return ref<Int>(); }
@@ -714,7 +714,7 @@ class basic_container final {
     return nullptr;
   }
   inline Object& transform_object() { return transform<Object>(); }
-  inline Array& transform_vector() { return transform<Array>(); }
+  inline Array& transform_array() { return transform<Array>(); }
   inline String& transform_string() { return transform<String>(); }
   inline Float& transform_float() { return transform<Float>(); }
   inline Int& transform_int() { return transform<Int>(); }
@@ -729,7 +729,7 @@ class basic_container final {
   }
   inline Null raw_null() const { return nullptr; }
   inline Object const& raw_object() const { return raw<Object>(); }
-  inline Array const& raw_vector() const { return raw<Array>(); }
+  inline Array const& raw_array() const { return raw<Array>(); }
   inline String const& raw_string() const { return raw<String>(); }
   inline Float const& raw_float() const { return raw<Float>(); }
   inline Int const& raw_int() const { return raw<Int>(); }
@@ -742,7 +742,7 @@ class basic_container final {
     return ref_to<T>();
   }
   inline Object& raw_object() { return raw<Object>(); }
-  inline Array& raw_vector() { return raw<Array>(); }
+  inline Array& raw_array() { return raw<Array>(); }
   inline String& raw_string() { return raw<String>(); }
   inline Float& raw_float() { return raw<Float>(); }
   inline Int& raw_int() { return raw<Int>(); }
@@ -754,7 +754,7 @@ class basic_container final {
     return type_traits<T>::type_value() == type_ ? &raw<T>() : nullptr;
   }
   inline Object const* get_object() const { return get<Object>(); }
-  inline Array const* get_vector() const { return get<Array>(); }
+  inline Array const* get_array() const { return get<Array>(); }
   inline String const* get_string() const { return get<String>(); }
   inline Float const* get_float() const { return get<Float>(); }
   inline Int const* get_int() const { return get<Int>(); }
@@ -765,7 +765,7 @@ class basic_container final {
     return type_traits<T>::type_value() == type_ ? &raw<T>() : nullptr;
   }
   inline Object* get_object() noexcept { return get<Object>(); }
-  inline Array* get_vector() noexcept { return get<Array>(); }
+  inline Array* get_array() noexcept { return get<Array>(); }
   inline String* get_string() noexcept { return get<String>(); }
   inline Float* get_float() noexcept { return get<Float>(); }
   inline Int* get_int() noexcept { return get<Int>(); }
@@ -780,7 +780,7 @@ class basic_container final {
     return false;
   }
   inline bool get_object(Object& v) noexcept { return get<Object>(v); }
-  inline bool get_vector(Array& v) noexcept { return get<Array>(v); }
+  inline bool get_array(Array& v) noexcept { return get<Array>(v); }
   inline bool get_string(String& v) noexcept { return get<String>(v); }
   inline bool get_float(Float& v) noexcept { return get<Float>(v); }
   inline bool get_int(Int& v) noexcept { return get<Int>(v); }
@@ -841,7 +841,7 @@ class basic_container final {
   template <class T> inline T as() const { return convert_to<T>(); }
   inline Null as_null() const { return as<Null>(); }
   inline Object as_object() const { return as<Object>(); }
-  inline Array as_vector() const { return as<Array>(); }
+  inline Array as_array() const { return as<Array>(); }
   inline String as_string() const { return as<String>(); }
   inline Float as_float() const { return as<Float>(); }
   inline Int as_int() const { return as<Int>(); }
