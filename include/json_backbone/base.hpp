@@ -19,19 +19,19 @@
 
 namespace json_backbone {
 
-template <typename key_type, typename value_type>
+template <class key_type, class value_type>
 using std_map_default_allocators = std::map<key_type, value_type>;
-template <typename value_type>
+template <class value_type>
 using std_vector_default_allocators = std::vector<value_type>;
 template <class Container> class attr_init;
 template <class Container> class vector_element_init;
 
-template <typename Key = std::string, class String = std::string,
-          typename Int = int, typename UInt = unsigned int,
-          typename Float = float,
-          template <typename InnerKey, class This> class MapTemplate =
+template <class Key = std::string, class String = std::string,
+          class Int = int, class UInt = unsigned int,
+          class Float = float,
+          template <class InnerKey, class This> class MapTemplate =
               std_map_default_allocators,
-          template <typename This> class VectorTemplate =
+          template <class This> class VectorTemplate =
               std_vector_default_allocators>
 class basic_container final {
   friend attr_init<basic_container>;
@@ -82,13 +82,13 @@ class basic_container final {
     bool bool_;
   };
 
-  template <typename A, typename B> using eq = std::is_same<A, B>;
-  template <typename A, typename B>
+  template <class A, class B> using eq = std::is_same<A, B>;
+  template <class A, class B>
   using ifeq = typename std::enable_if<eq<A, B>::value, int>::type;
-  template <typename A, typename B>
+  template <class A, class B>
   using ifneq = typename std::enable_if<!eq<A, B>::value, int>::type;
 
-  template <typename Member> struct type_traits {
+  template <class Member> struct type_traits {
     using T = typename std::remove_cv<
         typename std::remove_reference<Member>::type>::type;
     using pure_type = T;
@@ -135,7 +135,7 @@ class basic_container final {
   // Putting the lexical cast here as a member is ugly but needed to avoid
   // externalization conflicts when two different containers shares a same type
   // which is the case for instance with container_double and container_longint_double
-  template <typename Target, typename Source>
+  template <class Target, class Source>
   static typename std::enable_if<std::is_fundamental<Source>::value,
                                  Target>::type
   lexical_cast(Source arg) {
@@ -149,7 +149,7 @@ class basic_container final {
     return result;
   }
 
-  template <typename Target, typename Source>
+  template <class Target, class Source>
   static typename std::enable_if<!std::is_fundamental<Source>::value,
                                  Target>::type
   lexical_cast(Source const& arg) {
@@ -200,26 +200,26 @@ class basic_container final {
   }
 
   // Compile time initializers
-  template <typename T, ifeq<Null, T> = 0> inline void init_member() {}
-  template <typename T, ifeq<Map, T> = 0> inline void init_member() {
+  template <class T, ifeq<Null, T> = 0> inline void init_member() {}
+  template <class T, ifeq<Map, T> = 0> inline void init_member() {
     value_.dict_ = new Map;
   }
-  template <typename T, ifeq<Vector, T> = 0> inline void init_member() {
+  template <class T, ifeq<Vector, T> = 0> inline void init_member() {
     value_.vector_ = new Vector;
   }
-  template <typename T, ifeq<String, T> = 0> inline void init_member() {
+  template <class T, ifeq<String, T> = 0> inline void init_member() {
     new (&(value_.str_)) String;
   }
-  template <typename T, ifeq<Float, T> = 0> inline void init_member() {
+  template <class T, ifeq<Float, T> = 0> inline void init_member() {
     value_.float_ = 0.f;
   }
-  template <typename T, ifeq<Int, T> = 0> inline void init_member() {
+  template <class T, ifeq<Int, T> = 0> inline void init_member() {
     value_.int_ = 0;
   }
-  template <typename T, ifeq<UInt, T> = 0> inline void init_member() {
+  template <class T, ifeq<UInt, T> = 0> inline void init_member() {
     value_.uint_ = 0u;
   }
-  template <typename T, ifeq<bool, T> = 0> inline void init_member() {
+  template <class T, ifeq<bool, T> = 0> inline void init_member() {
     value_.bool_ = false;
   }
 
@@ -364,7 +364,7 @@ class basic_container final {
   }
 
   // When target type is known at compilation
-  template <typename T> void switch_to_type() {
+  template <class T> void switch_to_type() {
     value_type constexpr target_type = type_traits<T>::type_value();
     if (target_type == type_)
       return;
@@ -373,7 +373,7 @@ class basic_container final {
     type_ = target_type;
   }
 
-  template <typename T> void switch_to_type(T&& value) {
+  template <class T> void switch_to_type(T&& value) {
     value_type constexpr target_type = type_traits<T>::type_value();
     if (target_type == type_) {
       ref_to<T>() = std::forward<T>(value);
@@ -394,8 +394,8 @@ class basic_container final {
   }
 
   // For default construction with a type at compile type
-  template <typename T> struct type_proxy {};
-  template <typename T>
+  template <class T> struct type_proxy {};
+  template <class T>
   explicit basic_container(type_proxy<T>)
       : type_(type_traits<T>::type_value()) {
     init_member<T>();
@@ -403,95 +403,49 @@ class basic_container final {
 
   //// Accessors, private, not protected against bad behavior, checks must be done
   //// before
-  //template <typename T, ifeq<Map, T> = 0> inline Map* ptr_to() {
-    //return value_.dict_;
-  //}
-  //template <typename T, ifeq<Vector, T> = 0> inline Vector* ptr_to() {
-    //return value_.vector_;
-  //}
-  //template <typename T, ifeq<String, T> = 0> inline String* ptr_to() {
-    //return &value_.str_;
-  //}
-  //template <typename T, ifeq<Float, T> = 0> inline Float* ptr_to() {
-    //return &value_.float_;
-  //}
-  //template <typename T, ifeq<Int, T> = 0> inline Int* ptr_to() {
-    //return &value_.int_;
-  //}
-  //template <typename T, ifeq<UInt, T> = 0> inline UInt* ptr_to() {
-    //return &value_.uint_;
-  //}
-  //template <typename T, ifeq<bool, T> = 0> inline bool* ptr_to() {
-    //return &value_.bool_;
-  //}
-//
-  //template <typename T, ifeq<Map, T> = 0> inline Map const* ptr_to() const {
-    //return value_.dict_;
-  //}
-  //template <typename T, ifeq<Vector, T> = 0>
-  //inline Vector const* ptr_to() const {
-    //return value_.vector_;
-  //}
-  //template <typename T, ifeq<String, T> = 0>
-  //inline String const* ptr_to() const {
-    //return &value_.str_;
-  //}
-  //template <typename T, ifeq<Float, T> = 0> inline Float const* ptr_to() const {
-    //return &value_.float_;
-  //}
-  //template <typename T, ifeq<Int, T> = 0> inline Int const* ptr_to() const {
-    //return &value_.int_;
-  //}
-  //template <typename T, ifeq<UInt, T> = 0> inline UInt const* ptr_to() const {
-    //return &value_.uint_;
-  //}
-  //template <typename T, ifeq<bool, T> = 0> inline bool const* ptr_to() const {
-    //return &value_.bool_;
-  //}
-
-  template <typename T, ifeq<Map, T> = 0> inline Map& ref_to() {
+  template <class T, ifeq<Map, T> = 0> inline Map& ref_to() {
     return *value_.dict_;
   }
-  template <typename T, ifeq<Vector, T> = 0> inline Vector& ref_to() {
+  template <class T, ifeq<Vector, T> = 0> inline Vector& ref_to() {
     return *value_.vector_;
   }
-  template <typename T, ifeq<String, T> = 0> inline String& ref_to() {
+  template <class T, ifeq<String, T> = 0> inline String& ref_to() {
     return value_.str_;
   }
-  template <typename T, ifeq<Float, T> = 0> inline Float& ref_to() {
+  template <class T, ifeq<Float, T> = 0> inline Float& ref_to() {
     return value_.float_;
   }
-  template <typename T, ifeq<Int, T> = 0> inline Int& ref_to() {
+  template <class T, ifeq<Int, T> = 0> inline Int& ref_to() {
     return value_.int_;
   }
-  template <typename T, ifeq<UInt, T> = 0> inline UInt& ref_to() {
+  template <class T, ifeq<UInt, T> = 0> inline UInt& ref_to() {
     return value_.uint_;
   }
-  template <typename T, ifeq<bool, T> = 0> inline bool& ref_to() {
+  template <class T, ifeq<bool, T> = 0> inline bool& ref_to() {
     return value_.bool_;
   }
 
-  template <typename T, ifeq<Map, T> = 0> inline Map const& ref_to() const {
+  template <class T, ifeq<Map, T> = 0> inline Map const& ref_to() const {
     return *value_.dict_;
   }
-  template <typename T, ifeq<Vector, T> = 0>
+  template <class T, ifeq<Vector, T> = 0>
   inline Vector const& ref_to() const {
     return *value_.vector_;
   }
-  template <typename T, ifeq<String, T> = 0>
+  template <class T, ifeq<String, T> = 0>
   inline String const& ref_to() const {
     return value_.str_;
   }
-  template <typename T, ifeq<Float, T> = 0> inline Float const& ref_to() const {
+  template <class T, ifeq<Float, T> = 0> inline Float const& ref_to() const {
     return value_.float_;
   }
-  template <typename T, ifeq<Int, T> = 0> inline Int const& ref_to() const {
+  template <class T, ifeq<Int, T> = 0> inline Int const& ref_to() const {
     return value_.int_;
   }
-  template <typename T, ifeq<UInt, T> = 0> inline UInt const& ref_to() const {
+  template <class T, ifeq<UInt, T> = 0> inline UInt const& ref_to() const {
     return value_.uint_;
   }
-  template <typename T, ifeq<bool, T> = 0> inline bool const& ref_to() const {
+  template <class T, ifeq<bool, T> = 0> inline bool const& ref_to() const {
     return value_.bool_;
   }
 
@@ -537,7 +491,7 @@ class basic_container final {
   }
 
   // template <typename T> convert_to
-  template <typename T, typename std::enable_if<
+  template <class T, typename std::enable_if<
                             !eq<T, Null>::value && !eq<T, String>::value &&
                                 !eq<T, Map>::value && !eq<T, Vector>::value,
                             int>::type = 0>
@@ -569,11 +523,11 @@ class basic_container final {
   }
 
   // Handling the particular case of types not supporting casts
-  template <typename T, ifeq<Null, T> = 0> T convert_to() const {
+  template <class T, ifeq<Null, T> = 0> T convert_to() const {
     return nullptr;
   }
 
-  template <typename T, ifeq<String, T> = 0> T convert_to() const {
+  template <class T, ifeq<String, T> = 0> T convert_to() const {
     if (value_type::string == type_) {
       return ref_to<String>();
     } else if (is_lexical(type_)) {
@@ -593,13 +547,13 @@ class basic_container final {
     return String();
   }
 
-  template <typename T, ifeq<Map, T> = 0> T convert_to() const {
+  template <class T, ifeq<Map, T> = 0> T convert_to() const {
     if (value_type::map == type_)
       return ref_to<Map>();
     return Map();
   }
 
-  template <typename T, ifeq<Vector, T> = 0> T convert_to() const {
+  template <class T, ifeq<Vector, T> = 0> T convert_to() const {
     if (value_type::vector == type_)
       return ref_to<Vector>();
     return Vector();
@@ -617,14 +571,14 @@ class basic_container final {
   basic_container(char const (&arg)[Size])
       : basic_container(str_type(arg, Size)) {}
   // Handling char* case
-  template <typename T, ifeq<typename String::value_type const*, T> = 0>
+  template <class T, ifeq<typename String::value_type const*, T> = 0>
   basic_container(T arg)
       : basic_container(str_type(arg)) {}
-  template <typename T, ifeq<typename String::value_type*, T> = 0>
+  template <class T, ifeq<typename String::value_type*, T> = 0>
   basic_container(T arg)
       : basic_container(str_type(arg)) {}
   // Other types
-  template <typename T, typename std::enable_if<
+  template <class T, typename std::enable_if<
                             type_traits<T>::is_from_container, int>::type = 0>
   basic_container(T&& arg)
       : type_(type_traits<T>::type_value()) {
@@ -664,7 +618,7 @@ class basic_container final {
   }
 
   // Helper to initialize the container to a given type
-  template <typename T> static basic_container init() {
+  template <class T> static basic_container init() {
     return basic_container(type_proxy<T>());
   }
 
@@ -716,7 +670,7 @@ class basic_container final {
   inline bool is_bool() const noexcept { return value_type::boolean == type_; }
 
   // By reference accessors
-  template <typename T> T const& ref() const {
+  template <class T> T const& ref() const {
     static_assert(type_traits<T>::is_pure,
                   "Type must not be a reference nor have cv-qualifiers");
     if (type_traits<T>::type_value() != type_)
@@ -732,7 +686,7 @@ class basic_container final {
   inline UInt const& ref_uint() const { return ref<UInt>(); }
   inline bool const& ref_bool() const { return ref<bool>(); }
 
-  template <typename T> T& ref() {
+  template <class T> T& ref() {
     static_assert(type_traits<T>::is_pure,
                   "Type must not be a reference nor have cv-qualifiers");
     if (type_traits<T>::type_value() != type_)
@@ -748,7 +702,7 @@ class basic_container final {
   inline bool& ref_bool() { return ref<bool>(); }
 
   // Forced type switch
-  template <typename T> T& transform() noexcept {
+  template <class T> T& transform() noexcept {
     static_assert(type_traits<T>::is_pure,
                   "Type must not be a reference nor have cv-qualifiers");
     if (type_traits<T>::type_value() != type_)
@@ -768,7 +722,7 @@ class basic_container final {
   inline bool& transform_bool() { return transform<bool>(); }
 
   // Raw accessors - use at your own risk
-  template <typename T> T const& raw() const {
+  template <class T> T const& raw() const {
     static_assert(type_traits<T>::is_from_container,
                   "Type must be compatible with this container.");
     return ref_to<T>();
@@ -782,7 +736,7 @@ class basic_container final {
   inline UInt const& raw_uint() const { return raw<UInt>(); }
   inline bool const& raw_bool() const { return raw<bool>(); }
 
-  template <typename T> T& raw() {
+  template <class T> T& raw() {
     static_assert(type_traits<T>::is_from_container,
                   "Type must be compatible with this container.");
     return ref_to<T>();
@@ -796,7 +750,7 @@ class basic_container final {
   inline bool& raw_bool() { return raw<bool>(); }
 
   // Lazy non throwing accessors
-  template <typename T> T const* get() const noexcept {
+  template <class T> T const* get() const noexcept {
     return type_traits<T>::type_value() == type_ ? &raw<T>() : nullptr;
   }
   inline Map const* get_map() const { return get<Map>(); }
@@ -807,7 +761,7 @@ class basic_container final {
   inline UInt const* get_uint() const { return get<UInt>(); }
   inline bool const* get_bool() const { return get<bool>(); }
 
-  template <typename T> T* get() noexcept {
+  template <class T> T* get() noexcept {
     return type_traits<T>::type_value() == type_ ? &raw<T>() : nullptr;
   }
   inline Map* get_map() noexcept { return get<Map>(); }
@@ -818,7 +772,7 @@ class basic_container final {
   inline UInt* get_uint() noexcept { return get<UInt>(); }
   inline bool* get_bool() noexcept { return get<bool>(); }
 
-  template <typename T> bool get(T& output_value) const noexcept {
+  template <class T> bool get(T& output_value) const noexcept {
     if (type_traits<T>::type_value() == type_) {
       output_value = ref_to<T>();
       return true;
@@ -843,11 +797,11 @@ class basic_container final {
   operator[](typename key_type::value_type const* index) noexcept {
     return access_collection(index);
   }
-  template <typename T>
+  template <class T>
   basic_container const& operator[](T const& index) const {
     return access_collection(index);
   }
-  template <typename T> basic_container& operator[](T&& index) noexcept {
+  template <class T> basic_container& operator[](T&& index) noexcept {
     return access_collection(std::forward<T&&>(index));
   }
 
@@ -883,8 +837,8 @@ class basic_container final {
   };
 
   // Conversion.
-  template <typename T> inline operator T() const { return convert_to<T>(); }
-  template <typename T> inline T as() const { return convert_to<T>(); }
+  template <class T> inline operator T() const { return convert_to<T>(); }
+  template <class T> inline T as() const { return convert_to<T>(); }
   inline Null as_null() const { return as<Null>(); }
   inline Map as_map() const { return as<Map>(); }
   inline Vector as_vector() const { return as<Vector>(); }
@@ -894,7 +848,7 @@ class basic_container final {
   inline UInt as_uint() const { return as<UInt>(); }
   inline bool as_bool() const { return as<bool>(); }
 
-  template <typename T> void const_visit(T& v) const {
+  template <class T> void const_visit(T& v) const {
     switch (type_) {
     case value_type::null:
       v.apply(nullptr);
@@ -982,7 +936,7 @@ template <class Container> class vector_element_init final {
       : value_(value) {}
   vector_element_init(Container&& value)
       : value_(std::move(value)) {}
-  template <typename T>
+  template <class T>
   vector_element_init(T&& value)
       : value_(std::forward<T>(value)) {}
 
