@@ -27,7 +27,7 @@ using json_partial_spirit =
     serializer<C, typename C::str_type, generation_policies::visitor_ostream,
                parsing_policies::partial_spirit>;
 
-void compare_parse_time(container const& c, size_t vector_reserve = 0u) {
+void compare_parse_time(container const& c, size_t array_reserve = 0u) {
   size_t constexpr max_iter = 1e1;
   using std::chrono::high_resolution_clock;
   using std::chrono::time_point;
@@ -68,7 +68,7 @@ void compare_parse_time(container const& c, size_t vector_reserve = 0u) {
 
   start = high_resolution_clock::now();
   for (size_t i = 0u; i < max_iter; ++i)
-    partial_driver.deserialize(to_parse, vector_reserve);
+    partial_driver.deserialize(to_parse, array_reserve);
   end = high_resolution_clock::now();
   std::cout << "Partial spirit with pre-reserve took "
             << duration_cast<milliseconds>(end - start).count() << "ms"

@@ -22,9 +22,9 @@ namespace json_backbone {
 template <class key_type, class value_type>
 using std_map_default_allocators = std::map<key_type, value_type>;
 template <class value_type>
-using std_vector_default_allocators = std::vector<value_type>;
+using std_array_default_allocators = std::vector<value_type>;
 template <class Container> class attr_init;
-template <class Container> class vector_element_init;
+template <class Container> class array_element_init;
 
 template <class Key = std::string, class String = std::string,
           class Int = int, class UInt = unsigned int,
@@ -32,10 +32,10 @@ template <class Key = std::string, class String = std::string,
           template <class InnerKey, class This> class ObjectTemplate =
               std_map_default_allocators,
           template <class This> class ArrayTemplate =
-              std_vector_default_allocators>
+              std_array_default_allocators>
 class basic_container final {
   friend attr_init<basic_container>;
-  friend vector_element_init<basic_container>;
+  friend array_element_init<basic_container>;
 
  public:
   // Public type declarations
@@ -73,8 +73,8 @@ class basic_container final {
     value() {}
     ~value() {}
 
-    Object* dict_;
-    Array* vector_;
+    Object* object_;
+    Array* array_;
     String str_;
     Float float_;
     Int int_;
@@ -186,10 +186,10 @@ class basic_container final {
   void clear() {
     switch (type_) {
     case value_type::object:
-      delete value_.dict_;
+      delete value_.object_;
       break;
     case value_type::array:
-      delete value_.vector_;
+      delete value_.array_;
       break;
     case value_type::string:
       value_.str_.~str_type();
@@ -202,10 +202,10 @@ class basic_container final {
   // Compile time initializers
   template <class T, ifeq<Null, T> = 0> inline void init_member() {}
   template <class T, ifeq<Object, T> = 0> inline void init_member() {
-    value_.dict_ = new Object;
+    value_.object_ = new Object;
   }
   template <class T, ifeq<Array, T> = 0> inline void init_member() {
-    value_.vector_ = new Array;
+    value_.array_ = new Array;
   }
   template <class T, ifeq<String, T> = 0> inline void init_member() {
     new (&(value_.str_)) String;
@@ -231,9 +231,9 @@ class basic_container final {
   inline void init_member(bool v) { value_.bool_ = v; }
 
   // Init with value - move
-  inline void init_member(Object&& v) { value_.dict_ = new Object(std::move(v)); }
+  inline void init_member(Object&& v) { value_.object_ = new Object(std::move(v)); }
   inline void init_member(Array&& v) {
-    value_.vector_ = new Array(std::move(v));
+    value_.array_ = new Array(std::move(v));
   }
   inline void init_member(String&& v) {
     new (&(value_.str_)) String(std::move(v));
@@ -246,13 +246,13 @@ class basic_container final {
       break;
     case value_type::object:
       clear();
-      value_.dict_ = c.value_.dict_;
-      c.value_.dict_ = nullptr; // Useless in theory, just in case
+      value_.object_ = c.value_.object_;
+      c.value_.object_ = nullptr; // Useless in theory, just in case
       break;
     case value_type::array:
       clear();
-      value_.vector_ = c.value_.vector_;
-      c.value_.vector_ = nullptr; // Useless in theory, just in case
+      value_.array_ = c.value_.array_;
+      c.value_.array_ = nullptr; // Useless in theory, just in case
       break;
     case value_type::string:
       same_type ? void() : switch_to_type(value_type::string);
@@ -283,8 +283,8 @@ class basic_container final {
   }
 
   // Init with value - copy
-  inline void init_member(Object const& v) { value_.dict_ = new Object(v); }
-  inline void init_member(Array const& v) { value_.vector_ = new Array(v); }
+  inline void init_member(Object const& v) { value_.object_ = new Object(v); }
+  inline void init_member(Array const& v) { value_.array_ = new Array(v); }
   inline void init_member(String const& v) { new (&(value_.str_)) String(v); }
   inline void init_member(basic_container const& c) {
     value_type previous_type = type_;
@@ -294,11 +294,11 @@ class basic_container final {
       // a deleted memory area
       if (value_type::object == type_) {
         Object* defered_map = nullptr;
-        init_member(*c.value_.vector_);
+        init_member(*c.value_.array_);
         delete defered_map;
       } else {
         Array* defered_array = nullptr;
-        init_member(*c.value_.dict_);
+        init_member(*c.value_.object_);
         delete defered_array;
       }
       type_ = c.type_;
@@ -308,10 +308,10 @@ class basic_container final {
       case value_type::null:
         break;
       case value_type::object:
-        *value_.dict_ = *c.value_.dict_;
+        *value_.object_ = *c.value_.object_;
         break;
       case value_type::array:
-        *value_.vector_ = *c.value_.vector_;
+        *value_.array_ = *c.value_.array_;
         break;
       case value_type::string:
         value_.str_ = c.value_.str_;
@@ -404,10 +404,10 @@ class basic_container final {
   //// Accessors, private, not protected against bad behavior, checks must be done
   //// before
   template <class T, ifeq<Object, T> = 0> inline Object& ref_to() {
-    return *value_.dict_;
+    return *value_.object_;
   }
   template <class T, ifeq<Array, T> = 0> inline Array& ref_to() {
-    return *value_.vector_;
+    return *value_.array_;
   }
   template <class T, ifeq<String, T> = 0> inline String& ref_to() {
     return value_.str_;
@@ -426,11 +426,11 @@ class basic_container final {
   }
 
   template <class T, ifeq<Object, T> = 0> inline Object const& ref_to() const {
-    return *value_.dict_;
+    return *value_.object_;
   }
   template <class T, ifeq<Array, T> = 0>
   inline Array const& ref_to() const {
-    return *value_.vector_;
+    return *value_.array_;
   }
   template <class T, ifeq<String, T> = 0>
   inline String const& ref_to() const {
@@ -593,7 +593,7 @@ class basic_container final {
       ref_to<Object>().emplace(elem.key(), elem.value());
   }
   basic_container(
-      std::initializer_list<vector_element_init<basic_container>> list)
+      std::initializer_list<array_element_init<basic_container>> list)
       : type_(value_type::array) {
     init_member<Array>();
     ref_to<Array>().reserve(list.size());
@@ -926,33 +926,33 @@ template <class Container> class attr_init final {
   inline Container value() const { return std::move(value_); }
 };
 
-template <class Container> class vector_element_init final {
+template <class Container> class array_element_init final {
   // static_assert(std::is_same< basic_
 
   mutable Container value_;
 
  public:
-  vector_element_init(Container const& value)
+  array_element_init(Container const& value)
       : value_(value) {}
-  vector_element_init(Container&& value)
+  array_element_init(Container&& value)
       : value_(std::move(value)) {}
   template <class T>
-  vector_element_init(T&& value)
+  array_element_init(T&& value)
       : value_(std::forward<T>(value)) {}
 
-  vector_element_init& operator=(Container const& value) {
+  array_element_init& operator=(Container const& value) {
     value_ = value;
     return *this;
   }
-  vector_element_init& operator=(Container&& value) {
+  array_element_init& operator=(Container&& value) {
     value_ = std::move(value);
     return *this;
   }
-  vector_element_init& operator()(Container const& value) {
+  array_element_init& operator()(Container const& value) {
     value_ = value;
     return *this;
   }
-  vector_element_init& operator()(Container&& value) {
+  array_element_init& operator()(Container&& value) {
     value_ = std::move(value);
     return *this;
   }

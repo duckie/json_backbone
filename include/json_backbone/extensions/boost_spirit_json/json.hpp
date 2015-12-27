@@ -185,7 +185,7 @@ struct parsing_action_grammar
       }
     }
     Container& current = stack_.top().get();
-    current.raw_vector().reserve(vector_reserve_);
+    current.raw_vector().reserve(array_reserve_);
   }
 
   void end_vector() { stack_.pop(); }
@@ -263,14 +263,14 @@ struct parsing_action_grammar
                                 std::list<std::reference_wrapper<Container>>>;
   stack_type stack_;
   bool has_root_ = false;
-  size_t vector_reserve_ = 0u;
+  size_t array_reserve_ = 0u;
   Container root_;
   key_type key_;
   Container value_;
 
-  void reset(size_t vector_reserve) {
+  void reset(size_t array_reserve) {
     has_root_ = false;
-    vector_reserve_ = vector_reserve;
+    array_reserve_ = array_reserve;
     stack_ = stack_type();
   }
 };
@@ -739,10 +739,10 @@ struct parser_impl<Container, StreamType, parsing_policies::partial_spirit> {
   mutable grammar grammar_;
 
   Container deserialize(StreamType const& input,
-                        size_t vector_reserve = 0u) const {
+                        size_t array_reserve = 0u) const {
     typename string_type::const_iterator iter = input.begin();
     typename string_type::const_iterator end = input.end();
-    grammar_.reset(vector_reserve);
+    grammar_.reset(array_reserve);
     bool success =
         qi::phrase_parse(iter, end, grammar_, boost::spirit::ascii::space);
     return std::move(grammar_.root_);
@@ -792,8 +792,8 @@ class serializer_impl<Container, StreamType, GenPolicy,
     return generator_.serialize(input);
   };
   Container deserialize(StreamType const& input,
-                        size_t vector_reserve) const override {
-    return parser_.deserialize(input, vector_reserve);
+                        size_t array_reserve) const override {
+    return parser_.deserialize(input, array_reserve);
   };
 };
 
@@ -838,8 +838,8 @@ template <typename Container, typename StreamType,
           generation_policies GenPolicy>
 Container
 serializer<Container, StreamType, GenPolicy, parsing_policies::partial_spirit>::
-    deserialize(StreamType const& input, size_t vector_reserve) const {
-  return serializer_impl_->deserialize(input, vector_reserve);
+    deserialize(StreamType const& input, size_t array_reserve) const {
+  return serializer_impl_->deserialize(input, array_reserve);
 }
 
 } // namespace json

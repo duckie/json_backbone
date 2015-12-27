@@ -12,7 +12,7 @@ JSON_BACKBONE_EXTERNALIZE(JSON_BACKBONE_CONTAINER_SIGNATURE());
 JSON_BACKBONE_EXTERNALIZE_JSON(JSON_BACKBONE_CONTAINER_SIGNATURE());
 
 using json_backbone::container;
-using json_backbone::vector_element_init;
+using json_backbone::array_element_init;
 using namespace json_backbone::json;
 using namespace json_backbone::test::random;
 template <typename C>

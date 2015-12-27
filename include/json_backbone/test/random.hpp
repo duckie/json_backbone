@@ -73,8 +73,8 @@ template <typename Container> class generator {
     size_t max_depth = 0u
     , size_t min_map_size = 1u
     , size_t max_map_size = 100u
-    , size_t min_vector_size = 1u
-    , size_t max_vector_size = 100u
+    , size_t min_array_size = 1u
+    , size_t max_array_size = 100u
     , size_t min_string_size = 0u
     , size_t max_string_size = 12u
     , size_t min_key_size = 1u
@@ -105,7 +105,7 @@ template <typename Container> class generator {
 
     if(max_depth) {
       std::uniform_int_distribution<> map_size_gen(min_map_size, max_map_size);
-      std::uniform_int_distribution<> vec_size_gen(min_vector_size, max_vector_size);
+      std::uniform_int_distribution<> vec_size_gen(min_array_size, max_array_size);
       std::uniform_int_distribution<> str_size_gen(min_string_size, max_string_size);
       std::uniform_int_distribution<> key_size_gen(min_key_size, max_key_size);
 
