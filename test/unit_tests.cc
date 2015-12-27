@@ -82,11 +82,11 @@ TEST_F(UnitTests, Construction5) {
   EXPECT_FALSE(c1[0u].is_int());
 
   container c4 =
-      container::init_map({{"Roger", 1},
+      container::init_object({{"Roger", 1},
                            {"Marcel", "Robert"},
                            {"Marcel2", 2u},
                            {"Marcel2", 2.f},
-                           {"Marcel2", container::init_map({{"Robert", 1}})},
+                           {"Marcel2", container::init_object({{"Robert", 1}})},
                            {"Robert", container::init_vec({1, 2, 3u})}});
   ++c4["Roger"].raw_int();
   EXPECT_EQ(2, c4["Roger"].ref_int());

@@ -26,7 +26,7 @@ template <typename Container> class generator {
   using uint_type     = typename Container::uint_type;
 
   static int constexpr to_null = 0;
-  static int constexpr to_map = 1;
+  static int constexpr to_object = 1;
   static int constexpr to_vec = 2;
   static int constexpr to_str = 3;
   static int constexpr to_float = 4;
@@ -53,7 +53,7 @@ template <typename Container> class generator {
   }
 
   Container generate_container_once(int type, std::uniform_int_distribution<>& str_gen) {
-    if (to_map == type) return Container::template init<typename Container::object_type>();
+    if (to_object == type) return Container::template init<typename Container::object_type>();
     else if (to_vec == type) return Container::template init<typename Container::array_type>();
     else if (to_str == type) return Container(generate_string(str_gen(gen_)));
     else if (to_str == type) return Container("Allloo");
@@ -71,8 +71,8 @@ template <typename Container> class generator {
 
   Container generate(
     size_t max_depth = 0u
-    , size_t min_map_size = 1u
-    , size_t max_map_size = 100u
+    , size_t min_object_size = 1u
+    , size_t max_object_size = 100u
     , size_t min_array_size = 1u
     , size_t max_array_size = 100u
     , size_t min_string_size = 0u
@@ -80,7 +80,7 @@ template <typename Container> class generator {
     , size_t min_key_size = 1u
     , size_t max_key_size = 12u
     , bool include_null = true
-    , bool include_map = true
+    , bool include_object = true
     , bool include_vector = true
     , bool include_string = true
     , bool include_float = true
@@ -92,7 +92,7 @@ template <typename Container> class generator {
 
     std::discrete_distribution<> type_chooser = {
       include_null ? 1.: 0.
-        , include_map ? 1. : 0.
+        , include_object ? 1. : 0.
         , include_vector ? 1. : 0.
         , include_string ? 1. : 0.
         , include_float ? 1. : 0.
@@ -100,11 +100,11 @@ template <typename Container> class generator {
         , include_uint ? 1. : 0.
         , include_bool ? 1. : 0.
     };
-    std::discrete_distribution<> root_chooser = {(include_map ? 1. : 0.), (include_vector ? 1. : 0.)};
+    std::discrete_distribution<> root_chooser = {(include_object ? 1. : 0.), (include_vector ? 1. : 0.)};
     Container root(root_chooser(gen_) ? Container::template init<typename Container::array_type>() : Container::template init<typename Container::object_type>());
 
     if(max_depth) {
-      std::uniform_int_distribution<> map_size_gen(min_map_size, max_map_size);
+      std::uniform_int_distribution<> map_size_gen(min_object_size, max_object_size);
       std::uniform_int_distribution<> vec_size_gen(min_array_size, max_array_size);
       std::uniform_int_distribution<> str_size_gen(min_string_size, max_string_size);
       std::uniform_int_distribution<> key_size_gen(min_key_size, max_key_size);
@@ -119,7 +119,7 @@ template <typename Container> class generator {
 
         while(to_process.size()) {
           Container & current = to_process.front().get();
-          if(current.is_map()) {
+          if(current.is_object()) {
             std::set<typename container::key_type> used_keys;
             size_t size = map_size_gen(gen_);
             for (size_t index = 0u; index < size; ++index) {
@@ -130,10 +130,10 @@ template <typename Container> class generator {
                 continue;
               }
 
-              auto container_insert_result = current.raw_map().insert(std::make_pair(new_key, generate_container_once(type_chooser(gen_), str_size_gen)));
+              auto container_insert_result = current.raw_object().insert(std::make_pair(new_key, generate_container_once(type_chooser(gen_), str_size_gen)));
               assert(container_insert_result.second);
               Container& inserted = container_insert_result.first->second;
-              if (inserted.is_map() || inserted.is_vector()) next_to_process.emplace_back(inserted);
+              if (inserted.is_object() || inserted.is_vector()) next_to_process.emplace_back(inserted);
             }
           }
           else if (current.is_vector()) {
@@ -142,7 +142,7 @@ template <typename Container> class generator {
             for (size_t index = 0u; index < size; ++index) {
               current.ref_vector().push_back(generate_container_once(type_chooser(gen_), str_size_gen));
               Container& inserted = current.raw_vector().back();
-              if (inserted.is_map() || inserted.is_vector()) next_to_process.emplace_back(inserted);
+              if (inserted.is_object() || inserted.is_vector()) next_to_process.emplace_back(inserted);
             }
           }
           else {

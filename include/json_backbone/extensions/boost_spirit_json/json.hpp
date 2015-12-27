@@ -135,22 +135,22 @@ struct parsing_action_grammar
     array = qi::lit('[')[bind(&self::begin_vector, this)] >>
             -(extended_value % ',') >>
             qi::lit(']')[bind(&self::end_vector, this)];
-    object = qi::lit('{')[bind(&self::begin_map, this)] >>
-             -(object_pair % ',') >> qi::lit('}')[bind(&self::end_map, this)];
+    object = qi::lit('{')[bind(&self::begin_object, this)] >>
+             -(object_pair % ',') >> qi::lit('}')[bind(&self::end_object, this)];
     object_pair = key_value[phoenix::bind(&self::push_key, this, _1)] >> ':' >>
                   extended_value;
     extended_value = value | array | object;
   }
 
-  void begin_map() {
+  void begin_object() {
     if (!has_root_) {
-      root_.transform_map();
+      root_.transform_object();
       stack_.push(root_);
       has_root_ = true;
     } else {
       Container& current = stack_.top().get();
-      if (current.is_map()) {
-        auto insert_result = current.raw_map().emplace(
+      if (current.is_object()) {
+        auto insert_result = current.raw_object().emplace(
             key_, Container::template init<object_type>());
         Container& new_container = insert_result.first->second;
         if (!insert_result.second)
@@ -163,7 +163,7 @@ struct parsing_action_grammar
     }
   }
 
-  void end_map() { stack_.pop(); }
+  void end_object() { stack_.pop(); }
 
   void begin_vector() {
     if (!has_root_) {
@@ -172,8 +172,8 @@ struct parsing_action_grammar
       has_root_ = true;
     } else {
       Container& current = stack_.top().get();
-      if (current.is_map()) {
-        auto insert_result = current.raw_map().emplace(
+      if (current.is_object()) {
+        auto insert_result = current.raw_object().emplace(
             key_, Container::template init<array_type>());
         Container& new_container = insert_result.first->second;
         if (!insert_result.second)
@@ -197,7 +197,7 @@ struct parsing_action_grammar
 
   void push_string(string_type& v) {
     Container& current = stack_.top().get();
-    if (current.is_map())
+    if (current.is_object())
       current[key_] = std::move(v);
     else
       current.raw_vector().emplace_back(std::move(v));
@@ -205,7 +205,7 @@ struct parsing_action_grammar
 
   void push_float(float_type v) {
     Container& current = stack_.top().get();
-    if (current.is_map())
+    if (current.is_object())
       current[key_] = v;
     else
       current.raw_vector().emplace_back(v);
@@ -213,7 +213,7 @@ struct parsing_action_grammar
 
   void push_int(int_type v) {
     Container& current = stack_.top().get();
-    if (current.is_map())
+    if (current.is_object())
       current[key_] = v;
     else
       current.raw_vector().emplace_back(v);
@@ -221,7 +221,7 @@ struct parsing_action_grammar
 
   void push_uint(uint_type v) {
     Container& current = stack_.top().get();
-    if (current.is_map())
+    if (current.is_object())
       current[key_] = v;
     else
       current.raw_vector().emplace_back(v);
@@ -229,7 +229,7 @@ struct parsing_action_grammar
 
   void push_null_value() {
     Container& current = stack_.top().get();
-    if (current.is_map())
+    if (current.is_object())
       current[key_] = nullptr;
     else
       current.raw_vector().emplace_back(nullptr);
@@ -237,7 +237,7 @@ struct parsing_action_grammar
 
   void push_bool(bool v) {
     Container& current = stack_.top().get();
-    if (current.is_map())
+    if (current.is_object())
       current[key_] = v;
     else
       current.raw_vector().emplace_back(v);
@@ -307,14 +307,14 @@ struct out_grammar : karma::grammar<Iterator, Container()> {
   }
 
   // Semantic actions
-  static void set_map(optional_ref<object_type>& attribute,
+  static void set_object(optional_ref<object_type>& attribute,
                       context<Container>& context, bool& result) {
     Container const& input = context_value(context);
-    if (!input.is_map()) {
+    if (!input.is_object()) {
       result = false;
       return;
     }
-    attribute = input.raw_map();
+    attribute = input.raw_object();
     result = true;
   }
 
@@ -386,11 +386,11 @@ struct out_grammar : karma::grammar<Iterator, Container()> {
 
   out_grammar()
       : out_grammar::base_type(root) {
-    root = object[set_map] | array[set_vec];
+    root = object[set_object] | array[set_vec];
     object = '{' << -(object_pair % ',') << '}';
     array = '[' << -(value % ',') << ']';
     object_pair = '"' << karma::string << '"' << -(':' << value);
-    value = object[set_map] | array[set_vec] | string_value[set_str] |
+    value = object[set_object] | array[set_vec] | string_value[set_str] |
             float_generator_[set_float] | int_generator_[set_int] |
             uint_generator_[set_uint] | karma::bool_[set_bool]
             //| null_value;

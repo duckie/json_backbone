@@ -42,7 +42,7 @@ class reader_handler : public ::rapidjson::BaseReaderHandler<
       , current_key_() {}
 
   bool Null() {
-    if (State::wait_value == state_ && nodes_.top().get().is_map()) {
+    if (State::wait_value == state_ && nodes_.top().get().is_object()) {
       nodes_.top().get()[current_key_].transform_null();
       state_ = State::wait_key;
       return true;
@@ -55,7 +55,7 @@ class reader_handler : public ::rapidjson::BaseReaderHandler<
   }
 
   bool Bool(bool value) {
-    if (State::wait_value == state_ && nodes_.top().get().is_map()) {
+    if (State::wait_value == state_ && nodes_.top().get().is_object()) {
       nodes_.top().get()[current_key_].transform_bool() =
           static_cast<bool>(value);
       state_ = State::wait_key;
@@ -69,7 +69,7 @@ class reader_handler : public ::rapidjson::BaseReaderHandler<
   }
 
   bool Int(int value) {
-    if (State::wait_value == state_ && nodes_.top().get().is_map()) {
+    if (State::wait_value == state_ && nodes_.top().get().is_object()) {
       nodes_.top().get()[current_key_].transform_int() =
           static_cast<typename RootType::int_type>(value);
       state_ = State::wait_key;
@@ -84,7 +84,7 @@ class reader_handler : public ::rapidjson::BaseReaderHandler<
   }
 
   bool Uint(unsigned value) {
-    if (State::wait_value == state_ && nodes_.top().get().is_map()) {
+    if (State::wait_value == state_ && nodes_.top().get().is_object()) {
       nodes_.top().get()[current_key_].transform_uint() =
           static_cast<typename RootType::uint_type>(value);
       state_ = State::wait_key;
@@ -99,7 +99,7 @@ class reader_handler : public ::rapidjson::BaseReaderHandler<
   }
 
   bool Int64(int64_t value) {
-    if (State::wait_value == state_ && nodes_.top().get().is_map()) {
+    if (State::wait_value == state_ && nodes_.top().get().is_object()) {
       nodes_.top().get()[current_key_].transform_int() =
           static_cast<typename RootType::int_type>(value);
       state_ = State::wait_key;
@@ -114,7 +114,7 @@ class reader_handler : public ::rapidjson::BaseReaderHandler<
   }
 
   bool Uint64(uint64_t value) {
-    if (State::wait_value == state_ && nodes_.top().get().is_map()) {
+    if (State::wait_value == state_ && nodes_.top().get().is_object()) {
       nodes_.top().get()[current_key_].transform_uint() =
           static_cast<typename RootType::uint_type>(value);
       state_ = State::wait_key;
@@ -129,7 +129,7 @@ class reader_handler : public ::rapidjson::BaseReaderHandler<
   }
 
   bool Double(double value) {
-    if (State::wait_value == state_ && nodes_.top().get().is_map()) {
+    if (State::wait_value == state_ && nodes_.top().get().is_object()) {
       nodes_.top().get()[current_key_].transform_float() =
           static_cast<typename RootType::float_type>(value);
       state_ = State::wait_key;
@@ -144,7 +144,7 @@ class reader_handler : public ::rapidjson::BaseReaderHandler<
   }
 
   bool String(const Ch* data, SizeType length, bool) {
-    if (State::wait_value == state_ && nodes_.top().get().is_map()) {
+    if (State::wait_value == state_ && nodes_.top().get().is_object()) {
       nodes_.top().get()[current_key_].transform_string() =
           StdString(data, length);
       state_ = State::wait_key;
@@ -164,16 +164,16 @@ class reader_handler : public ::rapidjson::BaseReaderHandler<
 
     bool object_created = false;
     if (nodes_.empty()) {
-      root_.transform_map();
+      root_.transform_object();
       nodes_.emplace(root_);
       object_created = true;
-    } else if (nodes_.top().get().is_map()) {
-      nodes_.top().get()[current_key_].transform_map();
+    } else if (nodes_.top().get().is_object()) {
+      nodes_.top().get()[current_key_].transform_object();
       nodes_.emplace(nodes_.top().get()[current_key_]);
       object_created = true;
     } else if (nodes_.top().get().is_vector()) {
       nodes_.top().get().ref_vector().push_back(nullptr);
-      nodes_.top().get().ref_vector().back().transform_map();
+      nodes_.top().get().ref_vector().back().transform_object();
       nodes_.emplace(nodes_.top().get().ref_vector().back());
       object_created = true;
     }
@@ -201,7 +201,7 @@ class reader_handler : public ::rapidjson::BaseReaderHandler<
     nodes_.pop();
     if (!nodes_.empty()) {
       state_ =
-          nodes_.top().get().is_map() ? State::wait_key : State::wait_element;
+          nodes_.top().get().is_object() ? State::wait_key : State::wait_element;
     } else {
       // state_ = State::empty;
       // current_key_.clear();
@@ -219,7 +219,7 @@ class reader_handler : public ::rapidjson::BaseReaderHandler<
       root_.transform_vector();
       nodes_.emplace(root_);
       object_created = true;
-    } else if (nodes_.top().get().is_map()) {
+    } else if (nodes_.top().get().is_object()) {
       nodes_.top().get()[current_key_].transform_vector();
       nodes_.emplace(nodes_.top().get()[current_key_]);
       object_created = true;
@@ -244,7 +244,7 @@ class reader_handler : public ::rapidjson::BaseReaderHandler<
     nodes_.pop();
     if (!nodes_.empty()) {
       state_ =
-          nodes_.top().get().is_map() ? State::wait_key : State::wait_element;
+          nodes_.top().get().is_object() ? State::wait_key : State::wait_element;
     } else {
       // state_ = State::empty;
       // current_key_.clear();

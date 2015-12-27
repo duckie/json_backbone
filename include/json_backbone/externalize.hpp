@@ -382,7 +382,7 @@
       bool, typename Container<__VA_ARGS__>::str_type>(                        \
       typename Container<__VA_ARGS__>::str_type const &);                      \
   /* STL */                                                                    \
-  /*extern template class Container< __VA_ARGS__ >::vector_template<           \
+  /*extern template class Container< __VA_ARGS__ >::array_template<           \
    * Container< __VA_ARGS__ > >;*/                                             \
   } /* namespace nested_Container<> */                                         \
 // -- macro end --

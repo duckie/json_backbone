@@ -20,7 +20,7 @@
 namespace json_backbone {
 
 template <class key_type, class value_type>
-using std_map_default_allocators = std::map<key_type, value_type>;
+using std_object_default_allocators = std::map<key_type, value_type>;
 template <class value_type>
 using std_array_default_allocators = std::vector<value_type>;
 template <class Container> class attr_init;
@@ -30,7 +30,7 @@ template <class Key = std::string, class String = std::string,
           class Int = int, class UInt = unsigned int,
           class Float = float,
           template <class InnerKey, class This> class ObjectTemplate =
-              std_map_default_allocators,
+              std_object_default_allocators,
           template <class This> class ArrayTemplate =
               std_array_default_allocators>
 class basic_container final {
@@ -293,9 +293,9 @@ class basic_container final {
       // sub element to itself : deletion must be defered not to read
       // a deleted memory area
       if (value_type::object == type_) {
-        Object* defered_map = nullptr;
+        Object* defered_object = nullptr;
         init_member(*c.value_.array_);
-        delete defered_map;
+        delete defered_object;
       } else {
         Array* defered_array = nullptr;
         init_member(*c.value_.object_);
@@ -452,7 +452,7 @@ class basic_container final {
   // [] accessors, Key != size_type version
   template <ifneq<Key, ArraySizeType> = 0>
   basic_container const& access_collection(Key const& index) const noexcept {
-    if (!is_map())
+    if (!is_object())
       return get_static_const_default();
     auto value_iterator = ref_to<Object>().find(index);
     if (end(ref_to<Object>()) == value_iterator)
@@ -469,14 +469,14 @@ class basic_container final {
 
   template <ifneq<Key, ArraySizeType> = 0>
   basic_container& access_collection(Key const& index) noexcept {
-    if (!is_map())
+    if (!is_object())
       switch_to_type<Object>();
     return ref_to<Object>()[index];
   }
 
   template <ifneq<Key, ArraySizeType> = 0>
   basic_container& access_collection(Key&& index) noexcept {
-    if (!is_map())
+    if (!is_object())
       switch_to_type<Object>();
     return ref_to<Object>()[std::move(index)];
   }
@@ -602,7 +602,7 @@ class basic_container final {
   }
 
   static basic_container
-  init_map(std::initializer_list<std::pair<Key, basic_container>> list) {
+  init_object(std::initializer_list<std::pair<Key, basic_container>> list) {
     basic_container container((type_proxy<Object>()));
     for (std::pair<Key, basic_container> const& elem : list)
       container.ref_to<Object>().emplace(elem);
@@ -657,7 +657,7 @@ class basic_container final {
   }
 
   inline bool is_null() const noexcept { return value_type::null == type_; }
-  inline bool is_map() const noexcept { return value_type::object == type_; }
+  inline bool is_object() const noexcept { return value_type::object == type_; }
   inline bool is_vector() const noexcept { return value_type::array == type_; }
   inline bool is_string() const noexcept { return value_type::string == type_; }
   inline bool is_float() const noexcept {
@@ -678,7 +678,7 @@ class basic_container final {
     return ref_to<T>();
   }
   inline Null ref_null() const { return nullptr; }
-  inline Object const& ref_map() const { return ref<Object>(); }
+  inline Object const& ref_object() const { return ref<Object>(); }
   inline Array const& ref_vector() const { return ref<Array>(); }
   inline String const& ref_string() const { return ref<String>(); }
   inline Float const& ref_float() const { return ref<Float>(); }
@@ -693,7 +693,7 @@ class basic_container final {
       throw exception_type();
     return ref_to<T>();
   }
-  inline Object& ref_map() { return ref<Object>(); }
+  inline Object& ref_object() { return ref<Object>(); }
   inline Array& ref_vector() { return ref<Array>(); }
   inline String& ref_string() { return ref<String>(); }
   inline Float& ref_float() { return ref<Float>(); }
@@ -713,7 +713,7 @@ class basic_container final {
     switch_to_type<Null>();
     return nullptr;
   }
-  inline Object& transform_map() { return transform<Object>(); }
+  inline Object& transform_object() { return transform<Object>(); }
   inline Array& transform_vector() { return transform<Array>(); }
   inline String& transform_string() { return transform<String>(); }
   inline Float& transform_float() { return transform<Float>(); }
@@ -728,7 +728,7 @@ class basic_container final {
     return ref_to<T>();
   }
   inline Null raw_null() const { return nullptr; }
-  inline Object const& raw_map() const { return raw<Object>(); }
+  inline Object const& raw_object() const { return raw<Object>(); }
   inline Array const& raw_vector() const { return raw<Array>(); }
   inline String const& raw_string() const { return raw<String>(); }
   inline Float const& raw_float() const { return raw<Float>(); }
@@ -741,7 +741,7 @@ class basic_container final {
                   "Type must be compatible with this container.");
     return ref_to<T>();
   }
-  inline Object& raw_map() { return raw<Object>(); }
+  inline Object& raw_object() { return raw<Object>(); }
   inline Array& raw_vector() { return raw<Array>(); }
   inline String& raw_string() { return raw<String>(); }
   inline Float& raw_float() { return raw<Float>(); }
@@ -753,7 +753,7 @@ class basic_container final {
   template <class T> T const* get() const noexcept {
     return type_traits<T>::type_value() == type_ ? &raw<T>() : nullptr;
   }
-  inline Object const* get_map() const { return get<Object>(); }
+  inline Object const* get_object() const { return get<Object>(); }
   inline Array const* get_vector() const { return get<Array>(); }
   inline String const* get_string() const { return get<String>(); }
   inline Float const* get_float() const { return get<Float>(); }
@@ -764,7 +764,7 @@ class basic_container final {
   template <class T> T* get() noexcept {
     return type_traits<T>::type_value() == type_ ? &raw<T>() : nullptr;
   }
-  inline Object* get_map() noexcept { return get<Object>(); }
+  inline Object* get_object() noexcept { return get<Object>(); }
   inline Array* get_vector() noexcept { return get<Array>(); }
   inline String* get_string() noexcept { return get<String>(); }
   inline Float* get_float() noexcept { return get<Float>(); }
@@ -779,7 +779,7 @@ class basic_container final {
     }
     return false;
   }
-  inline bool get_map(Object& v) noexcept { return get<Object>(v); }
+  inline bool get_object(Object& v) noexcept { return get<Object>(v); }
   inline bool get_vector(Array& v) noexcept { return get<Array>(v); }
   inline bool get_string(String& v) noexcept { return get<String>(v); }
   inline bool get_float(Float& v) noexcept { return get<Float>(v); }
@@ -840,7 +840,7 @@ class basic_container final {
   template <class T> inline operator T() const { return convert_to<T>(); }
   template <class T> inline T as() const { return convert_to<T>(); }
   inline Null as_null() const { return as<Null>(); }
-  inline Object as_map() const { return as<Object>(); }
+  inline Object as_object() const { return as<Object>(); }
   inline Array as_vector() const { return as<Array>(); }
   inline String as_string() const { return as<String>(); }
   inline Float as_float() const { return as<Float>(); }

@@ -23,9 +23,9 @@ TEST_F(UnitTests, Construction) {
   EXPECT_EQ(true, c_null.is_null());
   // EXPECT_EQ(true, c_null.is
 
-  container c_map =
-      container::init_map({{"Roger", nullptr}, {"Marcel", nullptr}});
-  EXPECT_EQ(true, c_map.is_map());
+  container c_object =
+      container::init_object({{"Roger", nullptr}, {"Marcel", nullptr}});
+  EXPECT_EQ(true, c_object.is_object());
 
   container c_vec{1, 2, nullptr};
   EXPECT_EQ(true, c_vec.is_vector());
@@ -45,7 +45,7 @@ TEST_F(UnitTests, Construction) {
   container c_bool(true);
   EXPECT_EQ(true, c_bool.is_bool());
 
-  EXPECT_EQ(true, c1.is_map());
+  EXPECT_EQ(true, c1.is_object());
   EXPECT_EQ(true, c1["nom"].is_string());
   EXPECT_EQ(true, c1["prenom"].is_string());
   EXPECT_EQ(true, c1["attributs"]["liste"].is_vector());
