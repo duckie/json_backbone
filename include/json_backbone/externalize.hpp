@@ -258,38 +258,6 @@
   operator[](int&&);                                                           \
   /* Accessors */                                                              \
   extern template typename Container<__VA_ARGS__>::map_type* Container<        \
-      __VA_ARGS__>::ptr_to<typename Container<__VA_ARGS__>::map_type, 0>();    \
-  extern template typename Container<__VA_ARGS__>::vector_type* Container<     \
-      __VA_ARGS__>::ptr_to<typename Container<__VA_ARGS__>::vector_type, 0>(); \
-  extern template typename Container<__VA_ARGS__>::str_type* Container<        \
-      __VA_ARGS__>::ptr_to<typename Container<__VA_ARGS__>::str_type, 0>();    \
-  extern template typename Container<__VA_ARGS__>::float_type* Container<      \
-      __VA_ARGS__>::ptr_to<typename Container<__VA_ARGS__>::float_type, 0>();  \
-  extern template typename Container<__VA_ARGS__>::int_type* Container<        \
-      __VA_ARGS__>::ptr_to<typename Container<__VA_ARGS__>::int_type, 0>();    \
-  extern template typename Container<__VA_ARGS__>::uint_type* Container<       \
-      __VA_ARGS__>::ptr_to<typename Container<__VA_ARGS__>::uint_type, 0>();   \
-  extern template bool* Container<__VA_ARGS__>::ptr_to<bool, 0>();             \
-  extern template typename Container<__VA_ARGS__>::map_type const*             \
-  Container<__VA_ARGS__>::ptr_to<typename Container<__VA_ARGS__>::map_type,    \
-                                 0>() const;                                   \
-  extern template typename Container<__VA_ARGS__>::vector_type const*          \
-  Container<__VA_ARGS__>::ptr_to<typename Container<__VA_ARGS__>::vector_type, \
-                                 0>() const;                                   \
-  extern template typename Container<__VA_ARGS__>::str_type const*             \
-  Container<__VA_ARGS__>::ptr_to<typename Container<__VA_ARGS__>::str_type,    \
-                                 0>() const;                                   \
-  extern template typename Container<__VA_ARGS__>::float_type const*           \
-  Container<__VA_ARGS__>::ptr_to<typename Container<__VA_ARGS__>::float_type,  \
-                                 0>() const;                                   \
-  extern template typename Container<__VA_ARGS__>::int_type const*             \
-  Container<__VA_ARGS__>::ptr_to<typename Container<__VA_ARGS__>::int_type,    \
-                                 0>() const;                                   \
-  extern template typename Container<__VA_ARGS__>::uint_type const*            \
-  Container<__VA_ARGS__>::ptr_to<typename Container<__VA_ARGS__>::uint_type,   \
-                                 0>() const;                                   \
-  extern template bool const* Container<__VA_ARGS__>::ptr_to<bool, 0>() const; \
-  extern template typename Container<__VA_ARGS__>::map_type* Container<        \
       __VA_ARGS__>::get<typename Container<__VA_ARGS__>::map_type>() noexcept; \
   extern template typename Container<__VA_ARGS__>::vector_type*                \
   Container<__VA_ARGS__>::get<                                                 \
@@ -642,38 +610,6 @@
   operator[](int const&);                                                      \
   template Container<__VA_ARGS__>& Container<__VA_ARGS__>::operator[](int&&);  \
   /* Accessors */                                                              \
-  template typename Container<__VA_ARGS__>::map_type* Container<               \
-      __VA_ARGS__>::ptr_to<typename Container<__VA_ARGS__>::map_type, 0>();    \
-  template typename Container<__VA_ARGS__>::vector_type* Container<            \
-      __VA_ARGS__>::ptr_to<typename Container<__VA_ARGS__>::vector_type, 0>(); \
-  template typename Container<__VA_ARGS__>::str_type* Container<               \
-      __VA_ARGS__>::ptr_to<typename Container<__VA_ARGS__>::str_type, 0>();    \
-  template typename Container<__VA_ARGS__>::float_type* Container<             \
-      __VA_ARGS__>::ptr_to<typename Container<__VA_ARGS__>::float_type, 0>();  \
-  template typename Container<__VA_ARGS__>::int_type* Container<               \
-      __VA_ARGS__>::ptr_to<typename Container<__VA_ARGS__>::int_type, 0>();    \
-  template typename Container<__VA_ARGS__>::uint_type* Container<              \
-      __VA_ARGS__>::ptr_to<typename Container<__VA_ARGS__>::uint_type, 0>();   \
-  template bool* Container<__VA_ARGS__>::ptr_to<bool, 0>();                    \
-  template typename Container<__VA_ARGS__>::map_type const*                    \
-  Container<__VA_ARGS__>::ptr_to<typename Container<__VA_ARGS__>::map_type,    \
-                                 0>() const;                                   \
-  template typename Container<__VA_ARGS__>::vector_type const*                 \
-  Container<__VA_ARGS__>::ptr_to<typename Container<__VA_ARGS__>::vector_type, \
-                                 0>() const;                                   \
-  template typename Container<__VA_ARGS__>::str_type const*                    \
-  Container<__VA_ARGS__>::ptr_to<typename Container<__VA_ARGS__>::str_type,    \
-                                 0>() const;                                   \
-  template typename Container<__VA_ARGS__>::float_type const*                  \
-  Container<__VA_ARGS__>::ptr_to<typename Container<__VA_ARGS__>::float_type,  \
-                                 0>() const;                                   \
-  template typename Container<__VA_ARGS__>::int_type const*                    \
-  Container<__VA_ARGS__>::ptr_to<typename Container<__VA_ARGS__>::int_type,    \
-                                 0>() const;                                   \
-  template typename Container<__VA_ARGS__>::uint_type const*                   \
-  Container<__VA_ARGS__>::ptr_to<typename Container<__VA_ARGS__>::uint_type,   \
-                                 0>() const;                                   \
-  template bool const* Container<__VA_ARGS__>::ptr_to<bool, 0>() const;        \
   template typename Container<__VA_ARGS__>::map_type* Container<               \
       __VA_ARGS__>::get<typename Container<__VA_ARGS__>::map_type>() noexcept; \
   template typename Container<__VA_ARGS__>::vector_type*                       \

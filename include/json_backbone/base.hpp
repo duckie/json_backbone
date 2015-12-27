@@ -133,8 +133,8 @@ class basic_container final {
 
   // boost lexical cast, simple non-throwing version
   // Putting the lexical cast here as a member is ugly but needed to avoid
-  // externalization conflicts when two different containers shared a same type
-  // which is the case of container_double and container_longint_double
+  // externalization conflicts when two different containers shares a same type
+  // which is the case for instance with container_double and container_longint_double
   template <typename Target, typename Source>
   static typename std::enable_if<std::is_fundamental<Source>::value,
                                  Target>::type
@@ -401,53 +401,53 @@ class basic_container final {
     init_member<T>();
   }
 
-  // Accessors, private, not protected against bad behavior, checks must be done
-  // before
-  template <typename T, ifeq<Map, T> = 0> inline Map* ptr_to() {
-    return value_.dict_;
-  }
-  template <typename T, ifeq<Vector, T> = 0> inline Vector* ptr_to() {
-    return value_.vector_;
-  }
-  template <typename T, ifeq<String, T> = 0> inline String* ptr_to() {
-    return &value_.str_;
-  }
-  template <typename T, ifeq<Float, T> = 0> inline Float* ptr_to() {
-    return &value_.float_;
-  }
-  template <typename T, ifeq<Int, T> = 0> inline Int* ptr_to() {
-    return &value_.int_;
-  }
-  template <typename T, ifeq<UInt, T> = 0> inline UInt* ptr_to() {
-    return &value_.uint_;
-  }
-  template <typename T, ifeq<bool, T> = 0> inline bool* ptr_to() {
-    return &value_.bool_;
-  }
-
-  template <typename T, ifeq<Map, T> = 0> inline Map const* ptr_to() const {
-    return value_.dict_;
-  }
-  template <typename T, ifeq<Vector, T> = 0>
-  inline Vector const* ptr_to() const {
-    return value_.vector_;
-  }
-  template <typename T, ifeq<String, T> = 0>
-  inline String const* ptr_to() const {
-    return &value_.str_;
-  }
-  template <typename T, ifeq<Float, T> = 0> inline Float const* ptr_to() const {
-    return &value_.float_;
-  }
-  template <typename T, ifeq<Int, T> = 0> inline Int const* ptr_to() const {
-    return &value_.int_;
-  }
-  template <typename T, ifeq<UInt, T> = 0> inline UInt const* ptr_to() const {
-    return &value_.uint_;
-  }
-  template <typename T, ifeq<bool, T> = 0> inline bool const* ptr_to() const {
-    return &value_.bool_;
-  }
+  //// Accessors, private, not protected against bad behavior, checks must be done
+  //// before
+  //template <typename T, ifeq<Map, T> = 0> inline Map* ptr_to() {
+    //return value_.dict_;
+  //}
+  //template <typename T, ifeq<Vector, T> = 0> inline Vector* ptr_to() {
+    //return value_.vector_;
+  //}
+  //template <typename T, ifeq<String, T> = 0> inline String* ptr_to() {
+    //return &value_.str_;
+  //}
+  //template <typename T, ifeq<Float, T> = 0> inline Float* ptr_to() {
+    //return &value_.float_;
+  //}
+  //template <typename T, ifeq<Int, T> = 0> inline Int* ptr_to() {
+    //return &value_.int_;
+  //}
+  //template <typename T, ifeq<UInt, T> = 0> inline UInt* ptr_to() {
+    //return &value_.uint_;
+  //}
+  //template <typename T, ifeq<bool, T> = 0> inline bool* ptr_to() {
+    //return &value_.bool_;
+  //}
+//
+  //template <typename T, ifeq<Map, T> = 0> inline Map const* ptr_to() const {
+    //return value_.dict_;
+  //}
+  //template <typename T, ifeq<Vector, T> = 0>
+  //inline Vector const* ptr_to() const {
+    //return value_.vector_;
+  //}
+  //template <typename T, ifeq<String, T> = 0>
+  //inline String const* ptr_to() const {
+    //return &value_.str_;
+  //}
+  //template <typename T, ifeq<Float, T> = 0> inline Float const* ptr_to() const {
+    //return &value_.float_;
+  //}
+  //template <typename T, ifeq<Int, T> = 0> inline Int const* ptr_to() const {
+    //return &value_.int_;
+  //}
+  //template <typename T, ifeq<UInt, T> = 0> inline UInt const* ptr_to() const {
+    //return &value_.uint_;
+  //}
+  //template <typename T, ifeq<bool, T> = 0> inline bool const* ptr_to() const {
+    //return &value_.bool_;
+  //}
 
   template <typename T, ifeq<Map, T> = 0> inline Map& ref_to() {
     return *value_.dict_;
@@ -797,7 +797,7 @@ class basic_container final {
 
   // Lazy non throwing accessors
   template <typename T> T const* get() const noexcept {
-    return type_traits<T>::type_value() == type_ ? ptr_to<T>() : nullptr;
+    return type_traits<T>::type_value() == type_ ? &raw<T>() : nullptr;
   }
   inline Map const* get_map() const { return get<Map>(); }
   inline Vector const* get_vector() const { return get<Vector>(); }
@@ -808,7 +808,7 @@ class basic_container final {
   inline bool const* get_bool() const { return get<bool>(); }
 
   template <typename T> T* get() noexcept {
-    return type_traits<T>::type_value() == type_ ? ptr_to<T>() : nullptr;
+    return type_traits<T>::type_value() == type_ ? &raw<T>() : nullptr;
   }
   inline Map* get_map() noexcept { return get<Map>(); }
   inline Vector* get_vector() noexcept { return get<Vector>(); }
