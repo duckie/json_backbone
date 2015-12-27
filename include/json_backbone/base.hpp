@@ -29,9 +29,9 @@ template <class Container> class vector_element_init;
 template <class Key = std::string, class String = std::string,
           class Int = int, class UInt = unsigned int,
           class Float = float,
-          template <class InnerKey, class This> class MapTemplate =
+          template <class InnerKey, class This> class ObjectTemplate =
               std_map_default_allocators,
-          template <class This> class VectorTemplate =
+          template <class This> class ArrayTemplate =
               std_vector_default_allocators>
 class basic_container final {
   friend attr_init<basic_container>;
@@ -44,8 +44,8 @@ class basic_container final {
   using int_type = Int;
   using uint_type = UInt;
   using float_type = Float;
-  using map_type = MapTemplate<key_type, basic_container>;
-  using vector_type = VectorTemplate<basic_container>;
+  using object_type = ObjectTemplate<key_type, basic_container>;
+  using vector_type = ArrayTemplate<basic_container>;
   using vec_size_type = typename vector_type::size_type;
 
   class exception_type : std::exception {
@@ -53,14 +53,14 @@ class basic_container final {
   };
 
  private:
-  using Map = map_type;
+  using Object = object_type;
   using Vector = vector_type;
   using VecSize = typename vector_type::size_type;
   using Null = std::nullptr_t;
 
   enum class value_type : unsigned char {
     null = '0',
-    map,
+    object,
     vector,
     string,
     floating,
@@ -73,7 +73,7 @@ class basic_container final {
     value() {}
     ~value() {}
 
-    Map* dict_;
+    Object* dict_;
     Vector* vector_;
     String str_;
     Float float_;
@@ -105,19 +105,19 @@ class basic_container final {
                                          ? value_type::string
                                          : eq<Vector, T>::value
                                                ? value_type::vector
-                                               : eq<Map, T>::value
-                                                     ? value_type::map
+                                               : eq<Object, T>::value
+                                                     ? value_type::object
                                                      : value_type::null;
     }
 
     static bool constexpr is_from_container =
         eq<bool, T>::value || eq<Int, T>::value || eq<UInt, T>::value ||
         eq<Float, T>::value || eq<String, T>::value || eq<Vector, T>::value ||
-        eq<Map, T>::value || eq<std::nullptr_t, T>::value ||
+        eq<Object, T>::value || eq<std::nullptr_t, T>::value ||
         eq<basic_container, T>::value;
 
     static bool constexpr is_collection =
-        eq<Vector, T>::value || eq<Map, T>::value;
+        eq<Vector, T>::value || eq<Object, T>::value;
     static bool constexpr is_lexical =
         eq<bool, T>::value || eq<Int, T>::value || eq<UInt, T>::value ||
         eq<Float, T>::value || eq<String, T>::value;
@@ -170,7 +170,7 @@ class basic_container final {
   }
 
   static bool is_collection(value_type type) {
-    return value_type::map == type || value_type::vector == type;
+    return value_type::object == type || value_type::vector == type;
   }
 
   // Static instance is used while in constant context
@@ -185,7 +185,7 @@ class basic_container final {
 
   void clear() {
     switch (type_) {
-    case value_type::map:
+    case value_type::object:
       delete value_.dict_;
       break;
     case value_type::vector:
@@ -201,8 +201,8 @@ class basic_container final {
 
   // Compile time initializers
   template <class T, ifeq<Null, T> = 0> inline void init_member() {}
-  template <class T, ifeq<Map, T> = 0> inline void init_member() {
-    value_.dict_ = new Map;
+  template <class T, ifeq<Object, T> = 0> inline void init_member() {
+    value_.dict_ = new Object;
   }
   template <class T, ifeq<Vector, T> = 0> inline void init_member() {
     value_.vector_ = new Vector;
@@ -231,7 +231,7 @@ class basic_container final {
   inline void init_member(bool v) { value_.bool_ = v; }
 
   // Init with value - move
-  inline void init_member(Map&& v) { value_.dict_ = new Map(std::move(v)); }
+  inline void init_member(Object&& v) { value_.dict_ = new Object(std::move(v)); }
   inline void init_member(Vector&& v) {
     value_.vector_ = new Vector(std::move(v));
   }
@@ -244,7 +244,7 @@ class basic_container final {
     case value_type::null:
       same_type ? void() : clear();
       break;
-    case value_type::map:
+    case value_type::object:
       clear();
       value_.dict_ = c.value_.dict_;
       c.value_.dict_ = nullptr; // Useless in theory, just in case
@@ -283,7 +283,7 @@ class basic_container final {
   }
 
   // Init with value - copy
-  inline void init_member(Map const& v) { value_.dict_ = new Map(v); }
+  inline void init_member(Object const& v) { value_.dict_ = new Object(v); }
   inline void init_member(Vector const& v) { value_.vector_ = new Vector(v); }
   inline void init_member(String const& v) { new (&(value_.str_)) String(v); }
   inline void init_member(basic_container const& c) {
@@ -292,8 +292,8 @@ class basic_container final {
       // We have to handle the special case of an affectation from a container
       // sub element to itself : deletion must be defered not to read
       // a deleted memory area
-      if (value_type::map == type_) {
-        Map* defered_map = nullptr;
+      if (value_type::object == type_) {
+        Object* defered_map = nullptr;
         init_member(*c.value_.vector_);
         delete defered_map;
       } else {
@@ -307,7 +307,7 @@ class basic_container final {
       switch (type_) {
       case value_type::null:
         break;
-      case value_type::map:
+      case value_type::object:
         *value_.dict_ = *c.value_.dict_;
         break;
       case value_type::vector:
@@ -337,8 +337,8 @@ class basic_container final {
   // Runtime version
   void init_member(value_type target_type) {
     switch (target_type) {
-    case value_type::map:
-      init_member<Map>();
+    case value_type::object:
+      init_member<Object>();
       break;
     case value_type::vector:
       init_member<Vector>();
@@ -403,7 +403,7 @@ class basic_container final {
 
   //// Accessors, private, not protected against bad behavior, checks must be done
   //// before
-  template <class T, ifeq<Map, T> = 0> inline Map& ref_to() {
+  template <class T, ifeq<Object, T> = 0> inline Object& ref_to() {
     return *value_.dict_;
   }
   template <class T, ifeq<Vector, T> = 0> inline Vector& ref_to() {
@@ -425,7 +425,7 @@ class basic_container final {
     return value_.bool_;
   }
 
-  template <class T, ifeq<Map, T> = 0> inline Map const& ref_to() const {
+  template <class T, ifeq<Object, T> = 0> inline Object const& ref_to() const {
     return *value_.dict_;
   }
   template <class T, ifeq<Vector, T> = 0>
@@ -454,8 +454,8 @@ class basic_container final {
   basic_container const& access_collection(Key const& index) const noexcept {
     if (!is_map())
       return get_static_const_default();
-    auto value_iterator = ref_to<Map>().find(index);
-    if (end(ref_to<Map>()) == value_iterator)
+    auto value_iterator = ref_to<Object>().find(index);
+    if (end(ref_to<Object>()) == value_iterator)
       return get_static_const_default();
     return value_iterator->second;
   }
@@ -470,15 +470,15 @@ class basic_container final {
   template <ifneq<Key, VecSize> = 0>
   basic_container& access_collection(Key const& index) noexcept {
     if (!is_map())
-      switch_to_type<Map>();
-    return ref_to<Map>()[index];
+      switch_to_type<Object>();
+    return ref_to<Object>()[index];
   }
 
   template <ifneq<Key, VecSize> = 0>
   basic_container& access_collection(Key&& index) noexcept {
     if (!is_map())
-      switch_to_type<Map>();
-    return ref_to<Map>()[std::move(index)];
+      switch_to_type<Object>();
+    return ref_to<Object>()[std::move(index)];
   }
 
   template <ifneq<Key, VecSize> = 0>
@@ -493,7 +493,7 @@ class basic_container final {
   // template <typename T> convert_to
   template <class T, typename std::enable_if<
                             !eq<T, Null>::value && !eq<T, String>::value &&
-                                !eq<T, Map>::value && !eq<T, Vector>::value,
+                                !eq<T, Object>::value && !eq<T, Vector>::value,
                             int>::type = 0>
   T convert_to() const {
     static_assert(type_traits<T>::is_pure,
@@ -547,10 +547,10 @@ class basic_container final {
     return String();
   }
 
-  template <class T, ifeq<Map, T> = 0> T convert_to() const {
-    if (value_type::map == type_)
-      return ref_to<Map>();
-    return Map();
+  template <class T, ifeq<Object, T> = 0> T convert_to() const {
+    if (value_type::object == type_)
+      return ref_to<Object>();
+    return Object();
   }
 
   template <class T, ifeq<Vector, T> = 0> T convert_to() const {
@@ -587,10 +587,10 @@ class basic_container final {
 
   // Initializer lists
   basic_container(std::initializer_list<attr_init<basic_container>> list)
-      : type_(value_type::map) {
-    init_member<Map>();
+      : type_(value_type::object) {
+    init_member<Object>();
     for (auto const& elem : list)
-      ref_to<Map>().emplace(elem.key(), elem.value());
+      ref_to<Object>().emplace(elem.key(), elem.value());
   }
   basic_container(
       std::initializer_list<vector_element_init<basic_container>> list)
@@ -603,9 +603,9 @@ class basic_container final {
 
   static basic_container
   init_map(std::initializer_list<std::pair<Key, basic_container>> list) {
-    basic_container container((type_proxy<Map>()));
+    basic_container container((type_proxy<Object>()));
     for (std::pair<Key, basic_container> const& elem : list)
-      container.ref_to<Map>().emplace(elem);
+      container.ref_to<Object>().emplace(elem);
     return container;
   }
 
@@ -657,7 +657,7 @@ class basic_container final {
   }
 
   inline bool is_null() const noexcept { return value_type::null == type_; }
-  inline bool is_map() const noexcept { return value_type::map == type_; }
+  inline bool is_map() const noexcept { return value_type::object == type_; }
   inline bool is_vector() const noexcept { return value_type::vector == type_; }
   inline bool is_string() const noexcept { return value_type::string == type_; }
   inline bool is_float() const noexcept {
@@ -678,7 +678,7 @@ class basic_container final {
     return ref_to<T>();
   }
   inline Null ref_null() const { return nullptr; }
-  inline Map const& ref_map() const { return ref<Map>(); }
+  inline Object const& ref_map() const { return ref<Object>(); }
   inline Vector const& ref_vector() const { return ref<Vector>(); }
   inline String const& ref_string() const { return ref<String>(); }
   inline Float const& ref_float() const { return ref<Float>(); }
@@ -693,7 +693,7 @@ class basic_container final {
       throw exception_type();
     return ref_to<T>();
   }
-  inline Map& ref_map() { return ref<Map>(); }
+  inline Object& ref_map() { return ref<Object>(); }
   inline Vector& ref_vector() { return ref<Vector>(); }
   inline String& ref_string() { return ref<String>(); }
   inline Float& ref_float() { return ref<Float>(); }
@@ -713,7 +713,7 @@ class basic_container final {
     switch_to_type<Null>();
     return nullptr;
   }
-  inline Map& transform_map() { return transform<Map>(); }
+  inline Object& transform_map() { return transform<Object>(); }
   inline Vector& transform_vector() { return transform<Vector>(); }
   inline String& transform_string() { return transform<String>(); }
   inline Float& transform_float() { return transform<Float>(); }
@@ -728,7 +728,7 @@ class basic_container final {
     return ref_to<T>();
   }
   inline Null raw_null() const { return nullptr; }
-  inline Map const& raw_map() const { return raw<Map>(); }
+  inline Object const& raw_map() const { return raw<Object>(); }
   inline Vector const& raw_vector() const { return raw<Vector>(); }
   inline String const& raw_string() const { return raw<String>(); }
   inline Float const& raw_float() const { return raw<Float>(); }
@@ -741,7 +741,7 @@ class basic_container final {
                   "Type must be compatible with this container.");
     return ref_to<T>();
   }
-  inline Map& raw_map() { return raw<Map>(); }
+  inline Object& raw_map() { return raw<Object>(); }
   inline Vector& raw_vector() { return raw<Vector>(); }
   inline String& raw_string() { return raw<String>(); }
   inline Float& raw_float() { return raw<Float>(); }
@@ -753,7 +753,7 @@ class basic_container final {
   template <class T> T const* get() const noexcept {
     return type_traits<T>::type_value() == type_ ? &raw<T>() : nullptr;
   }
-  inline Map const* get_map() const { return get<Map>(); }
+  inline Object const* get_map() const { return get<Object>(); }
   inline Vector const* get_vector() const { return get<Vector>(); }
   inline String const* get_string() const { return get<String>(); }
   inline Float const* get_float() const { return get<Float>(); }
@@ -764,7 +764,7 @@ class basic_container final {
   template <class T> T* get() noexcept {
     return type_traits<T>::type_value() == type_ ? &raw<T>() : nullptr;
   }
-  inline Map* get_map() noexcept { return get<Map>(); }
+  inline Object* get_map() noexcept { return get<Object>(); }
   inline Vector* get_vector() noexcept { return get<Vector>(); }
   inline String* get_string() noexcept { return get<String>(); }
   inline Float* get_float() noexcept { return get<Float>(); }
@@ -779,7 +779,7 @@ class basic_container final {
     }
     return false;
   }
-  inline bool get_map(Map& v) noexcept { return get<Map>(v); }
+  inline bool get_map(Object& v) noexcept { return get<Object>(v); }
   inline bool get_vector(Vector& v) noexcept { return get<Vector>(v); }
   inline bool get_string(String& v) noexcept { return get<String>(v); }
   inline bool get_float(Float& v) noexcept { return get<Float>(v); }
@@ -810,8 +810,8 @@ class basic_container final {
     case value_type::null:
       return typeid(std::nullptr_t);
       break;
-    case value_type::map:
-      return typeid(Map);
+    case value_type::object:
+      return typeid(Object);
       break;
     case value_type::vector:
       return typeid(Vector);
@@ -840,7 +840,7 @@ class basic_container final {
   template <class T> inline operator T() const { return convert_to<T>(); }
   template <class T> inline T as() const { return convert_to<T>(); }
   inline Null as_null() const { return as<Null>(); }
-  inline Map as_map() const { return as<Map>(); }
+  inline Object as_map() const { return as<Object>(); }
   inline Vector as_vector() const { return as<Vector>(); }
   inline String as_string() const { return as<String>(); }
   inline Float as_float() const { return as<Float>(); }
@@ -853,8 +853,8 @@ class basic_container final {
     case value_type::null:
       v.apply(nullptr);
       break;
-    case value_type::map:
-      v.apply(ref_to<Map>());
+    case value_type::object:
+      v.apply(ref_to<Object>());
       break;
     case value_type::vector:
       v.apply(ref_to<Vector>());
@@ -964,7 +964,7 @@ template <class Container> class vector_element_init final {
 // Visiting
 template <class Container> struct const_visitor_adapter {
   virtual void apply(std::nullptr_t) {}
-  virtual void apply(typename Container::map_type const&) {}
+  virtual void apply(typename Container::object_type const&) {}
   virtual void apply(typename Container::vector_type const&) {}
   virtual void apply(typename Container::str_type const&) {}
   virtual void apply(typename Container::float_type) {}

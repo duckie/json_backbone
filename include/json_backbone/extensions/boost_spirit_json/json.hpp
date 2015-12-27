@@ -73,7 +73,7 @@ struct raw_grammar
   using st_t = ascii::space_type;
   qi::rule<Iterator, Container(), st_t> root;
   qi::rule<Iterator, Container(), st_t> extended_value;
-  qi::rule<Iterator, typename Container::map_type(), st_t> object;
+  qi::rule<Iterator, typename Container::object_type(), st_t> object;
   qi::rule<Iterator, std::pair<typename Container::key_type, Container>(), st_t>
       object_pair;
   qi::rule<Iterator, typename Container::vector_type(), st_t> array;
@@ -96,7 +96,7 @@ struct parsing_action_grammar
   };
   using string_type = typename Container::str_type;
   using key_type = typename Container::key_type;
-  using map_type = typename Container::map_type;
+  using object_type = typename Container::object_type;
   using vector_type = typename Container::vector_type;
   using float_type = typename Container::float_type;
   using int_type = typename Container::int_type;
@@ -151,13 +151,13 @@ struct parsing_action_grammar
       Container& current = stack_.top().get();
       if (current.is_map()) {
         auto insert_result = current.raw_map().emplace(
-            key_, Container::template init<map_type>());
+            key_, Container::template init<object_type>());
         Container& new_container = insert_result.first->second;
         if (!insert_result.second)
-          new_container = Container::template init<map_type>();
+          new_container = Container::template init<object_type>();
         stack_.push(new_container);
       } else if (current.is_vector()) {
-        current.raw_vector().push_back(Container::template init<map_type>());
+        current.raw_vector().push_back(Container::template init<object_type>());
         stack_.push(current.raw_vector().back());
       }
     }
@@ -279,7 +279,7 @@ template <typename Container, typename Iterator>
 struct out_grammar : karma::grammar<Iterator, Container()> {
   using str_type = typename Container::str_type;
   using key_type = typename Container::key_type;
-  using map_type = typename Container::map_type;
+  using object_type = typename Container::object_type;
   using vector_type = typename Container::vector_type;
   using float_type = typename Container::float_type;
   using int_type = typename Container::int_type;
@@ -307,7 +307,7 @@ struct out_grammar : karma::grammar<Iterator, Container()> {
   }
 
   // Semantic actions
-  static void set_map(optional_ref<map_type>& attribute,
+  static void set_map(optional_ref<object_type>& attribute,
                       context<Container>& context, bool& result) {
     Container const& input = context_value(context);
     if (!input.is_map()) {
@@ -403,7 +403,7 @@ struct out_grammar : karma::grammar<Iterator, Container()> {
   }
 
   karma::rule<Iterator, Container()> root;
-  karma::rule<Iterator, optional_ref<map_type&>()> object;
+  karma::rule<Iterator, optional_ref<object_type&>()> object;
   karma::rule<Iterator, optional_ref<std::pair<key_type, Container>>()>
       object_pair;
   karma::rule<Iterator, optional_ref<vector_type&>()> array;
@@ -459,7 +459,7 @@ template <> struct string_conversion_traits<long double, void> {
 template <typename Container> struct visitor_size {
   using string_type = typename Container::str_type;
   using key_type = typename Container::key_type;
-  using map_type = typename Container::map_type;
+  using object_type = typename Container::object_type;
   using vector_type = typename Container::vector_type;
   using float_type = typename Container::float_type;
   using int_type = typename Container::int_type;
@@ -468,7 +468,7 @@ template <typename Container> struct visitor_size {
   size_t size_ = 0u;
 
   void apply(std::nullptr_t) { size_ += 4u; }
-  void apply(map_type const& v) {
+  void apply(object_type const& v) {
     size_ += 2u;
     bool first = true;
     for (auto const& element : v) {
@@ -517,7 +517,7 @@ struct generator_impl<Container, StreamType, generation_policies::full_karma> {
   using ostream_type = std::basic_ostringstream<
       typename StreamType::value_type, typename StreamType::traits_type>;
   using key_type = typename Container::key_type;
-  using map_type = typename Container::map_type;
+  using object_type = typename Container::object_type;
   using vector_type = typename Container::vector_type;
   using float_type = typename Container::float_type;
   using int_type = typename Container::int_type;
@@ -550,7 +550,7 @@ struct generator_impl<Container, StreamType,
   using ostream_type = std::basic_ostringstream<
       typename StreamType::value_type, typename StreamType::traits_type>;
   using key_type = typename Container::key_type;
-  using map_type = typename Container::map_type;
+  using object_type = typename Container::object_type;
   using vector_type = typename Container::vector_type;
   using float_type = typename Container::float_type;
   using int_type = typename Container::int_type;
@@ -568,14 +568,14 @@ struct generator_impl<Container, StreamType,
     karma::uint_generator<uint_type> uint_generator_;
 
     using container_variant = boost::variant<
-        typename Container::map_type, typename Container::vector_type,
+        typename Container::object_type, typename Container::vector_type,
         typename Container::str_type, typename Container::float_type,
         typename Container::int_type, typename Container::uint_type,
         std::nullptr_t, bool>;
 
     void apply(std::nullptr_t) { karma::generate(buffer_, karma::lit("null")); }
 
-    void apply(map_type const& v) {
+    void apply(object_type const& v) {
       karma::generate(buffer_, karma::char_, '{');
       bool first = true;
       for (auto const& element : v) {
@@ -647,7 +647,7 @@ struct generator_impl<Container, StreamType,
   using ostream_type = std::basic_ostringstream<
       typename StreamType::value_type, typename StreamType::traits_type>;
   using key_type = typename Container::key_type;
-  using map_type = typename Container::map_type;
+  using object_type = typename Container::object_type;
   using vector_type = typename Container::vector_type;
   using float_type = typename Container::float_type;
   using int_type = typename Container::int_type;
@@ -659,7 +659,7 @@ struct generator_impl<Container, StreamType,
 
     void apply(std::nullptr_t) { output_stream << "null"; }
 
-    void apply(map_type const& v) {
+    void apply(object_type const& v) {
       output_stream << "{";
       bool first = true;
       for (auto const& element : v) {
