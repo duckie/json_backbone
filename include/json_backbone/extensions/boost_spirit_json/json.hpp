@@ -76,7 +76,7 @@ struct raw_grammar
   qi::rule<Iterator, typename Container::object_type(), st_t> object;
   qi::rule<Iterator, std::pair<typename Container::key_type, Container>(), st_t>
       object_pair;
-  qi::rule<Iterator, typename Container::vector_type(), st_t> array;
+  qi::rule<Iterator, typename Container::array_type(), st_t> array;
   qi::rule<Iterator, boost::optional<Container>(), st_t> value;
   qi::rule<Iterator, typename Container::key_type(), st_t> key_value;
   qi::rule<Iterator, typename Container::str_type(), st_t> string_value;
@@ -97,7 +97,7 @@ struct parsing_action_grammar
   using string_type = typename Container::str_type;
   using key_type = typename Container::key_type;
   using object_type = typename Container::object_type;
-  using vector_type = typename Container::vector_type;
+  using array_type = typename Container::array_type;
   using float_type = typename Container::float_type;
   using int_type = typename Container::int_type;
   using uint_type = typename Container::uint_type;
@@ -174,13 +174,13 @@ struct parsing_action_grammar
       Container& current = stack_.top().get();
       if (current.is_map()) {
         auto insert_result = current.raw_map().emplace(
-            key_, Container::template init<vector_type>());
+            key_, Container::template init<array_type>());
         Container& new_container = insert_result.first->second;
         if (!insert_result.second)
-          new_container = Container::template init<vector_type>();
+          new_container = Container::template init<array_type>();
         stack_.push(new_container);
       } else if (current.is_vector()) {
-        current.raw_vector().push_back(Container::template init<vector_type>());
+        current.raw_vector().push_back(Container::template init<array_type>());
         stack_.push(current.raw_vector().back());
       }
     }
@@ -280,7 +280,7 @@ struct out_grammar : karma::grammar<Iterator, Container()> {
   using str_type = typename Container::str_type;
   using key_type = typename Container::key_type;
   using object_type = typename Container::object_type;
-  using vector_type = typename Container::vector_type;
+  using array_type = typename Container::array_type;
   using float_type = typename Container::float_type;
   using int_type = typename Container::int_type;
   using uint_type = typename Container::uint_type;
@@ -318,7 +318,7 @@ struct out_grammar : karma::grammar<Iterator, Container()> {
     result = true;
   }
 
-  static void set_vec(optional_ref<vector_type>& attribute,
+  static void set_vec(optional_ref<array_type>& attribute,
                       context<Container>& context, bool& result) {
     Container const& input = context_value(context);
     if (!input.is_vector()) {
@@ -406,7 +406,7 @@ struct out_grammar : karma::grammar<Iterator, Container()> {
   karma::rule<Iterator, optional_ref<object_type&>()> object;
   karma::rule<Iterator, optional_ref<std::pair<key_type, Container>>()>
       object_pair;
-  karma::rule<Iterator, optional_ref<vector_type&>()> array;
+  karma::rule<Iterator, optional_ref<array_type&>()> array;
   karma::rule<Iterator, optional_ref<Container>()> value;
   karma::rule<Iterator, optional_ref<key_type>()> key_value;
   karma::rule<Iterator, optional_ref<str_type>()> string_value;
@@ -460,7 +460,7 @@ template <typename Container> struct visitor_size {
   using string_type = typename Container::str_type;
   using key_type = typename Container::key_type;
   using object_type = typename Container::object_type;
-  using vector_type = typename Container::vector_type;
+  using array_type = typename Container::array_type;
   using float_type = typename Container::float_type;
   using int_type = typename Container::int_type;
   using uint_type = typename Container::uint_type;
@@ -480,7 +480,7 @@ template <typename Container> struct visitor_size {
     }
   }
 
-  void apply(vector_type const& v) {
+  void apply(array_type const& v) {
     size_ += 2; // []
     bool first = true;
     for (Container const& element : v) {
@@ -518,7 +518,7 @@ struct generator_impl<Container, StreamType, generation_policies::full_karma> {
       typename StreamType::value_type, typename StreamType::traits_type>;
   using key_type = typename Container::key_type;
   using object_type = typename Container::object_type;
-  using vector_type = typename Container::vector_type;
+  using array_type = typename Container::array_type;
   using float_type = typename Container::float_type;
   using int_type = typename Container::int_type;
   using uint_type = typename Container::uint_type;
@@ -551,7 +551,7 @@ struct generator_impl<Container, StreamType,
       typename StreamType::value_type, typename StreamType::traits_type>;
   using key_type = typename Container::key_type;
   using object_type = typename Container::object_type;
-  using vector_type = typename Container::vector_type;
+  using array_type = typename Container::array_type;
   using float_type = typename Container::float_type;
   using int_type = typename Container::int_type;
   using uint_type = typename Container::uint_type;
@@ -568,7 +568,7 @@ struct generator_impl<Container, StreamType,
     karma::uint_generator<uint_type> uint_generator_;
 
     using container_variant = boost::variant<
-        typename Container::object_type, typename Container::vector_type,
+        typename Container::object_type, typename Container::array_type,
         typename Container::str_type, typename Container::float_type,
         typename Container::int_type, typename Container::uint_type,
         std::nullptr_t, bool>;
@@ -590,7 +590,7 @@ struct generator_impl<Container, StreamType,
       karma::generate(buffer_, karma::char_, '}');
     }
 
-    void apply(vector_type const& v) {
+    void apply(array_type const& v) {
       karma::generate(buffer_, karma::char_, '[');
       bool first = true;
       for (Container const& element : v) {
@@ -648,7 +648,7 @@ struct generator_impl<Container, StreamType,
       typename StreamType::value_type, typename StreamType::traits_type>;
   using key_type = typename Container::key_type;
   using object_type = typename Container::object_type;
-  using vector_type = typename Container::vector_type;
+  using array_type = typename Container::array_type;
   using float_type = typename Container::float_type;
   using int_type = typename Container::int_type;
   using uint_type = typename Container::uint_type;
@@ -672,7 +672,7 @@ struct generator_impl<Container, StreamType,
       output_stream << "}";
     }
 
-    void apply(vector_type const& v) {
+    void apply(array_type const& v) {
       output_stream << "[";
       bool first = true;
       for (Container const& element : v) {

@@ -45,8 +45,8 @@ class basic_container final {
   using uint_type = UInt;
   using float_type = Float;
   using object_type = ObjectTemplate<key_type, basic_container>;
-  using vector_type = ArrayTemplate<basic_container>;
-  using vec_size_type = typename vector_type::size_type;
+  using array_type = ArrayTemplate<basic_container>;
+  using array_size_type = typename array_type::size_type;
 
   class exception_type : std::exception {
     const char* what() const noexcept { return "NestedContainer exception."; }
@@ -54,14 +54,14 @@ class basic_container final {
 
  private:
   using Object = object_type;
-  using Vector = vector_type;
-  using VecSize = typename vector_type::size_type;
+  using Array = array_type;
+  using ArraySizeType = typename array_type::size_type;
   using Null = std::nullptr_t;
 
   enum class value_type : unsigned char {
     null = '0',
     object,
-    vector,
+    array,
     string,
     floating,
     integer,
@@ -74,7 +74,7 @@ class basic_container final {
     ~value() {}
 
     Object* dict_;
-    Vector* vector_;
+    Array* vector_;
     String str_;
     Float float_;
     Int int_;
@@ -103,8 +103,8 @@ class basic_container final {
                                    ? value_type::floating
                                    : eq<String, T>::value
                                          ? value_type::string
-                                         : eq<Vector, T>::value
-                                               ? value_type::vector
+                                         : eq<Array, T>::value
+                                               ? value_type::array
                                                : eq<Object, T>::value
                                                      ? value_type::object
                                                      : value_type::null;
@@ -112,18 +112,18 @@ class basic_container final {
 
     static bool constexpr is_from_container =
         eq<bool, T>::value || eq<Int, T>::value || eq<UInt, T>::value ||
-        eq<Float, T>::value || eq<String, T>::value || eq<Vector, T>::value ||
+        eq<Float, T>::value || eq<String, T>::value || eq<Array, T>::value ||
         eq<Object, T>::value || eq<std::nullptr_t, T>::value ||
         eq<basic_container, T>::value;
 
     static bool constexpr is_collection =
-        eq<Vector, T>::value || eq<Object, T>::value;
+        eq<Array, T>::value || eq<Object, T>::value;
     static bool constexpr is_lexical =
         eq<bool, T>::value || eq<Int, T>::value || eq<UInt, T>::value ||
         eq<Float, T>::value || eq<String, T>::value;
     static bool constexpr is_null = eq<Null, T>::value;
     static bool constexpr is_index =
-        eq<Key, T>::value || eq<vec_size_type, T>::value;
+        eq<Key, T>::value || eq<array_size_type, T>::value;
     static bool constexpr is_pure = eq<T, Member>::value;
     static bool constexpr is_self = eq<basic_container, T>::value;
 
@@ -170,7 +170,7 @@ class basic_container final {
   }
 
   static bool is_collection(value_type type) {
-    return value_type::object == type || value_type::vector == type;
+    return value_type::object == type || value_type::array == type;
   }
 
   // Static instance is used while in constant context
@@ -188,7 +188,7 @@ class basic_container final {
     case value_type::object:
       delete value_.dict_;
       break;
-    case value_type::vector:
+    case value_type::array:
       delete value_.vector_;
       break;
     case value_type::string:
@@ -204,8 +204,8 @@ class basic_container final {
   template <class T, ifeq<Object, T> = 0> inline void init_member() {
     value_.dict_ = new Object;
   }
-  template <class T, ifeq<Vector, T> = 0> inline void init_member() {
-    value_.vector_ = new Vector;
+  template <class T, ifeq<Array, T> = 0> inline void init_member() {
+    value_.vector_ = new Array;
   }
   template <class T, ifeq<String, T> = 0> inline void init_member() {
     new (&(value_.str_)) String;
@@ -232,8 +232,8 @@ class basic_container final {
 
   // Init with value - move
   inline void init_member(Object&& v) { value_.dict_ = new Object(std::move(v)); }
-  inline void init_member(Vector&& v) {
-    value_.vector_ = new Vector(std::move(v));
+  inline void init_member(Array&& v) {
+    value_.vector_ = new Array(std::move(v));
   }
   inline void init_member(String&& v) {
     new (&(value_.str_)) String(std::move(v));
@@ -249,7 +249,7 @@ class basic_container final {
       value_.dict_ = c.value_.dict_;
       c.value_.dict_ = nullptr; // Useless in theory, just in case
       break;
-    case value_type::vector:
+    case value_type::array:
       clear();
       value_.vector_ = c.value_.vector_;
       c.value_.vector_ = nullptr; // Useless in theory, just in case
@@ -284,7 +284,7 @@ class basic_container final {
 
   // Init with value - copy
   inline void init_member(Object const& v) { value_.dict_ = new Object(v); }
-  inline void init_member(Vector const& v) { value_.vector_ = new Vector(v); }
+  inline void init_member(Array const& v) { value_.vector_ = new Array(v); }
   inline void init_member(String const& v) { new (&(value_.str_)) String(v); }
   inline void init_member(basic_container const& c) {
     value_type previous_type = type_;
@@ -297,9 +297,9 @@ class basic_container final {
         init_member(*c.value_.vector_);
         delete defered_map;
       } else {
-        Vector* defered_vector = nullptr;
+        Array* defered_array = nullptr;
         init_member(*c.value_.dict_);
-        delete defered_vector;
+        delete defered_array;
       }
       type_ = c.type_;
     } else {
@@ -310,7 +310,7 @@ class basic_container final {
       case value_type::object:
         *value_.dict_ = *c.value_.dict_;
         break;
-      case value_type::vector:
+      case value_type::array:
         *value_.vector_ = *c.value_.vector_;
         break;
       case value_type::string:
@@ -340,8 +340,8 @@ class basic_container final {
     case value_type::object:
       init_member<Object>();
       break;
-    case value_type::vector:
-      init_member<Vector>();
+    case value_type::array:
+      init_member<Array>();
       break;
     case value_type::string:
       init_member<String>();
@@ -406,7 +406,7 @@ class basic_container final {
   template <class T, ifeq<Object, T> = 0> inline Object& ref_to() {
     return *value_.dict_;
   }
-  template <class T, ifeq<Vector, T> = 0> inline Vector& ref_to() {
+  template <class T, ifeq<Array, T> = 0> inline Array& ref_to() {
     return *value_.vector_;
   }
   template <class T, ifeq<String, T> = 0> inline String& ref_to() {
@@ -428,8 +428,8 @@ class basic_container final {
   template <class T, ifeq<Object, T> = 0> inline Object const& ref_to() const {
     return *value_.dict_;
   }
-  template <class T, ifeq<Vector, T> = 0>
-  inline Vector const& ref_to() const {
+  template <class T, ifeq<Array, T> = 0>
+  inline Array const& ref_to() const {
     return *value_.vector_;
   }
   template <class T, ifeq<String, T> = 0>
@@ -450,7 +450,7 @@ class basic_container final {
   }
 
   // [] accessors, Key != size_type version
-  template <ifneq<Key, VecSize> = 0>
+  template <ifneq<Key, ArraySizeType> = 0>
   basic_container const& access_collection(Key const& index) const noexcept {
     if (!is_map())
       return get_static_const_default();
@@ -460,40 +460,40 @@ class basic_container final {
     return value_iterator->second;
   }
 
-  template <ifneq<Key, VecSize> = 0>
-  basic_container const& access_collection(vec_size_type index) const noexcept {
-    if (!is_vector() || ref_to<Vector>().size() <= index)
+  template <ifneq<Key, ArraySizeType> = 0>
+  basic_container const& access_collection(array_size_type index) const noexcept {
+    if (!is_vector() || ref_to<Array>().size() <= index)
       return get_static_const_default();
-    return ref_to<Vector>()[index];
+    return ref_to<Array>()[index];
   }
 
-  template <ifneq<Key, VecSize> = 0>
+  template <ifneq<Key, ArraySizeType> = 0>
   basic_container& access_collection(Key const& index) noexcept {
     if (!is_map())
       switch_to_type<Object>();
     return ref_to<Object>()[index];
   }
 
-  template <ifneq<Key, VecSize> = 0>
+  template <ifneq<Key, ArraySizeType> = 0>
   basic_container& access_collection(Key&& index) noexcept {
     if (!is_map())
       switch_to_type<Object>();
     return ref_to<Object>()[std::move(index)];
   }
 
-  template <ifneq<Key, VecSize> = 0>
-  basic_container& access_collection(vec_size_type index) noexcept {
+  template <ifneq<Key, ArraySizeType> = 0>
+  basic_container& access_collection(array_size_type index) noexcept {
     if (!is_vector())
-      switch_to_type<Vector>();
-    if (ref_to<Vector>().size() <= index)
-      ref_to<Vector>().resize(index + 1);
-    return ref_to<Vector>()[index];
+      switch_to_type<Array>();
+    if (ref_to<Array>().size() <= index)
+      ref_to<Array>().resize(index + 1);
+    return ref_to<Array>()[index];
   }
 
   // template <typename T> convert_to
   template <class T, typename std::enable_if<
                             !eq<T, Null>::value && !eq<T, String>::value &&
-                                !eq<T, Object>::value && !eq<T, Vector>::value,
+                                !eq<T, Object>::value && !eq<T, Array>::value,
                             int>::type = 0>
   T convert_to() const {
     static_assert(type_traits<T>::is_pure,
@@ -553,10 +553,10 @@ class basic_container final {
     return Object();
   }
 
-  template <class T, ifeq<Vector, T> = 0> T convert_to() const {
-    if (value_type::vector == type_)
-      return ref_to<Vector>();
-    return Vector();
+  template <class T, ifeq<Array, T> = 0> T convert_to() const {
+    if (value_type::array == type_)
+      return ref_to<Array>();
+    return Array();
   }
 
  public:
@@ -594,11 +594,11 @@ class basic_container final {
   }
   basic_container(
       std::initializer_list<vector_element_init<basic_container>> list)
-      : type_(value_type::vector) {
-    init_member<Vector>();
-    ref_to<Vector>().reserve(list.size());
+      : type_(value_type::array) {
+    init_member<Array>();
+    ref_to<Array>().reserve(list.size());
     for (auto const& element : list)
-      ref_to<Vector>().emplace_back(element.value());
+      ref_to<Array>().emplace_back(element.value());
   }
 
   static basic_container
@@ -610,10 +610,10 @@ class basic_container final {
   }
 
   static basic_container init_vec(std::initializer_list<basic_container> list) {
-    basic_container container((type_proxy<Vector>()));
-    container.ref_to<Vector>().reserve(list.size());
+    basic_container container((type_proxy<Array>()));
+    container.ref_to<Array>().reserve(list.size());
     for (basic_container const& element : list)
-      container.ref_to<Vector>().emplace_back(element);
+      container.ref_to<Array>().emplace_back(element);
     return container;
   }
 
@@ -658,7 +658,7 @@ class basic_container final {
 
   inline bool is_null() const noexcept { return value_type::null == type_; }
   inline bool is_map() const noexcept { return value_type::object == type_; }
-  inline bool is_vector() const noexcept { return value_type::vector == type_; }
+  inline bool is_vector() const noexcept { return value_type::array == type_; }
   inline bool is_string() const noexcept { return value_type::string == type_; }
   inline bool is_float() const noexcept {
     return value_type::floating == type_;
@@ -679,7 +679,7 @@ class basic_container final {
   }
   inline Null ref_null() const { return nullptr; }
   inline Object const& ref_map() const { return ref<Object>(); }
-  inline Vector const& ref_vector() const { return ref<Vector>(); }
+  inline Array const& ref_vector() const { return ref<Array>(); }
   inline String const& ref_string() const { return ref<String>(); }
   inline Float const& ref_float() const { return ref<Float>(); }
   inline Int const& ref_int() const { return ref<Int>(); }
@@ -694,7 +694,7 @@ class basic_container final {
     return ref_to<T>();
   }
   inline Object& ref_map() { return ref<Object>(); }
-  inline Vector& ref_vector() { return ref<Vector>(); }
+  inline Array& ref_vector() { return ref<Array>(); }
   inline String& ref_string() { return ref<String>(); }
   inline Float& ref_float() { return ref<Float>(); }
   inline Int& ref_int() { return ref<Int>(); }
@@ -714,7 +714,7 @@ class basic_container final {
     return nullptr;
   }
   inline Object& transform_map() { return transform<Object>(); }
-  inline Vector& transform_vector() { return transform<Vector>(); }
+  inline Array& transform_vector() { return transform<Array>(); }
   inline String& transform_string() { return transform<String>(); }
   inline Float& transform_float() { return transform<Float>(); }
   inline Int& transform_int() { return transform<Int>(); }
@@ -729,7 +729,7 @@ class basic_container final {
   }
   inline Null raw_null() const { return nullptr; }
   inline Object const& raw_map() const { return raw<Object>(); }
-  inline Vector const& raw_vector() const { return raw<Vector>(); }
+  inline Array const& raw_vector() const { return raw<Array>(); }
   inline String const& raw_string() const { return raw<String>(); }
   inline Float const& raw_float() const { return raw<Float>(); }
   inline Int const& raw_int() const { return raw<Int>(); }
@@ -742,7 +742,7 @@ class basic_container final {
     return ref_to<T>();
   }
   inline Object& raw_map() { return raw<Object>(); }
-  inline Vector& raw_vector() { return raw<Vector>(); }
+  inline Array& raw_vector() { return raw<Array>(); }
   inline String& raw_string() { return raw<String>(); }
   inline Float& raw_float() { return raw<Float>(); }
   inline Int& raw_int() { return raw<Int>(); }
@@ -754,7 +754,7 @@ class basic_container final {
     return type_traits<T>::type_value() == type_ ? &raw<T>() : nullptr;
   }
   inline Object const* get_map() const { return get<Object>(); }
-  inline Vector const* get_vector() const { return get<Vector>(); }
+  inline Array const* get_vector() const { return get<Array>(); }
   inline String const* get_string() const { return get<String>(); }
   inline Float const* get_float() const { return get<Float>(); }
   inline Int const* get_int() const { return get<Int>(); }
@@ -765,7 +765,7 @@ class basic_container final {
     return type_traits<T>::type_value() == type_ ? &raw<T>() : nullptr;
   }
   inline Object* get_map() noexcept { return get<Object>(); }
-  inline Vector* get_vector() noexcept { return get<Vector>(); }
+  inline Array* get_vector() noexcept { return get<Array>(); }
   inline String* get_string() noexcept { return get<String>(); }
   inline Float* get_float() noexcept { return get<Float>(); }
   inline Int* get_int() noexcept { return get<Int>(); }
@@ -780,19 +780,19 @@ class basic_container final {
     return false;
   }
   inline bool get_map(Object& v) noexcept { return get<Object>(v); }
-  inline bool get_vector(Vector& v) noexcept { return get<Vector>(v); }
+  inline bool get_vector(Array& v) noexcept { return get<Array>(v); }
   inline bool get_string(String& v) noexcept { return get<String>(v); }
   inline bool get_float(Float& v) noexcept { return get<Float>(v); }
   inline bool get_int(Int& v) noexcept { return get<Int>(v); }
   inline bool get_uint(UInt& v) noexcept { return get<UInt>(v); }
   inline bool get_bool(bool& v) noexcept { return get<bool>(v); }
 
-  template <ifneq<Key, VecSize> = 0>
+  template <ifneq<Key, ArraySizeType> = 0>
   basic_container const&
   operator[](typename key_type::value_type const* index) const {
     return access_collection(index);
   }
-  template <ifneq<Key, VecSize> = 0>
+  template <ifneq<Key, ArraySizeType> = 0>
   basic_container&
   operator[](typename key_type::value_type const* index) noexcept {
     return access_collection(index);
@@ -813,8 +813,8 @@ class basic_container final {
     case value_type::object:
       return typeid(Object);
       break;
-    case value_type::vector:
-      return typeid(Vector);
+    case value_type::array:
+      return typeid(Array);
       break;
     case value_type::string:
       return typeid(String);
@@ -841,7 +841,7 @@ class basic_container final {
   template <class T> inline T as() const { return convert_to<T>(); }
   inline Null as_null() const { return as<Null>(); }
   inline Object as_map() const { return as<Object>(); }
-  inline Vector as_vector() const { return as<Vector>(); }
+  inline Array as_vector() const { return as<Array>(); }
   inline String as_string() const { return as<String>(); }
   inline Float as_float() const { return as<Float>(); }
   inline Int as_int() const { return as<Int>(); }
@@ -856,8 +856,8 @@ class basic_container final {
     case value_type::object:
       v.apply(ref_to<Object>());
       break;
-    case value_type::vector:
-      v.apply(ref_to<Vector>());
+    case value_type::array:
+      v.apply(ref_to<Array>());
       break;
     case value_type::string:
       v.apply(ref_to<String>());
@@ -965,7 +965,7 @@ template <class Container> class vector_element_init final {
 template <class Container> struct const_visitor_adapter {
   virtual void apply(std::nullptr_t) {}
   virtual void apply(typename Container::object_type const&) {}
-  virtual void apply(typename Container::vector_type const&) {}
+  virtual void apply(typename Container::array_type const&) {}
   virtual void apply(typename Container::str_type const&) {}
   virtual void apply(typename Container::float_type) {}
   virtual void apply(typename Container::int_type) {}

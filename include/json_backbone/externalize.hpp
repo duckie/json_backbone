@@ -36,13 +36,13 @@
   extern template class Container<__VA_ARGS__>::type_traits<                   \
       typename Container<__VA_ARGS__>::object_type &&>;                        \
   extern template class Container<__VA_ARGS__>::type_traits<                   \
-      typename Container<__VA_ARGS__>::vector_type>;                           \
+      typename Container<__VA_ARGS__>::array_type>;                           \
   extern template class Container<__VA_ARGS__>::type_traits<                   \
-      typename Container<__VA_ARGS__>::vector_type &>;                         \
+      typename Container<__VA_ARGS__>::array_type &>;                         \
   extern template class Container<__VA_ARGS__>::type_traits<                   \
-      typename Container<__VA_ARGS__>::vector_type const &>;                   \
+      typename Container<__VA_ARGS__>::array_type const &>;                   \
   extern template class Container<__VA_ARGS__>::type_traits<                   \
-      typename Container<__VA_ARGS__>::vector_type &&>;                        \
+      typename Container<__VA_ARGS__>::array_type &&>;                        \
   extern template class Container<__VA_ARGS__>::type_traits<                   \
       typename Container<__VA_ARGS__>::str_type>;                              \
   extern template class Container<__VA_ARGS__>::type_traits<                   \
@@ -96,11 +96,11 @@
   extern template Container<__VA_ARGS__>::Container(                           \
       typename Container<__VA_ARGS__>::object_type &&);                        \
   extern template Container<__VA_ARGS__>::Container(                           \
-      typename Container<__VA_ARGS__>::vector_type &);                         \
+      typename Container<__VA_ARGS__>::array_type &);                         \
   extern template Container<__VA_ARGS__>::Container(                           \
-      typename Container<__VA_ARGS__>::vector_type const &);                   \
+      typename Container<__VA_ARGS__>::array_type const &);                   \
   extern template Container<__VA_ARGS__>::Container(                           \
-      typename Container<__VA_ARGS__>::vector_type &&);                        \
+      typename Container<__VA_ARGS__>::array_type &&);                        \
   extern template Container<__VA_ARGS__>::Container(                           \
       typename Container<__VA_ARGS__>::str_type &);                            \
   extern template Container<__VA_ARGS__>::Container(                           \
@@ -161,11 +161,11 @@
   extern template Container<__VA_ARGS__> &Container<__VA_ARGS__>::             \
   operator=(typename Container<__VA_ARGS__>::object_type &&);                  \
   extern template Container<__VA_ARGS__> &Container<__VA_ARGS__>::             \
-  operator=(typename Container<__VA_ARGS__>::vector_type &);                   \
+  operator=(typename Container<__VA_ARGS__>::array_type &);                   \
   extern template Container<__VA_ARGS__> &Container<__VA_ARGS__>::             \
-  operator=(typename Container<__VA_ARGS__>::vector_type const &);             \
+  operator=(typename Container<__VA_ARGS__>::array_type const &);             \
   extern template Container<__VA_ARGS__> &Container<__VA_ARGS__>::             \
-  operator=(typename Container<__VA_ARGS__>::vector_type &&);                  \
+  operator=(typename Container<__VA_ARGS__>::array_type &&);                  \
   extern template Container<__VA_ARGS__> &Container<__VA_ARGS__>::             \
   operator=(typename Container<__VA_ARGS__>::str_type &);                      \
   extern template Container<__VA_ARGS__> &Container<__VA_ARGS__>::             \
@@ -201,7 +201,7 @@
   extern template void Container<__VA_ARGS__>::init_member<                    \
       typename Container<__VA_ARGS__>::object_type>();                         \
   extern template void Container<__VA_ARGS__>::init_member<                    \
-      typename Container<__VA_ARGS__>::vector_type>();                         \
+      typename Container<__VA_ARGS__>::array_type>();                         \
   extern template void Container<__VA_ARGS__>::init_member<                    \
       typename Container<__VA_ARGS__>::str_type>();                            \
   extern template void Container<__VA_ARGS__>::init_member<                    \
@@ -217,7 +217,7 @@
   extern template void Container<__VA_ARGS__>::switch_to_type<                 \
       typename Container<__VA_ARGS__>::object_type>();                         \
   extern template void Container<__VA_ARGS__>::switch_to_type<                 \
-      typename Container<__VA_ARGS__>::vector_type>();                         \
+      typename Container<__VA_ARGS__>::array_type>();                         \
   extern template void Container<__VA_ARGS__>::switch_to_type<                 \
       typename Container<__VA_ARGS__>::str_type>();                            \
   extern template void Container<__VA_ARGS__>::switch_to_type<                 \
@@ -242,13 +242,13 @@
   extern template Container<__VA_ARGS__> &Container<__VA_ARGS__>::             \
   operator[](typename Container<__VA_ARGS__>::key_type && );                   \
   extern template Container<__VA_ARGS__> const &Container<__VA_ARGS__>::       \
-  operator[](typename Container<__VA_ARGS__>::vec_size_type const &) const;    \
+  operator[](typename Container<__VA_ARGS__>::array_size_type const &) const;    \
   extern template Container<__VA_ARGS__> &Container<__VA_ARGS__>::             \
-  operator[](typename Container<__VA_ARGS__>::vec_size_type &);                \
+  operator[](typename Container<__VA_ARGS__>::array_size_type &);                \
   extern template Container<__VA_ARGS__> &Container<__VA_ARGS__>::             \
-  operator[](typename Container<__VA_ARGS__>::vec_size_type const &);          \
+  operator[](typename Container<__VA_ARGS__>::array_size_type const &);          \
   extern template Container<__VA_ARGS__> &Container<__VA_ARGS__>::             \
-  operator[](typename Container<__VA_ARGS__>::vec_size_type && );              \
+  operator[](typename Container<__VA_ARGS__>::array_size_type && );              \
   extern template Container<__VA_ARGS__> const &Container<__VA_ARGS__>::       \
   operator[](int const &) const;                                               \
   extern template Container<__VA_ARGS__> &Container<__VA_ARGS__>::             \
@@ -261,9 +261,9 @@
   extern template typename Container<__VA_ARGS__>::object_type *               \
   Container<__VA_ARGS__>::get<                                                 \
       typename Container<__VA_ARGS__>::object_type>() noexcept;                \
-  extern template typename Container<__VA_ARGS__>::vector_type *               \
+  extern template typename Container<__VA_ARGS__>::array_type *               \
   Container<__VA_ARGS__>::get<                                                 \
-      typename Container<__VA_ARGS__>::vector_type>() noexcept;                \
+      typename Container<__VA_ARGS__>::array_type>() noexcept;                \
   extern template typename Container<__VA_ARGS__>::str_type *Container<        \
       __VA_ARGS__>::get<typename Container<__VA_ARGS__>::str_type>() noexcept; \
   extern template typename Container<__VA_ARGS__>::float_type *                \
@@ -278,8 +278,8 @@
   extern template typename Container<__VA_ARGS__>::object_type const *         \
   Container<__VA_ARGS__>::get<typename Container<__VA_ARGS__>::object_type>()  \
       const noexcept;                                                          \
-  extern template typename Container<__VA_ARGS__>::vector_type const *         \
-  Container<__VA_ARGS__>::get<typename Container<__VA_ARGS__>::vector_type>()  \
+  extern template typename Container<__VA_ARGS__>::array_type const *         \
+  Container<__VA_ARGS__>::get<typename Container<__VA_ARGS__>::array_type>()  \
       const noexcept;                                                          \
   extern template typename Container<__VA_ARGS__>::str_type const *            \
   Container<__VA_ARGS__>::get<typename Container<__VA_ARGS__>::str_type>()     \
@@ -298,7 +298,7 @@
   extern template bool Container<__VA_ARGS__>::get(                            \
       typename Container<__VA_ARGS__>::object_type &) const noexcept;          \
   extern template bool Container<__VA_ARGS__>::get(                            \
-      typename Container<__VA_ARGS__>::vector_type &) const noexcept;          \
+      typename Container<__VA_ARGS__>::array_type &) const noexcept;          \
   extern template bool Container<__VA_ARGS__>::get(                            \
       typename Container<__VA_ARGS__>::str_type &) const noexcept;             \
   extern template bool Container<__VA_ARGS__>::get(                            \
@@ -314,9 +314,9 @@
   extern template typename Container<__VA_ARGS__>::object_type                 \
   Container<__VA_ARGS__>::convert_to<                                          \
       typename Container<__VA_ARGS__>::object_type, 0>() const;                \
-  extern template typename Container<__VA_ARGS__>::vector_type                 \
+  extern template typename Container<__VA_ARGS__>::array_type                 \
   Container<__VA_ARGS__>::convert_to<                                          \
-      typename Container<__VA_ARGS__>::vector_type, 0>() const;                \
+      typename Container<__VA_ARGS__>::array_type, 0>() const;                \
   extern template typename Container<__VA_ARGS__>::str_type                    \
   Container<__VA_ARGS__>::convert_to<                                          \
       typename Container<__VA_ARGS__>::str_type, 0>() const;                   \
@@ -334,7 +334,7 @@
   extern template Container<__VA_ARGS__>::                                     \
   operator typename Container<__VA_ARGS__>::object_type() const;               \
   extern template Container<__VA_ARGS__>::                                     \
-  operator typename Container<__VA_ARGS__>::vector_type() const;               \
+  operator typename Container<__VA_ARGS__>::array_type() const;               \
   extern template Container<__VA_ARGS__>::                                     \
   operator typename Container<__VA_ARGS__>::str_type() const;                  \
   extern template Container<__VA_ARGS__>::                                     \
@@ -349,8 +349,8 @@
   extern template typename Container<__VA_ARGS__>::object_type                 \
   Container<__VA_ARGS__>::as<typename Container<__VA_ARGS__>::object_type>()   \
       const;                                                                   \
-  extern template typename Container<__VA_ARGS__>::vector_type                 \
-  Container<__VA_ARGS__>::as<typename Container<__VA_ARGS__>::vector_type>()   \
+  extern template typename Container<__VA_ARGS__>::array_type                 \
+  Container<__VA_ARGS__>::as<typename Container<__VA_ARGS__>::array_type>()   \
       const;                                                                   \
   extern template typename Container<__VA_ARGS__>::str_type                    \
   Container<__VA_ARGS__>::as<typename Container<__VA_ARGS__>::str_type>()      \
@@ -404,13 +404,13 @@
   template class Container<__VA_ARGS__>::type_traits<                          \
       typename Container<__VA_ARGS__>::object_type &&>;                        \
   template class Container<__VA_ARGS__>::type_traits<                          \
-      typename Container<__VA_ARGS__>::vector_type>;                           \
+      typename Container<__VA_ARGS__>::array_type>;                           \
   template class Container<__VA_ARGS__>::type_traits<                          \
-      typename Container<__VA_ARGS__>::vector_type &>;                         \
+      typename Container<__VA_ARGS__>::array_type &>;                         \
   template class Container<__VA_ARGS__>::type_traits<                          \
-      typename Container<__VA_ARGS__>::vector_type const &>;                   \
+      typename Container<__VA_ARGS__>::array_type const &>;                   \
   template class Container<__VA_ARGS__>::type_traits<                          \
-      typename Container<__VA_ARGS__>::vector_type &&>;                        \
+      typename Container<__VA_ARGS__>::array_type &&>;                        \
   template class Container<__VA_ARGS__>::type_traits<                          \
       typename Container<__VA_ARGS__>::str_type>;                              \
   template class Container<__VA_ARGS__>::type_traits<                          \
@@ -462,11 +462,11 @@
   template Container<__VA_ARGS__>::Container(                                  \
       typename Container<__VA_ARGS__>::object_type &&);                        \
   template Container<__VA_ARGS__>::Container(                                  \
-      typename Container<__VA_ARGS__>::vector_type &);                         \
+      typename Container<__VA_ARGS__>::array_type &);                         \
   template Container<__VA_ARGS__>::Container(                                  \
-      typename Container<__VA_ARGS__>::vector_type const &);                   \
+      typename Container<__VA_ARGS__>::array_type const &);                   \
   template Container<__VA_ARGS__>::Container(                                  \
-      typename Container<__VA_ARGS__>::vector_type &&);                        \
+      typename Container<__VA_ARGS__>::array_type &&);                        \
   template Container<__VA_ARGS__>::Container(                                  \
       typename Container<__VA_ARGS__>::str_type &);                            \
   template Container<__VA_ARGS__>::Container(                                  \
@@ -527,11 +527,11 @@
   template Container<__VA_ARGS__> &Container<__VA_ARGS__>::                    \
   operator=(typename Container<__VA_ARGS__>::object_type &&);                  \
   template Container<__VA_ARGS__> &Container<__VA_ARGS__>::                    \
-  operator=(typename Container<__VA_ARGS__>::vector_type &);                   \
+  operator=(typename Container<__VA_ARGS__>::array_type &);                   \
   template Container<__VA_ARGS__> &Container<__VA_ARGS__>::                    \
-  operator=(typename Container<__VA_ARGS__>::vector_type const &);             \
+  operator=(typename Container<__VA_ARGS__>::array_type const &);             \
   template Container<__VA_ARGS__> &Container<__VA_ARGS__>::                    \
-  operator=(typename Container<__VA_ARGS__>::vector_type &&);                  \
+  operator=(typename Container<__VA_ARGS__>::array_type &&);                  \
   template Container<__VA_ARGS__> &Container<__VA_ARGS__>::                    \
   operator=(typename Container<__VA_ARGS__>::str_type &);                      \
   template Container<__VA_ARGS__> &Container<__VA_ARGS__>::                    \
@@ -565,7 +565,7 @@
   template void Container<__VA_ARGS__>::init_member<                           \
       typename Container<__VA_ARGS__>::object_type>();                         \
   template void Container<__VA_ARGS__>::init_member<                           \
-      typename Container<__VA_ARGS__>::vector_type>();                         \
+      typename Container<__VA_ARGS__>::array_type>();                         \
   template void Container<__VA_ARGS__>::init_member<                           \
       typename Container<__VA_ARGS__>::str_type>();                            \
   template void Container<__VA_ARGS__>::init_member<                           \
@@ -580,7 +580,7 @@
   template void Container<__VA_ARGS__>::switch_to_type<                        \
       typename Container<__VA_ARGS__>::object_type>();                         \
   template void Container<__VA_ARGS__>::switch_to_type<                        \
-      typename Container<__VA_ARGS__>::vector_type>();                         \
+      typename Container<__VA_ARGS__>::array_type>();                         \
   template void Container<__VA_ARGS__>::switch_to_type<                        \
       typename Container<__VA_ARGS__>::str_type>();                            \
   template void Container<__VA_ARGS__>::switch_to_type<                        \
@@ -604,13 +604,13 @@
   template Container<__VA_ARGS__> &Container<__VA_ARGS__>::                    \
   operator[](typename Container<__VA_ARGS__>::key_type && );                   \
   template Container<__VA_ARGS__> const &Container<__VA_ARGS__>::              \
-  operator[](typename Container<__VA_ARGS__>::vec_size_type const &) const;    \
+  operator[](typename Container<__VA_ARGS__>::array_size_type const &) const;    \
   template Container<__VA_ARGS__> &Container<__VA_ARGS__>::                    \
-  operator[](typename Container<__VA_ARGS__>::vec_size_type &);                \
+  operator[](typename Container<__VA_ARGS__>::array_size_type &);                \
   template Container<__VA_ARGS__> &Container<__VA_ARGS__>::                    \
-  operator[](typename Container<__VA_ARGS__>::vec_size_type const &);          \
+  operator[](typename Container<__VA_ARGS__>::array_size_type const &);          \
   template Container<__VA_ARGS__> &Container<__VA_ARGS__>::                    \
-  operator[](typename Container<__VA_ARGS__>::vec_size_type && );              \
+  operator[](typename Container<__VA_ARGS__>::array_size_type && );              \
   template Container<__VA_ARGS__> const &Container<__VA_ARGS__>::              \
   operator[](int const &) const;                                               \
   template Container<__VA_ARGS__> &Container<__VA_ARGS__>::operator[](int &);  \
@@ -621,9 +621,9 @@
   template typename Container<__VA_ARGS__>::object_type *                      \
   Container<__VA_ARGS__>::get<                                                 \
       typename Container<__VA_ARGS__>::object_type>() noexcept;                \
-  template typename Container<__VA_ARGS__>::vector_type *                      \
+  template typename Container<__VA_ARGS__>::array_type *                      \
   Container<__VA_ARGS__>::get<                                                 \
-      typename Container<__VA_ARGS__>::vector_type>() noexcept;                \
+      typename Container<__VA_ARGS__>::array_type>() noexcept;                \
   template typename Container<__VA_ARGS__>::str_type *Container<               \
       __VA_ARGS__>::get<typename Container<__VA_ARGS__>::str_type>() noexcept; \
   template typename Container<__VA_ARGS__>::float_type *                       \
@@ -638,8 +638,8 @@
   template typename Container<__VA_ARGS__>::object_type const *                \
   Container<__VA_ARGS__>::get<typename Container<__VA_ARGS__>::object_type>()  \
       const noexcept;                                                          \
-  template typename Container<__VA_ARGS__>::vector_type const *                \
-  Container<__VA_ARGS__>::get<typename Container<__VA_ARGS__>::vector_type>()  \
+  template typename Container<__VA_ARGS__>::array_type const *                \
+  Container<__VA_ARGS__>::get<typename Container<__VA_ARGS__>::array_type>()  \
       const noexcept;                                                          \
   template typename Container<__VA_ARGS__>::str_type const *                   \
   Container<__VA_ARGS__>::get<typename Container<__VA_ARGS__>::str_type>()     \
@@ -657,7 +657,7 @@
   template bool Container<__VA_ARGS__>::get(                                   \
       typename Container<__VA_ARGS__>::object_type &) const noexcept;          \
   template bool Container<__VA_ARGS__>::get(                                   \
-      typename Container<__VA_ARGS__>::vector_type &) const noexcept;          \
+      typename Container<__VA_ARGS__>::array_type &) const noexcept;          \
   template bool Container<__VA_ARGS__>::get(                                   \
       typename Container<__VA_ARGS__>::str_type &) const noexcept;             \
   template bool Container<__VA_ARGS__>::get(                                   \
@@ -673,9 +673,9 @@
   template typename Container<__VA_ARGS__>::object_type                        \
   Container<__VA_ARGS__>::convert_to<                                          \
       typename Container<__VA_ARGS__>::object_type, 0>() const;                \
-  template typename Container<__VA_ARGS__>::vector_type                        \
+  template typename Container<__VA_ARGS__>::array_type                        \
   Container<__VA_ARGS__>::convert_to<                                          \
-      typename Container<__VA_ARGS__>::vector_type, 0>() const;                \
+      typename Container<__VA_ARGS__>::array_type, 0>() const;                \
   template typename Container<__VA_ARGS__>::str_type                           \
   Container<__VA_ARGS__>::convert_to<                                          \
       typename Container<__VA_ARGS__>::str_type, 0>() const;                   \
@@ -693,7 +693,7 @@
   template Container<__VA_ARGS__>::                                            \
   operator typename Container<__VA_ARGS__>::object_type() const;               \
   template Container<__VA_ARGS__>::                                            \
-  operator typename Container<__VA_ARGS__>::vector_type() const;               \
+  operator typename Container<__VA_ARGS__>::array_type() const;               \
   template Container<__VA_ARGS__>::                                            \
   operator typename Container<__VA_ARGS__>::str_type() const;                  \
   template Container<__VA_ARGS__>::                                            \
@@ -707,8 +707,8 @@
   template typename Container<__VA_ARGS__>::object_type                        \
   Container<__VA_ARGS__>::as<typename Container<__VA_ARGS__>::object_type>()   \
       const;                                                                   \
-  template typename Container<__VA_ARGS__>::vector_type                        \
-  Container<__VA_ARGS__>::as<typename Container<__VA_ARGS__>::vector_type>()   \
+  template typename Container<__VA_ARGS__>::array_type                        \
+  Container<__VA_ARGS__>::as<typename Container<__VA_ARGS__>::array_type>()   \
       const;                                                                   \
   template typename Container<__VA_ARGS__>::str_type                           \
   Container<__VA_ARGS__>::as<typename Container<__VA_ARGS__>::str_type>()      \

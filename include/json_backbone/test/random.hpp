@@ -20,7 +20,7 @@ template <typename Container> class generator {
   using ostream_type  = std::basic_ostringstream<typename str_type::value_type, typename str_type::traits_type>;
   using key_type      = typename Container::key_type;
   using object_type      = typename Container::object_type;
-  using vector_type   = typename Container::vector_type;
+  using array_type   = typename Container::array_type;
   using float_type    = typename Container::float_type;
   using int_type      = typename Container::int_type;
   using uint_type     = typename Container::uint_type;
@@ -54,7 +54,7 @@ template <typename Container> class generator {
 
   Container generate_container_once(int type, std::uniform_int_distribution<>& str_gen) {
     if (to_map == type) return Container::template init<typename Container::object_type>();
-    else if (to_vec == type) return Container::template init<typename Container::vector_type>();
+    else if (to_vec == type) return Container::template init<typename Container::array_type>();
     else if (to_str == type) return Container(generate_string(str_gen(gen_)));
     else if (to_str == type) return Container("Allloo");
     else if (to_float == type) return float_chooser_(gen_);
@@ -101,7 +101,7 @@ template <typename Container> class generator {
         , include_bool ? 1. : 0.
     };
     std::discrete_distribution<> root_chooser = {(include_map ? 1. : 0.), (include_vector ? 1. : 0.)};
-    Container root(root_chooser(gen_) ? Container::template init<typename Container::vector_type>() : Container::template init<typename Container::object_type>());
+    Container root(root_chooser(gen_) ? Container::template init<typename Container::array_type>() : Container::template init<typename Container::object_type>());
 
     if(max_depth) {
       std::uniform_int_distribution<> map_size_gen(min_map_size, max_map_size);
