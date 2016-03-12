@@ -23,30 +23,69 @@ namespace json_backbone {
 // using std_object_default_allocators = std::map<key_type, value_type>;
 // template <class value_type>
 // using std_array_default_allocators = std::vector<value_type>;
-template <class Container> class attr_init;
-template <class Container> class array_element_init;
+template <class Container>
+class attr_init;
+template <class Container>
+class array_element_init;
 
-struct inner_placeholder;
+namespace private_ {
 
-template <class I, size_t N>
-I constexpr max_value(std::array<I, N> const& values, I current_value, size_t current_index) {
-  return N <= current_index
-             ? current_value
-             : (current_value < values.at(current_index)
-                    ? max_value(values, values.at(current_index),
-                                current_index + 1)
-                    : max_value(values, current_value, current_index + 1));
+template <class Type, size_t Index>
+struct type_info {};
+
+template <class Indices, class... Types>
+struct type_list;
+template <size_t... Is, class... Types>
+struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>... {
+  template <class Type, size_t Index>
+  static constexpr std::integral_constant<size_t, Index> type_index(
+      type_info<Type, Index> const &) {
+    return {};
+  }
+
+  template <class Type>
+  static constexpr std::integral_constant<size_t, sizeof ... (Types)> type_index(
+      ...) {
+    return {};
+  }
+
+  template <class T>
+  static constexpr size_t get_index() {
+    return decltype(type_index<T>(std::declval<type_list>()))::value;
+  }
+
+  template <class T>
+  static constexpr bool has_type() {
+    return decltype(type_index<T>(std::declval<type_list>()))::value < sizeof ... (Types);
+  }
+};
 }
 
-template <class Key = std::string,
-          class Object = std::map<Key, inner_placeholder>,
-          class Array = std::vector<inner_placeholder>, class... Value>
+template <class I, size_t N>
+I constexpr max_value(std::array<I, N> const &values, I current_value, size_t current_index) {
+  return N <= current_index ? current_value
+                            : (current_value < values.at(current_index)
+                                   ? max_value(values, values.at(current_index), current_index + 1)
+                                   : max_value(values, current_value, current_index + 1));
+}
+
+template <template <class...> class ObjectBase, template <class...> class ArrayBase, class Key,
+          class... Value>
 
 class basic_container final {
   friend attr_init<basic_container>;
   friend array_element_init<basic_container>;
 
-public:
+  char data_[sizeof(void *)];
+
+ public:
+  // using object_type = typename extract_inner_type<inner_type,
+  // basic_container, ObjectBase>::type;
+  using type_list_type = private_::type_list<std::make_index_sequence<sizeof...(Value)>, Value...>;
+  using object_type = ObjectBase<Key, basic_container>;
+  using array_type = ArrayBase<basic_container>;
+  using key_type = Key;
+
   /*
     // Public type declarations
     using key_type = Key;
@@ -1008,6 +1047,6 @@ template <class Container> struct const_visitor_adapter {
 };
 */
 
-} // namespace json_backbone
+}  // namespace json_backbone
 
-#endif // NESTED_COMPILER_BASE_HEADER
+#endif  // NESTED_COMPILER_BASE_HEADER
