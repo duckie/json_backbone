@@ -569,7 +569,7 @@ class basic_container final {
   // Handling char array case
   template <std::size_t Size>
   basic_container(char const (&arg)[Size])
-      : basic_container(str_type(arg, Size)) {}
+      : basic_container(str_type(arg, Size-1)) {}
   // Handling char* case
   template <class T, ifeq<typename String::value_type const*, T> = 0>
   basic_container(T arg)
