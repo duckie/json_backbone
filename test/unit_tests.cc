@@ -1,15 +1,22 @@
 #include <catch.hpp>
 #include <chrono>
 #include <iostream>
-#include <json_backbone/container.hpp>
+#include <json_backbone/base.hpp>
 #include <list>
 #include <vector>
+#include <type_traits>
 //#include <json_backbone/externalize.hpp>
 
-using json_backbone::container;
+//using json_container = json_bac
+using namespace json_backbone;
 
-TEST_CASE("Json container - Construction","[json]") {
-    REQUIRE(true);
+TEST_CASE("Utils - constexpr computations","[utils]") {
+  SECTION("Constexpr max_value") {
+    REQUIRE((std::integral_constant<int,max_value<int,5>({1,2,3,4,5},0,0)>::value) == 5);
+    REQUIRE((std::integral_constant<int,max_value<int,5>({1,2,5,4,3},0,0)>::value) == 5);
+    REQUIRE((std::integral_constant<int,max_value<int,5>({5,2,3,4,1},0,0)>::value) == 5);
+    REQUIRE((std::integral_constant<int,max_value<int,0>({},0,0)>::value) == 0);
+  }
 }
 
 /*
