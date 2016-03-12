@@ -4,7 +4,7 @@ Find_Package(rapidjson)
 
 # Externalized container
 add_library(json_backbone OBJECT json_backbone.cc)
-add_library(json_backbone_boost OBJECT json_backbone_spirit.cc)
+#add_library(json_backbone_boost OBJECT json_backbone_spirit.cc)
 # This one is only used to test it compiles correctly
 add_library(json_backbone_ext OBJECT EXCLUDE_FROM_ALL json_backbone_ext.cc)
 # GTest runner
@@ -34,13 +34,13 @@ function(add_nc_test name)
 endfunction()
 
 # Test declarations
-add_nc_test(readme_demos $<TARGET_OBJECTS:json_backbone_boost>)
+#add_nc_test(readme_demos $<TARGET_OBJECTS:json_backbone_boost>)
 add_nc_test(unit_tests GT)
-add_nc_test(unit_tests_boost_spirit GT $<TARGET_OBJECTS:json_backbone_boost>)
-add_nc_test(perf_json_serialize $<TARGET_OBJECTS:json_backbone_boost>)
+#add_nc_test(unit_tests_boost_spirit GT $<TARGET_OBJECTS:json_backbone_boost>)
+#add_nc_test(perf_json_serialize $<TARGET_OBJECTS:json_backbone_boost>)
 add_nc_test(container_default GT)
 if (${RAPIDJSON_FOUND})
   include_directories(${RAPIDJSON_INCLUDE_DIRS})
   add_nc_test(container_rapidjson GT)
-  add_nc_test(perf_json_parse $<TARGET_OBJECTS:json_backbone_boost>)
+  #add_nc_test(perf_json_parse $<TARGET_OBJECTS:json_backbone_boost>)
 endif()
