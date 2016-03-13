@@ -40,8 +40,7 @@ struct type_list;
 template <size_t... Is, class... Types>
 struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>... {
   template <class Type, size_t Index>
-  static constexpr std::integral_constant<size_t, Index> type_index(
-      type_info<Type, Index> const &) {
+  static constexpr std::integral_constant<size_t, Index> type_index(type_info<Type, Index> const&) {
     return {};
   }
 
@@ -60,10 +59,51 @@ struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>...
     return decltype(type_index<T>(std::declval<type_list>()))::value < sizeof...(Types);
   }
 };
+
+template <class T>
+std::enable_if_t<sizeof(T) <= sizeof(void*), std::function<void(void**)>> make_deleter() {
+  return [](void** data) { reinterpret_cast<T*>(data)->~T(); };
 }
 
+template <class T>
+std::enable_if_t<sizeof(void*) < sizeof(T), std::function<void(void**)>> make_deleter() {
+  return [](void** data) { delete reinterpret_cast<T*>(*data); };
+}
+
+template <class T>
+std::enable_if_t<sizeof(T) <= sizeof(void*), std::function<void(void**, void*)>> make_store_move() {
+  return [](void** data, void* pval) {
+    new (reinterpret_cast<T*>(data)) T(std::move(*reinterpret_cast<T*>(pval)));
+  };
+}
+
+template <class T>
+std::enable_if_t<sizeof(void*) < sizeof(T), std::function<void(void**, void*)>> make_store_move() {
+  return [](void** data, void* pval) {
+    T** ptr = reinterpret_cast<T**>(data);
+    *ptr = new T(std::move(*reinterpret_cast<T*>(pval)));
+  };
+}
+
+template <class T>
+std::enable_if_t<sizeof(T) <= sizeof(void*), std::function<void(void**, void*)>> make_store_copy() {
+  return [](void** data, void* pval) {
+    new (reinterpret_cast<T*>(data)) T(*reinterpret_cast<T*>(pval));
+  };
+}
+
+template <class T>
+std::enable_if_t<sizeof(void*) < sizeof(T), std::function<void(void**, void*)>> make_store_copy() {
+  return [](void** data, void* pval) {
+    T** ptr = reinterpret_cast<T**>(data);
+    *ptr = new T(*reinterpret_cast<T*>(pval));
+  };
+}
+
+}  // namespace private
+
 template <class I, size_t N>
-I constexpr max_value(std::array<I, N> const &values, I current_value, size_t current_index) {
+I constexpr max_value(std::array<I, N> const& values, I current_value, size_t current_index) {
   return N <= current_index ? current_value
                             : (current_value < values.at(current_index)
                                    ? max_value(values, values.at(current_index), current_index + 1)
@@ -80,9 +120,8 @@ struct container_traits {
   // TODO: add a trait to extract first default constructible type
   using default_type = typename std::conditional<
       Container::type_list_type::template has_type<std::nullptr_t>(), std::nullptr_t,
-      typename std::conditional<Container::type_list_type::template has_type<int>(),
-                                int, void>::type>::type;
-  static const default_type default_value = {};
+      typename std::conditional<Container::type_list_type::template has_type<int>(), int,
+                                void>::type>::type;
 };
 
 template <template <class...> class ObjectBase, template <class...> class ArrayBase, class Key,
@@ -91,20 +130,67 @@ class basic_container final {
   friend attr_init<basic_container>;
   friend array_element_init<basic_container>;
 
-  char data_[sizeof(void *)];
-
-  //template <class T> store(T&& value);
-  //template <class T> store(T&& value);
-
  public:
-  // using object_type = typename extract_inner_type<inner_type,
-  // basic_container, ObjectBase>::type;
   using object_type = ObjectBase<Key, basic_container>;
   using array_type = ArrayBase<basic_container>;
   using key_type = Key;
-  using type_list_type = private_::type_list<std::make_index_sequence<sizeof...(Value)+2u>, object_type, array_type, Value...>;
+  using type_list_type = private_::type_list<std::make_index_sequence<sizeof...(Value) + 2u>,
+                                             object_type, array_type, Value...>;
+  using value_type_list_type =
+      private_::type_list<std::make_index_sequence<sizeof...(Value)>, Value...>;
 
-  basic_container();
+ private:
+  size_t type_ = type_list_type::template get_index<
+      typename container_traits<basic_container>::default_type>();
+  void* data_ = nullptr;
+
+  void clear() {
+    static std::array<std::function<void(void**)>, sizeof...(Value) + 2> deleters = {
+        private_::make_deleter<object_type>(), private_::make_deleter<array_type>(),
+        private_::make_deleter<Value>()...};
+    deleters[type_](&data_);
+  }
+
+  template <class T>
+  void create(T&& value) {
+    static_assert(type_list_type::template has_type<T>(),
+                  "The container annot store an unsupported type.");
+    static std::array<std::function<void(void**, void*)>, sizeof...(Value) + 2> ctors = {
+        private_::make_store_move<object_type>(), private_::make_store_move<array_type>(),
+        private_::make_store_move<Value>()...};
+    type_ = type_list_type::template get_index<T>();
+    ctors[type_](&data_, &value);
+  }
+
+  template <class T>
+  void create(T const& value) {
+    static_assert(type_list_type::template has_type<T>(),
+                  "The container annot store an unsupported type.");
+    static std::array<std::function<void(void**, void*)>, sizeof...(Value) + 2> ctors = {
+        private_::make_store_copy<object_type>(), private_::make_store_copy<array_type>(),
+        private_::make_store_copy<Value>()...};
+    type_ = type_list_type::template get_index<T>();
+    ctors[type_](&data_, &value);
+  }
+
+  template <class T>
+  void store(T&& value) {
+    clear();
+    create(std::forward<T>(value));
+  }
+
+ public:
+  basic_container() {
+    store<typename container_traits<basic_container>::default_type>({});
+  }
+
+  template <class T> basic_container(T&& value) {
+    create(std::forward<T>(value));
+  }
+
+  ~basic_container() {
+    clear();
+  }
 
   /*
     // Public type declarations

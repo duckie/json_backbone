@@ -60,6 +60,12 @@ TEST_CASE("Container - Static invariants", "[static][compile_time]") {
 }
 
 TEST_CASE("Container - Construction", "[construct][runtime]") {
+  json_container c1;
+  json_container c2 { std::string("Roger") };
+  json_container c3 { 1.0 };
+  json_container c4 { 1 };
+  json_container c5 { true };
+  json_container c6 { nullptr };
 }
 
 /*
