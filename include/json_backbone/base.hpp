@@ -124,9 +124,14 @@ struct container_traits {
                                 void>::type>::type;
 };
 
-template <template <class...> class ObjectBase, template <class...> class ArrayBase, class Key,
-          class... Value>
-class basic_container final {
+
+template <class... Value> class variant {
+};
+
+template <template <class> class traits, template <class...> class ObjectBase, template <class...> class ArrayBase, class Key, class... Value>
+class basic_container : public variant<ObjectBase<Key, 
+  basic_container<traits, ObjectBase, ArrayBase, Key, Value...>
+                 >, ArrayBase<basic_container<traits,ObjectBase,ArrayBase,Key,Value...>>, Value...> {
   friend attr_init<basic_container>;
   friend array_element_init<basic_container>;
 
@@ -141,7 +146,7 @@ class basic_container final {
 
  private:
   size_t type_ = type_list_type::template get_index<
-      typename container_traits<basic_container>::default_type>();
+      typename traits<basic_container>::default_type>();
   void* data_ = nullptr;
 
   void clear() {
@@ -152,9 +157,14 @@ class basic_container final {
   }
 
   template <class T>
-  void create(T&& value) {
+  inline void assert_has_type() const {
     static_assert(type_list_type::template has_type<T>(),
-                  "The container annot store an unsupported type.");
+                  "Type T not supported by this container.");
+  }
+
+  template <class T>
+  void create(T&& value) {
+    assert_has_type<T>();
     static std::array<std::function<void(void**, void*)>, sizeof...(Value) + 2> ctors = {
         private_::make_store_move<object_type>(), private_::make_store_move<array_type>(),
         private_::make_store_move<Value>()...};
@@ -164,8 +174,7 @@ class basic_container final {
 
   template <class T>
   void create(T const& value) {
-    static_assert(type_list_type::template has_type<T>(),
-                  "The container annot store an unsupported type.");
+    assert_has_type<T>();
     static std::array<std::function<void(void**, void*)>, sizeof...(Value) + 2> ctors = {
         private_::make_store_copy<object_type>(), private_::make_store_copy<array_type>(),
         private_::make_store_copy<Value>()...};
@@ -181,7 +190,7 @@ class basic_container final {
 
  public:
   basic_container() {
-    store<typename container_traits<basic_container>::default_type>({});
+    store<typename traits<basic_container>::default_type>({});
   }
 
   template <class T> basic_container(T&& value) {
@@ -1057,6 +1066,9 @@ class basic_container final {
     };
     */
 };
+
+template <template <class...> class ObjectBase, template <class...> class ArrayBase, class Key, class... Value>
+using container = basic_container<container_traits, ObjectBase,ArrayBase, Key, Value...>;
 
 /*
 template <class Container> class attr_init final {

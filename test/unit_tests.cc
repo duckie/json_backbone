@@ -10,7 +10,7 @@
 // using json_container = json_bac
 using namespace json_backbone;
 
-using json_container = basic_container<std::map, std::vector, std::string, std::string, double, int,
+using json_container = container<std::map, std::vector, std::string, std::string, double, int,
                                        unsigned int, bool, std::nullptr_t>;
 
 TEST_CASE("Utils - constexpr computations", "[utils][compile_time]") {
