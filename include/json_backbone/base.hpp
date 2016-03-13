@@ -124,34 +124,17 @@ struct container_traits {
                                 void>::type>::type;
 };
 
-
-template <class... Value> class variant {
-};
-
-template <template <class> class traits, template <class...> class ObjectBase, template <class...> class ArrayBase, class Key, class... Value>
-class basic_container : public variant<ObjectBase<Key, 
-  basic_container<traits, ObjectBase, ArrayBase, Key, Value...>
-                 >, ArrayBase<basic_container<traits,ObjectBase,ArrayBase,Key,Value...>>, Value...> {
-  friend attr_init<basic_container>;
-  friend array_element_init<basic_container>;
-
- public:
-  using object_type = ObjectBase<Key, basic_container>;
-  using array_type = ArrayBase<basic_container>;
-  using key_type = Key;
-  using type_list_type = private_::type_list<std::make_index_sequence<sizeof...(Value) + 2u>,
-                                             object_type, array_type, Value...>;
-  using value_type_list_type =
-      private_::type_list<std::make_index_sequence<sizeof...(Value)>, Value...>;
-
- private:
-  size_t type_ = type_list_type::template get_index<
-      typename traits<basic_container>::default_type>();
+template <class... Value>
+class variant {
+  size_t type_ = 0;
   void* data_ = nullptr;
 
+ public:
+  using type_list_type = private_::type_list<std::make_index_sequence<sizeof...(Value)>, Value...>;
+
+ protected:
   void clear() {
-    static std::array<std::function<void(void**)>, sizeof...(Value) + 2> deleters = {
-        private_::make_deleter<object_type>(), private_::make_deleter<array_type>(),
+    static std::array<std::function<void(void**)>, sizeof...(Value)> deleters = {
         private_::make_deleter<Value>()...};
     deleters[type_](&data_);
   }
@@ -165,8 +148,7 @@ class basic_container : public variant<ObjectBase<Key,
   template <class T>
   void create(T&& value) {
     assert_has_type<T>();
-    static std::array<std::function<void(void**, void*)>, sizeof...(Value) + 2> ctors = {
-        private_::make_store_move<object_type>(), private_::make_store_move<array_type>(),
+    static std::array<std::function<void(void**, void*)>, sizeof...(Value)> ctors = {
         private_::make_store_move<Value>()...};
     type_ = type_list_type::template get_index<T>();
     ctors[type_](&data_, &value);
@@ -175,8 +157,7 @@ class basic_container : public variant<ObjectBase<Key,
   template <class T>
   void create(T const& value) {
     assert_has_type<T>();
-    static std::array<std::function<void(void**, void*)>, sizeof...(Value) + 2> ctors = {
-        private_::make_store_copy<object_type>(), private_::make_store_copy<array_type>(),
+    static std::array<std::function<void(void**, void*)>, sizeof...(Value)> ctors = {
         private_::make_store_copy<Value>()...};
     type_ = type_list_type::template get_index<T>();
     ctors[type_](&data_, &value);
@@ -189,16 +170,41 @@ class basic_container : public variant<ObjectBase<Key,
   }
 
  public:
-  basic_container() {
-    store<typename traits<basic_container>::default_type>({});
-  }
-
-  template <class T> basic_container(T&& value) {
+  template <class T>
+  variant(T&& value) {
     create(std::forward<T>(value));
   }
 
-  ~basic_container() {
+  ~variant() {
     clear();
+  }
+};
+
+template <template <class> class traits, template <class...> class ObjectBase,
+          template <class...> class ArrayBase, class Key, class... Value>
+class basic_container
+    : public variant<ObjectBase<Key, basic_container<traits, ObjectBase, ArrayBase, Key, Value...>>,
+                     ArrayBase<basic_container<traits, ObjectBase, ArrayBase, Key, Value...>>,
+                     Value...> {
+  friend attr_init<basic_container>;
+  friend array_element_init<basic_container>;
+
+ public:
+  using variant_type =
+      variant<ObjectBase<Key, basic_container<traits, ObjectBase, ArrayBase, Key, Value...>>,
+              ArrayBase<basic_container<traits, ObjectBase, ArrayBase, Key, Value...>>, Value...>;
+  using object_type = ObjectBase<Key, basic_container>;
+  using array_type = ArrayBase<basic_container>;
+  using key_type = Key;
+  using value_type_list_type =
+      private_::type_list<std::make_index_sequence<sizeof...(Value)>, Value...>;
+
+  basic_container() : variant_type(typename traits<basic_container>::default_type{}) {
+  }
+
+  template <class T>
+  basic_container(T&& value)
+      : variant_type(std::forward<T>(value)) {
   }
 
   /*
@@ -1067,8 +1073,9 @@ class basic_container : public variant<ObjectBase<Key,
     */
 };
 
-template <template <class...> class ObjectBase, template <class...> class ArrayBase, class Key, class... Value>
-using container = basic_container<container_traits, ObjectBase,ArrayBase, Key, Value...>;
+template <template <class...> class ObjectBase, template <class...> class ArrayBase, class Key,
+          class... Value>
+using container = basic_container<container_traits, ObjectBase, ArrayBase, Key, Value...>;
 
 /*
 template <class Container> class attr_init final {
