@@ -25,6 +25,7 @@ namespace json_backbone {
 // using std_array_default_allocators = std::vector<value_type>;
 template <class Container>
 class attr_init;
+
 template <class Container>
 class array_element_init;
 
@@ -35,6 +36,7 @@ struct type_info {};
 
 template <class Indices, class... Types>
 struct type_list;
+
 template <size_t... Is, class... Types>
 struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>... {
   template <class Type, size_t Index>
@@ -44,8 +46,7 @@ struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>...
   }
 
   template <class Type>
-  static constexpr std::integral_constant<size_t, sizeof ... (Types)> type_index(
-      ...) {
+  static constexpr std::integral_constant<size_t, sizeof...(Types)> type_index(...) {
     return {};
   }
 
@@ -56,7 +57,7 @@ struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>...
 
   template <class T>
   static constexpr bool has_type() {
-    return decltype(type_index<T>(std::declval<type_list>()))::value < sizeof ... (Types);
+    return decltype(type_index<T>(std::declval<type_list>()))::value < sizeof...(Types);
   }
 };
 }
@@ -69,22 +70,41 @@ I constexpr max_value(std::array<I, N> const &values, I current_value, size_t cu
                                    : max_value(values, current_value, current_index + 1));
 }
 
+template <class Container>
+struct container_traits {
+  using char_sequence_storage_type = typename std::conditional<
+      Container::type_list_type::template has_type<std::string>(), std::string,
+      typename std::conditional<Container::type_list_type::template has_type<std::wstring>(),
+                                std::wstring, void>::type>::type;
+
+  // TODO: add a trait to extract first default constructible type
+  using default_type = typename std::conditional<
+      Container::type_list_type::template has_type<std::nullptr_t>(), std::nullptr_t,
+      typename std::conditional<Container::type_list_type::template has_type<int>(),
+                                int, void>::type>::type;
+  static const default_type default_value = {};
+};
+
 template <template <class...> class ObjectBase, template <class...> class ArrayBase, class Key,
           class... Value>
-
 class basic_container final {
   friend attr_init<basic_container>;
   friend array_element_init<basic_container>;
 
   char data_[sizeof(void *)];
 
+  //template <class T> store(T&& value);
+  //template <class T> store(T&& value);
+
  public:
   // using object_type = typename extract_inner_type<inner_type,
   // basic_container, ObjectBase>::type;
-  using type_list_type = private_::type_list<std::make_index_sequence<sizeof...(Value)>, Value...>;
   using object_type = ObjectBase<Key, basic_container>;
   using array_type = ArrayBase<basic_container>;
   using key_type = Key;
+  using type_list_type = private_::type_list<std::make_index_sequence<sizeof...(Value)+2u>, object_type, array_type, Value...>;
+
+  basic_container();
 
   /*
     // Public type declarations

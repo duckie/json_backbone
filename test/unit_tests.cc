@@ -13,7 +13,7 @@ using namespace json_backbone;
 using json_container = basic_container<std::map, std::vector, std::string, std::string, double, int,
                                        unsigned int, bool, std::nullptr_t>;
 
-TEST_CASE("Utils - constexpr computations", "[utils]") {
+TEST_CASE("Utils - constexpr computations", "[utils][compile_time]") {
   SECTION("Constexpr max_value") {
     REQUIRE((std::integral_constant<int, max_value<int, 5>({1, 2, 3, 4, 5}, 0, 0)>::value) == 5);
     REQUIRE((std::integral_constant<int, max_value<int, 5>({1, 2, 5, 4, 3}, 0, 0)>::value) == 5);
@@ -26,7 +26,7 @@ TEST_CASE("Utils - constexpr computations", "[utils]") {
 // struct type1;
 // struct type2;
 
-TEST_CASE("Container - Static invariants", "[static]") {
+TEST_CASE("Container - Static invariants", "[static][compile_time]") {
   SECTION("Type") {
     REQUIRE((std::is_same<typename json_container::object_type,
                           std::map<std::string, json_container>>::value));
@@ -35,16 +35,20 @@ TEST_CASE("Container - Static invariants", "[static]") {
   }
 
   SECTION("Inner types indexes") {
-    REQUIRE(json_container::type_list_type::get_index<std::string>() == 0);
-    REQUIRE(json_container::type_list_type::get_index<double>() == 1);
-    REQUIRE(json_container::type_list_type::get_index<int>() == 2);
-    REQUIRE(json_container::type_list_type::get_index<unsigned int>() == 3);
-    REQUIRE(json_container::type_list_type::get_index<bool>() == 4);
-    REQUIRE(json_container::type_list_type::get_index<std::nullptr_t>() == 5);
-    REQUIRE(json_container::type_list_type::get_index<char>() == 6);
+    REQUIRE((json_container::type_list_type::get_index<std::map<std::string,json_container>>()) == 0);
+    REQUIRE((json_container::type_list_type::get_index<std::vector<json_container>>()) == 1);
+    REQUIRE(json_container::type_list_type::get_index<std::string>() == 2);
+    REQUIRE(json_container::type_list_type::get_index<double>() == 3);
+    REQUIRE(json_container::type_list_type::get_index<int>() == 4);
+    REQUIRE(json_container::type_list_type::get_index<unsigned int>() == 5);
+    REQUIRE(json_container::type_list_type::get_index<bool>() == 6);
+    REQUIRE(json_container::type_list_type::get_index<std::nullptr_t>() == 7);
+    REQUIRE(json_container::type_list_type::get_index<char>() == 8);
   }
 
   SECTION("Inner types existence") {
+    REQUIRE((json_container::type_list_type::has_type<std::map<std::string,json_container>>()) == true);
+    REQUIRE((json_container::type_list_type::has_type<std::vector<json_container>>()) == true);
     REQUIRE(json_container::type_list_type::has_type<std::string>() == true);
     REQUIRE(json_container::type_list_type::has_type<double>() == true);
     REQUIRE(json_container::type_list_type::has_type<int>() == true);
@@ -53,6 +57,9 @@ TEST_CASE("Container - Static invariants", "[static]") {
     REQUIRE(json_container::type_list_type::has_type<std::nullptr_t>() == true);
     REQUIRE(json_container::type_list_type::has_type<char>() == false);
   }
+}
+
+TEST_CASE("Container - Construction", "[construct][runtime]") {
 }
 
 /*
