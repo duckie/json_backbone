@@ -30,12 +30,20 @@ using enable_if_small_t = std::enable_if_t<(sizeof(T) <= MemSize), Return>;
 template <class T, class Return, std::size_t MemSize>
 using enable_if_big_t = std::enable_if_t<(MemSize < sizeof(T)), Return>;
 
-namespace private_ {
+//
+// Utilities for computation on type lists
+//
+namespace type_list_traits {
+
 template <class Type, std::size_t Index>
 struct type_info {};
 
 template <class Indices, class... Types>
 struct type_list;
+
+template <class T> struct type_holder {
+  using type = T;
+};
 
 template <std::size_t... Is, class... Types>
 struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>... {
@@ -60,6 +68,9 @@ struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>...
     return decltype(type_index<T>(std::declval<type_list>()))::value < sizeof...(Types);
   }
 };
+}  // namespace type_lis_traits
+
+namespace helpers {
 
 template <class T, std::size_t MemSize>
 enable_if_small_t<T, std::function<void(void**)>, MemSize> make_deleter() {
@@ -101,7 +112,7 @@ enable_if_big_t<T, std::function<void(void**, void*)>, MemSize> make_store_copy(
   };
 }
 
-}  // namespace private
+}  // namespace helpers
 
 template <class I, std::size_t N>
 I constexpr max_value(std::array<I, N> const& values, I current_value, std::size_t current_index) {
@@ -147,12 +158,12 @@ class variant {
   void* data_[memory_size / sizeof(void*)] = {};
 
  public:
-  using type_list_type = private_::type_list<std::make_index_sequence<sizeof...(Value)>, Value...>;
+  using type_list_type = type_list_traits::type_list<std::make_index_sequence<sizeof...(Value)>, Value...>;
 
  protected:
   void clear() {
     static std::array<std::function<void(void**)>, sizeof...(Value)> deleters = {
-        private_::make_deleter<Value, memory_size>()...};
+        helpers::make_deleter<Value, memory_size>()...};
     deleters[type_](&data_[0]);
   }
 
@@ -166,7 +177,7 @@ class variant {
   void create(T&& value) {
     assert_has_type<T>();
     static std::array<std::function<void(void**, void*)>, sizeof...(Value)> ctors = {
-        private_::make_store_move<Value, memory_size>()...};
+        helpers::make_store_move<Value, memory_size>()...};
     type_ = type_list_type::template get_index<T>();
     ctors[type_](&data_[0], &value);
   }
@@ -175,15 +186,9 @@ class variant {
   void create(T const& value) {
     assert_has_type<T>();
     static std::array<std::function<void(void**, void*)>, sizeof...(Value)> ctors = {
-        private_::make_store_copy<Value, memory_size>()...};
+        helpers::make_store_copy<Value, memory_size>()...};
     type_ = type_list_type::template get_index<T>();
     ctors[type_](&data_[0], &value);
-  }
-
-  template <class T>
-  inline void store(T&& value) {
-    clear();
-    create(std::forward<T>(value));
   }
 
  public:
@@ -262,7 +267,7 @@ class basic_container
   using array_type = ArrayBase<basic_container>;
   using key_type = Key;
   using value_type_list_type =
-      private_::type_list<std::make_index_sequence<sizeof...(Value)>, Value...>;
+      type_list_traits::type_list<std::make_index_sequence<sizeof...(Value)>, Value...>;
 
   basic_container() : variant_type(typename traits<basic_container>::default_type{}) {
   }
