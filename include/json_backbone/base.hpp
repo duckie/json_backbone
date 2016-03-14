@@ -1,21 +1,9 @@
 #ifndef JSON_BACKBONE_BASE_HEADER
 #define JSON_BACKBONE_BASE_HEADER
-#include <map>
-#include <vector>
 #include <type_traits>
-#include <sstream>
 #include <utility>
-#include <cassert>
+#include <functional>
 #include <exception>
-#include <initializer_list>
-#include <tuple>
-#include <typeinfo>
-#include <cstdio>
-#include <cstring>
-#include <cstdlib>
-#include <cfloat>
-#include <limits>
-#include <iostream>
 
 namespace json_backbone {
 
@@ -29,28 +17,36 @@ class attr_init;
 template <class Container>
 class array_element_init;
 
-namespace private_ {
+template <class T>
+struct is_small_type : public std::integral_constant<bool, (sizeof(T) <= sizeof(void*))> {};
 
-template <class Type, size_t Index>
+template <class T, class Return>
+using enable_if_small_t = std::enable_if_t<is_small_type<T>::value, Return>;
+template <class T, class Return>
+using enable_if_big_t = std::enable_if_t<!is_small_type<T>::value, Return>;
+
+namespace private_ {
+template <class Type, std::size_t Index>
 struct type_info {};
 
 template <class Indices, class... Types>
 struct type_list;
 
-template <size_t... Is, class... Types>
+template <std::size_t... Is, class... Types>
 struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>... {
-  template <class Type, size_t Index>
-  static constexpr std::integral_constant<size_t, Index> type_index(type_info<Type, Index> const&) {
+  template <class Type, std::size_t Index>
+  static constexpr std::integral_constant<std::size_t, Index> type_index(
+      type_info<Type, Index> const&) {
     return {};
   }
 
   template <class Type>
-  static constexpr std::integral_constant<size_t, sizeof...(Types)> type_index(...) {
+  static constexpr std::integral_constant<std::size_t, sizeof...(Types)> type_index(...) {
     return {};
   }
 
   template <class T>
-  static constexpr size_t get_index() {
+  static constexpr std::size_t get_index() {
     return decltype(type_index<T>(std::declval<type_list>()))::value;
   }
 
@@ -61,24 +57,24 @@ struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>...
 };
 
 template <class T>
-std::enable_if_t<sizeof(T) <= sizeof(void*), std::function<void(void**)>> make_deleter() {
+enable_if_small_t<T,std::function<void(void**)>> make_deleter() {
   return [](void** data) { reinterpret_cast<T*>(data)->~T(); };
 }
 
 template <class T>
-std::enable_if_t<sizeof(void*) < sizeof(T), std::function<void(void**)>> make_deleter() {
+enable_if_big_t<T,std::function<void(void**)>> make_deleter() {
   return [](void** data) { delete reinterpret_cast<T*>(*data); };
 }
 
 template <class T>
-std::enable_if_t<sizeof(T) <= sizeof(void*), std::function<void(void**, void*)>> make_store_move() {
+enable_if_small_t<T,std::function<void(void**, void*)>> make_store_move() {
   return [](void** data, void* pval) {
     new (reinterpret_cast<T*>(data)) T(std::move(*reinterpret_cast<T*>(pval)));
   };
 }
 
 template <class T>
-std::enable_if_t<sizeof(void*) < sizeof(T), std::function<void(void**, void*)>> make_store_move() {
+enable_if_big_t<T,std::function<void(void**, void*)>> make_store_move() {
   return [](void** data, void* pval) {
     T** ptr = reinterpret_cast<T**>(data);
     *ptr = new T(std::move(*reinterpret_cast<T*>(pval)));
@@ -86,14 +82,14 @@ std::enable_if_t<sizeof(void*) < sizeof(T), std::function<void(void**, void*)>> 
 }
 
 template <class T>
-std::enable_if_t<sizeof(T) <= sizeof(void*), std::function<void(void**, void*)>> make_store_copy() {
+enable_if_small_t<T,std::function<void(void**, void*)>> make_store_copy() {
   return [](void** data, void* pval) {
     new (reinterpret_cast<T*>(data)) T(*reinterpret_cast<T*>(pval));
   };
 }
 
 template <class T>
-std::enable_if_t<sizeof(void*) < sizeof(T), std::function<void(void**, void*)>> make_store_copy() {
+enable_if_big_t<T,std::function<void(void**, void*)>> make_store_copy() {
   return [](void** data, void* pval) {
     T** ptr = reinterpret_cast<T**>(data);
     *ptr = new T(*reinterpret_cast<T*>(pval));
@@ -102,8 +98,8 @@ std::enable_if_t<sizeof(void*) < sizeof(T), std::function<void(void**, void*)>> 
 
 }  // namespace private
 
-template <class I, size_t N>
-I constexpr max_value(std::array<I, N> const& values, I current_value, size_t current_index) {
+template <class I, std::size_t N>
+I constexpr max_value(std::array<I, N> const& values, I current_value, std::size_t current_index) {
   return N <= current_index ? current_value
                             : (current_value < values.at(current_index)
                                    ? max_value(values, values.at(current_index), current_index + 1)
@@ -124,9 +120,17 @@ struct container_traits {
                                 void>::type>::type;
 };
 
+template <class Container>
+struct bad_type : public std::exception {
+  virtual ~bad_type() = default;
+  char const* what() const noexcept override {
+    return "Requested type does not match current type of the variant.";
+  }
+};
+
 template <class... Value>
 class variant {
-  size_t type_ = 0;
+  std::size_t type_ = 0;
   void* data_ = nullptr;
 
  public:
@@ -164,7 +168,7 @@ class variant {
   }
 
   template <class T>
-  void store(T&& value) {
+  inline void store(T&& value) {
     clear();
     create(std::forward<T>(value));
   }
@@ -177,6 +181,33 @@ class variant {
 
   ~variant() {
     clear();
+  }
+
+  template <class T>
+  inline bool is() const noexcept {
+    assert_has_type<T>();
+    return type_ == type_list_type::template get_index<T>();
+  }
+
+  template <class T>
+  T& get() & {
+    assert_has_type<T>();
+    if (is<T>()) return *(reinterpret_cast<T*>(&data_));
+    throw bad_type<variant>{};
+  }
+
+  template <class T>
+  T const& get() const & {
+    assert_has_type<T>();
+    if (is<T>()) return *(reinterpret_cast<T*>(&data_));
+    throw bad_type<variant>{};
+  }
+
+  template <class T>
+  T get() && {
+    assert_has_type<T>();
+    if (is<T>()) return std::move(*(reinterpret_cast<T*>(&data_)));
+    throw bad_type<variant>{};
   }
 };
 
