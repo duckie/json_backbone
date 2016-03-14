@@ -139,37 +139,73 @@ enable_if_big_t<T, std::function<void(void**)>, MemSize> make_deleter() {
   return [](void** data) { delete reinterpret_cast<T*>(*data); };
 }
 
-// make_store_move creates a function that allocates and store a type by move - small type version
+// make_create_move creates a function that allocates and store a type by move - small type version
 template <class T, std::size_t MemSize>
-enable_if_small_t<T, std::function<void(void**, void*)>, MemSize> make_store_move() {
+enable_if_small_t<T, std::function<void(void**, void*)>, MemSize> make_create_move() {
   return [](void** data, void* pval) {
     new (reinterpret_cast<T*>(data)) T(std::move(*reinterpret_cast<T*>(pval)));
   };
 }
 
-// make_store_move creates a function that allocates and store a type by move - big type version
+// make_create_move creates a function that allocates and store a type by move - big type version
 template <class T, std::size_t MemSize>
-enable_if_big_t<T, std::function<void(void**, void*)>, MemSize> make_store_move() {
+enable_if_big_t<T, std::function<void(void**, void*)>, MemSize> make_create_move() {
   return [](void** data, void* pval) {
     T** ptr = reinterpret_cast<T**>(data);
     *ptr = new T(std::move(*reinterpret_cast<T*>(pval)));
   };
 }
 
-// make_store_copy creates a function that allocates and store a type by copy - small type version
+// make_create_copy creates a function that allocates and store a type by copy - small type version
 template <class T, std::size_t MemSize>
-enable_if_small_t<T, std::function<void(void**, void*)>, MemSize> make_store_copy() {
-  return [](void** data, void* pval) {
-    new (reinterpret_cast<T*>(data)) T(*reinterpret_cast<T*>(pval));
+enable_if_small_t<T, std::function<void(void**, void const*)>, MemSize> make_create_copy() {
+  return [](void** data, void const* pval) {
+    new (reinterpret_cast<T*>(data)) T(*reinterpret_cast<T const*>(pval));
   };
 }
 
-// make_store_copy creates a function that allocates and store a type by copy - big type version
+// make_create_copy creates a function that allocates and store a type by copy - big type version
 template <class T, std::size_t MemSize>
-enable_if_big_t<T, std::function<void(void**, void*)>, MemSize> make_store_copy() {
-  return [](void** data, void* pval) {
+enable_if_big_t<T, std::function<void(void**, void const*)>, MemSize> make_create_copy() {
+  return [](void** data, void const* pval) {
     T** ptr = reinterpret_cast<T**>(data);
-    *ptr = new T(*reinterpret_cast<T*>(pval));
+    *ptr = new T(*reinterpret_cast<T const*>(pval));
+  };
+}
+
+// make_store_move creates a function that stores a type by move - small type version
+template <class T, std::size_t MemSize>
+enable_if_small_t<T, std::function<void(void**, void*)>, MemSize> make_store_move() {
+  return [](void** data, void* pval) {
+    T* ptr = reinterpret_cast<T*>(data);
+    *ptr = std::move(*reinterpret_cast<T*>(pval));
+  };
+}
+
+// make_store_move creates a function that stores a type by move - big type version
+template <class T, std::size_t MemSize>
+enable_if_big_t<T, std::function<void(void**, void*)>, MemSize> make_store_move() {
+  return [](void** data, void* pval) {
+    T* ptr = reinterpret_cast<T*>(*data);
+    *ptr = std::move(*reinterpret_cast<T*>(pval));
+  };
+}
+
+// make_store_copy creates a function that stores a type by copy - small type version
+template <class T, std::size_t MemSize>
+enable_if_small_t<T, std::function<void(void**, void const*)>, MemSize> make_store_copy() {
+  return [](void** data, void const* pval) {
+    T* ptr = reinterpret_cast<T*>(data);
+    *ptr = *reinterpret_cast<T const*>(pval);
+  };
+}
+
+// make_store_copy creates a function that stores a type by copy - big type version
+template <class T, std::size_t MemSize>
+enable_if_big_t<T, std::function<void(void**, void const*)>, MemSize> make_store_copy() {
+  return [](void** data, void const* pval) {
+    T* ptr = reinterpret_cast<T*>(*data);
+    *ptr = *reinterpret_cast<T const*>(pval);
   };
 }
 
@@ -209,7 +245,7 @@ struct bad_type : public std::exception {
 };
 
 //
-// variant is a discirminated union optimized for small types
+// variant is a discriminated union optimized for small types
 //
 template <class... Value>
 class variant {
@@ -221,7 +257,7 @@ class variant {
   static constexpr std::size_t memory_size =
       sizeof(void*) * (min_memory_size / sizeof(void*) + (min_memory_size % sizeof(void*) ? 1 : 0));
 
-  std::size_t type_ = 0;
+  std::size_t type_ = sizeof ... (Value);
   void* data_[memory_size / sizeof(void*)] = {};
 
  public:
@@ -234,7 +270,8 @@ class variant {
   void clear() {
     static std::array<std::function<void(void**)>, sizeof...(Value)> deleters = {
         helpers::make_deleter<Value, memory_size>()...};
-    deleters[type_](&data_[0]);
+    if (type_ < sizeof ... (Value)) // Should only be the case in some ctors
+      deleters[type_](&data_[0]);
   }
 
   // Fails to compile if type is not supported
@@ -249,7 +286,7 @@ class variant {
   void create(T&& value) {
     assert_has_type<T>();
     static std::array<std::function<void(void**, void*)>, sizeof...(Value)> ctors = {
-        helpers::make_store_move<Value, memory_size>()...};
+        helpers::make_create_move<Value, memory_size>()...};
     type_ = type_list_type::template get_index<T>();
     ctors[type_](&data_[0], &value);
   }
@@ -258,14 +295,34 @@ class variant {
   template <class T>
   void create(T const& value) {
     assert_has_type<T>();
-    static std::array<std::function<void(void**, void*)>, sizeof...(Value)> ctors = {
-        helpers::make_store_copy<Value, memory_size>()...};
+    static std::array<std::function<void(void**, void const*)>, sizeof...(Value)> ctors = {
+        helpers::make_create_copy<Value, memory_size>()...};
     type_ = type_list_type::template get_index<T>();
     ctors[type_](&data_[0], &value);
   }
 
  public:
-  template <class T>
+  variant(variant const& other) {
+    static std::array<std::function<void(variant&,variant const&)>, sizeof...(Value)> ctors = {
+      [](variant& self, variant const& other) {
+        self.template create<Value>(other.template get<Value>());
+      }...
+    };
+
+    ctors[other.type_](*this,other);
+  }
+
+  variant(variant&& other) {
+    static std::array<std::function<void(variant&,variant&&)>, sizeof...(Value)> ctors = {
+      [](variant& self, variant const& other) {
+        self.template create<Value>(std::move(other.template get<Value>()));
+      }...
+    };
+
+    ctors[other.type_](*this,std::move(other));
+  }
+
+  template <class T, class Enabler = std::enable_if_t<!std::is_base_of<variant,std::decay_t<T>>::value,void>>
   variant(T&& value) {
     create(std::forward<T>(value));
   }
@@ -274,12 +331,73 @@ class variant {
     clear();
   }
 
+  // Assign from other variant
+  variant& operator=(variant const& other) {
+    static std::array<std::function<void(variant&,variant const&)>, sizeof...(Value)> stores = {
+      [](variant& self, variant const& other) {
+        self.template get<Value>() = other.template get<Value>();
+      }...
+    };
+
+    static std::array<std::function<void(variant&,variant const&)>, sizeof...(Value)> ctors = {
+      [](variant& self, variant const& other) {
+        self.template create<Value>(other.template get<Value>());
+      }...
+    };
+
+    if (type_ == other.type_) {
+      stores[type_](*this,other);
+    }
+    else {
+      clear();
+      ctors[other.type_](*this,other);
+    }
+    return *this;
+  }
+
+  variant& operator=(variant&& other) {
+    static std::array<std::function<void(variant&,variant&&)>, sizeof...(Value)> stores = {
+      [](variant& self, variant&& other) {
+        self.template get<Value>() = std::move(other.template get<Value>());
+      }...
+    };
+
+    static std::array<std::function<void(variant&,variant&&)>, sizeof...(Value)> ctors = {
+      [](variant& self, variant&& other) {
+        self.template create<Value>(std::move(other.template get<Value>()));
+      }...
+    };
+
+    if (type_ == other.type_) {
+      stores[type_](*this,std::move(other));
+    }
+    else {
+      clear();
+      ctors[other.type_](*this,std::move(other));
+    }
+    return *this;
+  }
+
+  template <class T, class Enabler = std::enable_if_t<!std::is_base_of<variant,std::decay_t<T>>::value,void>>
+  variant& operator=(T&& value) {
+    assert_has_type<T>();
+    if (type_ == type_list_type::template get_index<T>()) {
+      this->template raw<T>() = std::forward<T>(value);
+    }
+    else {
+      clear();
+      create<T>(std::forward<T>(value));
+    }
+    return *this;
+  }
+
   template <class T>
   inline bool is() const noexcept {
     assert_has_type<T>();
     return type_ == type_list_type::template get_index<T>();
   }
 
+  // get checks the type is correct and returns it
   template <class T>
   enable_if_small_t<T,T&,memory_size> get() & {
     assert_has_type<T>();
@@ -287,6 +405,7 @@ class variant {
     throw bad_type<variant>{};
   }
 
+  // get checks the type is correct and returns it
   template <class T>
   enable_if_big_t<T,T&,memory_size> get() & {
     assert_has_type<T>();
@@ -294,20 +413,23 @@ class variant {
     throw bad_type<variant>{};
   }
 
+  // get checks the type is correct and returns it
   template <class T>
   enable_if_small_t<T,T const&,memory_size> get() const & {
     assert_has_type<T>();
-    if (is<T>()) return *(reinterpret_cast<T*>(&data_[0]));
+    if (is<T>()) return *(reinterpret_cast<T const*>(&data_[0]));
     throw bad_type<variant>{};
   }
 
+  // get checks the type is correct and returns it
   template <class T>
   enable_if_big_t<T,T const&,memory_size> get() const & {
     assert_has_type<T>();
-    if (is<T>()) return *(reinterpret_cast<T*>(data_[0]));
+    if (is<T>()) return *(reinterpret_cast<T const*>(data_[0]));
     throw bad_type<variant>{};
   }
 
+  // get checks the type is correct and returns it
   template <class T>
   enable_if_small_t<T,T,memory_size> get() && {
     assert_has_type<T>();
@@ -315,12 +437,56 @@ class variant {
     throw bad_type<variant>{};
   }
 
+  // get checks the type is correct and returns it
   template <class T>
   enable_if_big_t<T,T,memory_size> get() && {
     assert_has_type<T>();
     if (is<T>()) return std::move(*(reinterpret_cast<T*>(data_[0])));
     throw bad_type<variant>{};
   }
+
+  // raw returns directly without any check
+  template <class T>
+  inline enable_if_small_t<T,T&,memory_size> raw() & noexcept {
+    assert_has_type<T>();
+    return *(reinterpret_cast<T*>(&data_[0]));
+  }
+
+  // raw returns directly without any check
+  template <class T>
+  inline enable_if_big_t<T,T&,memory_size> raw() & noexcept {
+    assert_has_type<T>();
+    return *(reinterpret_cast<T*>(data_[0]));
+  }
+
+  // raw returns directly without any check
+  template <class T>
+  inline enable_if_small_t<T,T const&,memory_size> raw() const & noexcept {
+    assert_has_type<T>();
+    if (is<T>()) return *(reinterpret_cast<T*>(&data_[0]));
+  }
+
+  // raw returns directly without any check
+  template <class T>
+  inline enable_if_big_t<T,T const&,memory_size> raw() const & noexcept {
+    assert_has_type<T>();
+    if (is<T>()) return *(reinterpret_cast<T*>(data_[0]));
+  }
+
+  // raw returns directly without any check
+  template <class T>
+  inline enable_if_small_t<T,T,memory_size> raw() && noexcept {
+    assert_has_type<T>();
+    return std::move(*(reinterpret_cast<T*>(&data_[0])));
+  }
+
+  // raw returns directly without any check
+  template <class T>
+  inline enable_if_big_t<T,T,memory_size> raw() && noexcept {
+    assert_has_type<T>();
+    return std::move(*(reinterpret_cast<T*>(data_[0])));
+  }
+
 };
 
 // Functional version of is 
@@ -335,16 +501,39 @@ decltype(auto) get(variant<Value...>& value) {
   return value.template get<T>();
 }
 
+// Functional version of get
 template <class T, class ... Value>
 decltype(auto) get(variant<Value...> const& value) {
   return value.template get<T>();
 }
 
+// Functional version of get
 template <class T, class ... Value>
 decltype(auto) get(variant<Value...> && value) {
   return std::move(value.template get<T>());
 }
 
+// Functional version of raw
+template <class T, class ... Value>
+inline decltype(auto) raw(variant<Value...>& value) noexcept {
+  return value.template raw<T>();
+}
+
+// Functional version of raw
+template <class T, class ... Value>
+inline decltype(auto) raw(variant<Value...> const& value) noexcept {
+  return value.template raw<T>();
+}
+
+// Functional version of raw
+template <class T, class ... Value>
+inline decltype(auto) raw(variant<Value...> && value) noexcept {
+  return std::move(value.template raw<T>());
+}
+
+// 
+// base_container is an variant extended with an associative container and a random access container
+//
 template <template <class> class traits, template <class...> class ObjectBase,
           template <class...> class ArrayBase, class Key, class... Value>
 class basic_container
@@ -365,6 +554,28 @@ class basic_container
       type_list_traits::type_list<std::make_index_sequence<sizeof...(Value)>, Value...>;
 
   basic_container() : variant_type(typename traits<basic_container>::default_type{}) {
+  }
+
+  basic_container(basic_container const& value)
+      : variant_type(value) {
+  }
+
+  basic_container(basic_container&& value)
+      : variant_type(std::move(value)) {
+  }
+
+  basic_container& operator=(basic_container const& value) {
+    //variant_type& v = *this;
+    //v = static_cast<variant_type const&>(value);
+    variant_type::operator=(value);
+    return *this;
+  }
+
+  basic_container& operator=(basic_container&& value) {
+    variant_type::operator=(std::move(value));
+    //variant_type& v = *this;
+    //v = static_cast<variant_type&&>(value);
+    return *this;
   }
 
   template <class T>
