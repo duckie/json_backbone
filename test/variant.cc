@@ -16,6 +16,7 @@ using json_container = container<std::map, std::vector, std::string, std::string
 
 TEST_CASE("Utils - constexpr computations", "[utils][compile_time]") {
   SECTION("Constexpr max_value") {
+    using namespace json_backbone::arithmetics;
     REQUIRE((std::integral_constant<int, max_value<int, 5>({1, 2, 3, 4, 5}, 0, 0)>::value) == 5);
     REQUIRE((std::integral_constant<int, max_value<int, 5>({1, 2, 5, 4, 3}, 0, 0)>::value) == 5);
     REQUIRE((std::integral_constant<int, max_value<int, 5>({5, 2, 3, 4, 1}, 0, 0)>::value) == 5);

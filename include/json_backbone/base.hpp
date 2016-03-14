@@ -53,6 +53,33 @@ using enable_if_small_t = std::enable_if_t<(sizeof(T) <= MemSize), Return>;
 template <class T, class Return, std::size_t MemSize>
 using enable_if_big_t = std::enable_if_t<(MemSize < sizeof(T)), Return>;
 
+
+//
+// arithmetics provides compiles times arithmetics over arrays
+//
+namespace arithmetics {
+
+// max_value computes the higher value of an array at compile time
+template <class I, std::size_t N>
+I constexpr max_value(std::array<I, N> const& values, I current_value, std::size_t current_index) {
+  return N <= current_index ? current_value
+                            : (current_value < values.at(current_index)
+                                   ? max_value(values, values.at(current_index), current_index + 1)
+                                   : max_value(values, current_value, current_index + 1));
+}
+
+//// max_value computes the higher value of a list at compile time
+//template <std::size_t N>
+//std::size_t constexpr find_first_true(std::array<bool, N> const& values, std::size_t current_index) {
+  //return N <= current_index ? N
+                            //: values.at(current_index)
+                                   //? current_index
+                                   //: find_first_true(values,current_index+1);
+//}
+
+
+};
+
 //
 // Utilities for computation on type lists
 //
@@ -211,14 +238,6 @@ enable_if_big_t<T, std::function<void(void**, void const*)>, MemSize> make_store
 
 }  // namespace helpers
 
-// max_value computes the higher value of a list at compile time
-template <class I, std::size_t N>
-I constexpr max_value(std::array<I, N> const& values, I current_value, std::size_t current_index) {
-  return N <= current_index ? current_value
-                            : (current_value < values.at(current_index)
-                                   ? max_value(values, values.at(current_index), current_index + 1)
-                                   : max_value(values, current_value, current_index + 1));
-}
 
 // TODO: move in type_list traits
 template <class Container>
@@ -251,7 +270,7 @@ template <class... Value>
 class variant {
   // Compute minimum size required by types. Default 8
   static constexpr std::size_t min_memory_size =
-      max_value<std::size_t, sizeof...(Value)>({memory_footprint_t<Value>::value...}, 0, 0);
+      arithmetics::max_value<std::size_t, sizeof...(Value)>({memory_footprint_t<Value>::value...}, 0, 0);
 
   // Compute memory size of an array of void* wide enough to hold min_memory_size
   static constexpr std::size_t memory_size =
