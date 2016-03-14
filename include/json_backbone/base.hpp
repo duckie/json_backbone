@@ -20,10 +20,15 @@ class array_element_init;
 template <class T>
 struct is_small_type : public std::integral_constant<bool, (sizeof(T) <= sizeof(void*))> {};
 
-template <class T, class Return>
-using enable_if_small_t = std::enable_if_t<is_small_type<T>::value, Return>;
-template <class T, class Return>
-using enable_if_big_t = std::enable_if_t<!is_small_type<T>::value, Return>;
+template <class T>
+using memory_footprint_t =
+    std::conditional_t<is_small_type<T>::value, std::integral_constant<std::size_t, sizeof(T)>,
+                       std::integral_constant<std::size_t, sizeof(T*)>>;
+
+template <class T, class Return, std::size_t MemSize>
+using enable_if_small_t = std::enable_if_t<(sizeof(T) <= MemSize), Return>;
+template <class T, class Return, std::size_t MemSize>
+using enable_if_big_t = std::enable_if_t<(MemSize < sizeof(T)), Return>;
 
 namespace private_ {
 template <class Type, std::size_t Index>
@@ -56,40 +61,40 @@ struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>...
   }
 };
 
-template <class T>
-enable_if_small_t<T,std::function<void(void**)>> make_deleter() {
+template <class T, std::size_t MemSize>
+enable_if_small_t<T, std::function<void(void**)>, MemSize> make_deleter() {
   return [](void** data) { reinterpret_cast<T*>(data)->~T(); };
 }
 
-template <class T>
-enable_if_big_t<T,std::function<void(void**)>> make_deleter() {
+template <class T, std::size_t MemSize>
+enable_if_big_t<T, std::function<void(void**)>, MemSize> make_deleter() {
   return [](void** data) { delete reinterpret_cast<T*>(*data); };
 }
 
-template <class T>
-enable_if_small_t<T,std::function<void(void**, void*)>> make_store_move() {
+template <class T, std::size_t MemSize>
+enable_if_small_t<T, std::function<void(void**, void*)>, MemSize> make_store_move() {
   return [](void** data, void* pval) {
     new (reinterpret_cast<T*>(data)) T(std::move(*reinterpret_cast<T*>(pval)));
   };
 }
 
-template <class T>
-enable_if_big_t<T,std::function<void(void**, void*)>> make_store_move() {
+template <class T, std::size_t MemSize>
+enable_if_big_t<T, std::function<void(void**, void*)>, MemSize> make_store_move() {
   return [](void** data, void* pval) {
     T** ptr = reinterpret_cast<T**>(data);
     *ptr = new T(std::move(*reinterpret_cast<T*>(pval)));
   };
 }
 
-template <class T>
-enable_if_small_t<T,std::function<void(void**, void*)>> make_store_copy() {
+template <class T, std::size_t MemSize>
+enable_if_small_t<T, std::function<void(void**, void*)>, MemSize> make_store_copy() {
   return [](void** data, void* pval) {
     new (reinterpret_cast<T*>(data)) T(*reinterpret_cast<T*>(pval));
   };
 }
 
-template <class T>
-enable_if_big_t<T,std::function<void(void**, void*)>> make_store_copy() {
+template <class T, std::size_t MemSize>
+enable_if_big_t<T, std::function<void(void**, void*)>, MemSize> make_store_copy() {
   return [](void** data, void* pval) {
     T** ptr = reinterpret_cast<T**>(data);
     *ptr = new T(*reinterpret_cast<T*>(pval));
@@ -130,8 +135,16 @@ struct bad_type : public std::exception {
 
 template <class... Value>
 class variant {
+  // Compute minimum size required by types. Default 8
+  static constexpr std::size_t min_memory_size =
+      max_value<std::size_t, sizeof...(Value)>({memory_footprint_t<Value>::value...}, 0, 0);
+
+  // Compute memory size of an array of void* wide enough to hold min_memory_size
+  static constexpr std::size_t memory_size =
+      sizeof(void*) * (min_memory_size / sizeof(void*) + (min_memory_size % sizeof(void*) ? 1 : 0));
+
   std::size_t type_ = 0;
-  void* data_ = nullptr;
+  void* data_[memory_size / sizeof(void*)] = {};
 
  public:
   using type_list_type = private_::type_list<std::make_index_sequence<sizeof...(Value)>, Value...>;
@@ -139,8 +152,8 @@ class variant {
  protected:
   void clear() {
     static std::array<std::function<void(void**)>, sizeof...(Value)> deleters = {
-        private_::make_deleter<Value>()...};
-    deleters[type_](&data_);
+        private_::make_deleter<Value, memory_size>()...};
+    deleters[type_](&data_[0]);
   }
 
   template <class T>
@@ -153,18 +166,18 @@ class variant {
   void create(T&& value) {
     assert_has_type<T>();
     static std::array<std::function<void(void**, void*)>, sizeof...(Value)> ctors = {
-        private_::make_store_move<Value>()...};
+        private_::make_store_move<Value, memory_size>()...};
     type_ = type_list_type::template get_index<T>();
-    ctors[type_](&data_, &value);
+    ctors[type_](&data_[0], &value);
   }
 
   template <class T>
   void create(T const& value) {
     assert_has_type<T>();
     static std::array<std::function<void(void**, void*)>, sizeof...(Value)> ctors = {
-        private_::make_store_copy<Value>()...};
+        private_::make_store_copy<Value, memory_size>()...};
     type_ = type_list_type::template get_index<T>();
-    ctors[type_](&data_, &value);
+    ctors[type_](&data_[0], &value);
   }
 
   template <class T>
