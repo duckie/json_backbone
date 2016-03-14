@@ -17,16 +17,39 @@ class attr_init;
 template <class Container>
 class array_element_init;
 
+//
+// is_small_type inherits from true_type if type is considered small
+//
+// User can specialize this traits to force a type to be considered small
+// even if it would not in the first place.
+//
+// Example : double in 32bits platforms will not be considered small
+// but maybe you would like it to do so.
+//
 template <class T>
 struct is_small_type : public std::integral_constant<bool, (sizeof(T) <= sizeof(void*))> {};
 
+//
+// memory_footprint_t represents minimum size needed to store the type
+//
+// This is the minimum size to be allocated in a container to hold 
+// this type wether it is a small type or not. Big types needs to 
+// be pointed to whiole small ones are directly stored
+//
 template <class T>
 using memory_footprint_t =
     std::conditional_t<is_small_type<T>::value, std::integral_constant<std::size_t, sizeof(T)>,
                        std::integral_constant<std::size_t, sizeof(T*)>>;
 
+//
+// enable_if_small_t is enable_if_t when the type fits in the given size
+//
 template <class T, class Return, std::size_t MemSize>
 using enable_if_small_t = std::enable_if_t<(sizeof(T) <= MemSize), Return>;
+
+//
+// enable_if_big_t is enable_if_t when the type doesnt fit in the given size
+//
 template <class T, class Return, std::size_t MemSize>
 using enable_if_big_t = std::enable_if_t<(MemSize < sizeof(T)), Return>;
 
@@ -35,34 +58,63 @@ using enable_if_big_t = std::enable_if_t<(MemSize < sizeof(T)), Return>;
 //
 namespace type_list_traits {
 
-template <class Type, std::size_t Index>
-struct type_info {};
-
+// type_list forward declaration
 template <class Indices, class... Types>
 struct type_list;
 
+// Utility type
 template <class T> struct type_holder {
   using type = T;
 };
 
+// Utility type
+template <class Type, std::size_t Index>
+struct type_info {};
+
+
+//
+// type_list offers compile time services on a type_list
+//
+// type_list is implemented with function overloads rather than than recursive
+// templates to speed up compilation.
+//
 template <std::size_t... Is, class... Types>
 struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>... {
+  
+  //
+  // Returns the index as integral constant of the given type in the list
+  //
+  // Not supposed to be called, implementation is just there to avoid
+  // warnings
+  //
   template <class Type, std::size_t Index>
   static constexpr std::integral_constant<std::size_t, Index> type_index(
       type_info<Type, Index> const&) {
     return {};
   }
 
+  //
+  // Sink member function to return a value for unsupported types
+  //
+  // Not supposed to be called, implementation is just there to avoid
+  // warnings
+  //
   template <class Type>
   static constexpr std::integral_constant<std::size_t, sizeof...(Types)> type_index(...) {
     return {};
   }
 
+  //
+  // Returns index of type T in the list
+  //
+  // Returns size of the list if T not in the list
+  //
   template <class T>
   static constexpr std::size_t get_index() {
     return decltype(type_index<T>(std::declval<type_list>()))::value;
   }
 
+  // Returns true if type T is in the list
   template <class T>
   static constexpr bool has_type() {
     return decltype(type_index<T>(std::declval<type_list>()))::value < sizeof...(Types);
@@ -70,18 +122,24 @@ struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>...
 };
 }  // namespace type_lis_traits
 
+//
+// helpers creates functions to be used by the variant
+//
 namespace helpers {
 
+// make_deleter creates a function that deletes a type - smalYl type version
 template <class T, std::size_t MemSize>
 enable_if_small_t<T, std::function<void(void**)>, MemSize> make_deleter() {
   return [](void** data) { reinterpret_cast<T*>(data)->~T(); };
 }
 
+// make_deleter creates a function that deletes a type - big type version
 template <class T, std::size_t MemSize>
 enable_if_big_t<T, std::function<void(void**)>, MemSize> make_deleter() {
   return [](void** data) { delete reinterpret_cast<T*>(*data); };
 }
 
+// make_store_move creates a function that allocates and store a type by move - small type version
 template <class T, std::size_t MemSize>
 enable_if_small_t<T, std::function<void(void**, void*)>, MemSize> make_store_move() {
   return [](void** data, void* pval) {
@@ -89,6 +147,7 @@ enable_if_small_t<T, std::function<void(void**, void*)>, MemSize> make_store_mov
   };
 }
 
+// make_store_move creates a function that allocates and store a type by move - big type version
 template <class T, std::size_t MemSize>
 enable_if_big_t<T, std::function<void(void**, void*)>, MemSize> make_store_move() {
   return [](void** data, void* pval) {
@@ -97,6 +156,7 @@ enable_if_big_t<T, std::function<void(void**, void*)>, MemSize> make_store_move(
   };
 }
 
+// make_store_copy creates a function that allocates and store a type by copy - small type version
 template <class T, std::size_t MemSize>
 enable_if_small_t<T, std::function<void(void**, void*)>, MemSize> make_store_copy() {
   return [](void** data, void* pval) {
@@ -104,6 +164,7 @@ enable_if_small_t<T, std::function<void(void**, void*)>, MemSize> make_store_cop
   };
 }
 
+// make_store_copy creates a function that allocates and store a type by copy - big type version
 template <class T, std::size_t MemSize>
 enable_if_big_t<T, std::function<void(void**, void*)>, MemSize> make_store_copy() {
   return [](void** data, void* pval) {
@@ -114,6 +175,7 @@ enable_if_big_t<T, std::function<void(void**, void*)>, MemSize> make_store_copy(
 
 }  // namespace helpers
 
+// max_value computes the higher value of a list at compile time
 template <class I, std::size_t N>
 I constexpr max_value(std::array<I, N> const& values, I current_value, std::size_t current_index) {
   return N <= current_index ? current_value
@@ -122,6 +184,7 @@ I constexpr max_value(std::array<I, N> const& values, I current_value, std::size
                                    : max_value(values, current_value, current_index + 1));
 }
 
+// TODO: move in type_list traits
 template <class Container>
 struct container_traits {
   using char_sequence_storage_type = typename std::conditional<
@@ -136,6 +199,7 @@ struct container_traits {
                                 void>::type>::type;
 };
 
+// bad_type is thrown at runtime when accessing a container with the wrong type
 template <class Container>
 struct bad_type : public std::exception {
   virtual ~bad_type() = default;
@@ -144,6 +208,9 @@ struct bad_type : public std::exception {
   }
 };
 
+//
+// variant is a discirminated union optimized for small types
+//
 template <class... Value>
 class variant {
   // Compute minimum size required by types. Default 8
@@ -161,18 +228,23 @@ class variant {
   using type_list_type = type_list_traits::type_list<std::make_index_sequence<sizeof...(Value)>, Value...>;
 
  protected:
+  //
+  // Destroys currently hold object and deallocates heap if needed
+  //
   void clear() {
     static std::array<std::function<void(void**)>, sizeof...(Value)> deleters = {
         helpers::make_deleter<Value, memory_size>()...};
     deleters[type_](&data_[0]);
   }
 
+  // Fails to compile if type is not supported
   template <class T>
   inline void assert_has_type() const {
     static_assert(type_list_type::template has_type<T>(),
                   "Type T not supported by this container.");
   }
 
+  // create allocates and moves the value into it
   template <class T>
   void create(T&& value) {
     assert_has_type<T>();
@@ -182,6 +254,7 @@ class variant {
     ctors[type_](&data_[0], &value);
   }
 
+  // create allocates and copies the value into it
   template <class T>
   void create(T const& value) {
     assert_has_type<T>();
@@ -249,6 +322,28 @@ class variant {
     throw bad_type<variant>{};
   }
 };
+
+// Functional version of is 
+template <class T, class ... Value>
+bool is(variant<Value...> const& value) {
+  return value.template is<T>();
+}
+
+// Functional version of get
+template <class T, class ... Value>
+decltype(auto) get(variant<Value...>& value) {
+  return value.template get<T>();
+}
+
+template <class T, class ... Value>
+decltype(auto) get(variant<Value...> const& value) {
+  return value.template get<T>();
+}
+
+template <class T, class ... Value>
+decltype(auto) get(variant<Value...> && value) {
+  return std::move(value.template get<T>());
+}
 
 template <template <class> class traits, template <class...> class ObjectBase,
           template <class...> class ArrayBase, class Key, class... Value>

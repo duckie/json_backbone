@@ -75,6 +75,13 @@ TEST_CASE("Container - Construction", "[construct][runtime]") {
     REQUIRE(c4.is<int>());
     REQUIRE(c5.is<bool>());
     REQUIRE(c6.is<std::nullptr_t>());
+
+    REQUIRE(is<std::nullptr_t>(c1));
+    REQUIRE(is<std::string>(c2));
+    REQUIRE(is<double>(c3));
+    REQUIRE(is<int>(c4));
+    REQUIRE(is<bool>(c5));
+    REQUIRE(is<std::nullptr_t>(c6));
   }
 
   SECTION("Get") {
@@ -84,6 +91,13 @@ TEST_CASE("Container - Construction", "[construct][runtime]") {
     REQUIRE(c4.get<int>() == 1);
     REQUIRE(c5.get<bool>() == true);
     REQUIRE(c6.get<std::nullptr_t>() == nullptr);
+
+    REQUIRE(get<std::nullptr_t>(c1) == nullptr);
+    REQUIRE(get<std::string>(c2) == "Roger");
+    REQUIRE(get<double>(c3) == 1.0);
+    REQUIRE(get<int>(c4) == 1);
+    REQUIRE(get<bool>(c5) == true);
+    REQUIRE(get<std::nullptr_t>(c6) == nullptr);
   }
 
   SECTION("Assign") {
