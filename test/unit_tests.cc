@@ -67,6 +67,32 @@ TEST_CASE("Container - Construction", "[construct][runtime]") {
   json_container c4 { 1 };
   json_container c5 { true };
   json_container c6 { nullptr };
+
+  SECTION("Type") {
+    REQUIRE(c1.is<std::nullptr_t>());
+    REQUIRE(c2.is<std::string>());
+    REQUIRE(c3.is<double>());
+    REQUIRE(c4.is<int>());
+    REQUIRE(c5.is<bool>());
+    REQUIRE(c6.is<std::nullptr_t>());
+  }
+
+  SECTION("Get") {
+    REQUIRE(c1.get<std::nullptr_t>() == nullptr);
+    REQUIRE(c2.get<std::string>() == "Roger");
+    REQUIRE(c3.get<double>() == 1.0);
+    REQUIRE(c4.get<int>() == 1);
+    REQUIRE(c5.get<bool>() == true);
+    REQUIRE(c6.get<std::nullptr_t>() == nullptr);
+  }
+
+  SECTION("Assign") {
+    c2.get<std::string>() = "Marcel";
+    REQUIRE(c2.get<std::string>() == "Marcel");
+    
+    c3.get<double>() = 2.0;
+    REQUIRE(c3.get<double>() == 2.0);
+  }
 }
 
 /*

@@ -203,23 +203,44 @@ class variant {
   }
 
   template <class T>
-  T& get() & {
+  enable_if_small_t<T,T&,memory_size> get() & {
     assert_has_type<T>();
-    if (is<T>()) return *(reinterpret_cast<T*>(&data_));
+    if (is<T>()) return *(reinterpret_cast<T*>(&data_[0]));
     throw bad_type<variant>{};
   }
 
   template <class T>
-  T const& get() const & {
+  enable_if_big_t<T,T&,memory_size> get() & {
     assert_has_type<T>();
-    if (is<T>()) return *(reinterpret_cast<T*>(&data_));
+    if (is<T>()) return *(reinterpret_cast<T*>(data_[0]));
     throw bad_type<variant>{};
   }
 
   template <class T>
-  T get() && {
+  enable_if_small_t<T,T const&,memory_size> get() const & {
     assert_has_type<T>();
-    if (is<T>()) return std::move(*(reinterpret_cast<T*>(&data_)));
+    if (is<T>()) return *(reinterpret_cast<T*>(&data_[0]));
+    throw bad_type<variant>{};
+  }
+
+  template <class T>
+  enable_if_big_t<T,T const&,memory_size> get() const & {
+    assert_has_type<T>();
+    if (is<T>()) return *(reinterpret_cast<T*>(data_[0]));
+    throw bad_type<variant>{};
+  }
+
+  template <class T>
+  enable_if_small_t<T,T,memory_size> get() && {
+    assert_has_type<T>();
+    if (is<T>()) return std::move(*(reinterpret_cast<T*>(&data_[0])));
+    throw bad_type<variant>{};
+  }
+
+  template <class T>
+  enable_if_big_t<T,T,memory_size> get() && {
+    assert_has_type<T>();
+    if (is<T>()) return std::move(*(reinterpret_cast<T*>(data_[0])));
     throw bad_type<variant>{};
   }
 };
