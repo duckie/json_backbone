@@ -156,4 +156,39 @@ TEST_CASE("Container - Construction", "[construct][runtime]") {
     REQUIRE(get<std::string>(c1) == "Marcel");
     REQUIRE(get<int>(c2) == 1);
   }
+
+  SECTION("Assign direct values - same types") {
+    c2 = std::string("Marcel");
+    REQUIRE(c2.get<std::string>() == "Marcel");
+    c3 = 2.0;
+    REQUIRE(c3.get<double>() == 2.0);
+  }
+
+  SECTION("Assign direct values - different types") {
+    c3 = std::string("Marcel");
+    REQUIRE(c3.get<std::string>() == "Marcel");
+    
+    c2 = 2.0;
+    REQUIRE(c2.get<double>() == 2.0);
+  }
+
+  SECTION("Assign direct values - references - same types") {
+    std::string s1 { "Marcel" };
+    c2 = s1;
+    REQUIRE(c2.get<std::string>() == "Marcel");
+
+    double d1 = 2.0;
+    c3 = d1;
+    REQUIRE(c3.get<double>() == 2.0);
+  }
+
+  SECTION("Assign direct values - references - different types") {
+    std::string s1 { "Marcel" };
+    c3 = s1;
+    REQUIRE(c3.get<std::string>() == "Marcel");
+
+    double d1 = 2.0;
+    c2 = d1;
+    REQUIRE(c2.get<double>() == 2.0);
+  }
 }

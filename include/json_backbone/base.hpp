@@ -277,7 +277,7 @@ class variant {
   // Fails to compile if type is not supported
   template <class T>
   inline void assert_has_type() const {
-    static_assert(type_list_type::template has_type<T>(),
+    static_assert(type_list_type::template has_type<std::decay_t<T>>(),
                   "Type T not supported by this container.");
   }
 
@@ -287,7 +287,7 @@ class variant {
     assert_has_type<T>();
     static std::array<std::function<void(void**, void*)>, sizeof...(Value)> ctors = {
         helpers::make_create_move<Value, memory_size>()...};
-    type_ = type_list_type::template get_index<T>();
+    type_ = type_list_type::template get_index<std::decay_t<T>>();
     ctors[type_](&data_[0], &value);
   }
 
@@ -297,7 +297,7 @@ class variant {
     assert_has_type<T>();
     static std::array<std::function<void(void**, void const*)>, sizeof...(Value)> ctors = {
         helpers::make_create_copy<Value, memory_size>()...};
-    type_ = type_list_type::template get_index<T>();
+    type_ = type_list_type::template get_index<std::decay_t<T>>();
     ctors[type_](&data_[0], &value);
   }
 
@@ -381,7 +381,7 @@ class variant {
   template <class T, class Enabler = std::enable_if_t<!std::is_base_of<variant,std::decay_t<T>>::value,void>>
   variant& operator=(T&& value) {
     assert_has_type<T>();
-    if (type_ == type_list_type::template get_index<T>()) {
+    if (type_ == type_list_type::template get_index<std::decay_t<T>>()) {
       this->template raw<T>() = std::forward<T>(value);
     }
     else {
@@ -394,7 +394,7 @@ class variant {
   template <class T>
   inline bool is() const noexcept {
     assert_has_type<T>();
-    return type_ == type_list_type::template get_index<T>();
+    return type_ == type_list_type::template get_index<std::decay_t<T>>();
   }
 
   // get checks the type is correct and returns it
