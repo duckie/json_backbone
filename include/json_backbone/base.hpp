@@ -125,7 +125,7 @@ struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>...
       type_info<Type, Index> const&) {
     return {};
   }
-
+  
   //
   // Sink member function to return a value for unsupported types
   //
@@ -134,6 +134,29 @@ struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>...
   //
   template <class Type>
   static constexpr std::integral_constant<std::size_t, sizeof...(Types)> type_index(...) {
+    return {};
+  }
+  
+  //
+  // Returns the type at a given index
+  //
+  // Not supposed to be called, implementation is just there to avoid
+  // warnings
+  //
+  template <std::size_t Index, class Type>
+  static constexpr type_holder<Type> get_type_at(
+      type_info<Type, Index> const&) {
+    return {};
+  }
+
+  //
+  // Void sink for unsupported types
+  //
+  // Not supposed to be called, implementation is just there to avoid
+  // warnings
+  //
+  template <std::size_t Index>
+  static constexpr type_holder<void> get_type_at(...) {
     return {};
   }
 
@@ -146,6 +169,17 @@ struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>...
   static constexpr std::size_t get_index() {
     return decltype(type_index<T>(std::declval<type_list>()))::value;
   }
+
+  //
+  // Returns the type at a given index
+  //
+  // Not supposed to be called, implementation is just there to avoid
+  // warnings
+  //
+  template <std::size_t Index>
+  struct type_at {
+    using type = typename decltype(get_type_at<Index>(std::declval<type_list>()))::type;
+  };
 
   // Returns true if type T is in the list
   template <class T>

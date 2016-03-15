@@ -14,6 +14,9 @@ using namespace json_backbone;
 using json_container = container<std::map, std::vector, std::string, std::string, double, int,
                                        unsigned int, bool, std::nullptr_t>;
 
+template <class Type, std::size_t Index>
+using is_same_at_t = std::is_same<typename json_container::type_list_type::type_at<Index>::type, Type>;
+
 TEST_CASE("Variant - Static invariants", "[variant][static][compile_time]") {
   SECTION("Type") {
     REQUIRE((std::is_same<typename json_container::object_type,
@@ -32,6 +35,18 @@ TEST_CASE("Variant - Static invariants", "[variant][static][compile_time]") {
     REQUIRE(json_container::type_list_type::get_index<bool>() == 6);
     REQUIRE(json_container::type_list_type::get_index<std::nullptr_t>() == 7);
     REQUIRE(json_container::type_list_type::get_index<char>() == 8);
+  }
+
+  SECTION("Inner types from indexes") {
+    REQUIRE((is_same_at_t<std::map<std::string,json_container>,0>::value));
+    REQUIRE((is_same_at_t<std::vector<json_container>,1>::value));
+    REQUIRE((is_same_at_t<std::string,2>::value));
+    REQUIRE((is_same_at_t<double,3>::value));
+    REQUIRE((is_same_at_t<int,4>::value));
+    REQUIRE((is_same_at_t<unsigned int,5>::value));
+    REQUIRE((is_same_at_t<bool,6>::value));
+    REQUIRE((is_same_at_t<std::nullptr_t,7>::value));
+    REQUIRE((is_same_at_t<void,8>::value));
   }
 
   SECTION("Inner types existence") {
