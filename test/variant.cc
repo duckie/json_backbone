@@ -17,6 +17,12 @@ using json_container = container<std::map, std::vector, std::string, std::string
 template <class Type, std::size_t Index>
 using is_same_at_t = std::is_same<typename json_container::type_list_type::type_at<Index>::type, Type>;
 
+template <class Type, class ... Args>
+using is_the_constructible_t = std::is_same<typename json_container::type_list_type::select_constructible<json_container::memory_size, Args...>::type, Type>;
+
+//template <class Type, class Arg>
+//using is_the_convertible_t = std::is_same<typename json_container::type_list_type::select_convertible<json_container::memory_size, Arg>::type, Type>;
+
 TEST_CASE("Variant - Static invariants", "[variant][static][compile_time]") {
   SECTION("Type") {
     REQUIRE((std::is_same<typename json_container::object_type,
@@ -60,6 +66,31 @@ TEST_CASE("Variant - Static invariants", "[variant][static][compile_time]") {
     REQUIRE(json_container::type_list_type::has_type<std::nullptr_t>() == true);
     REQUIRE(json_container::type_list_type::has_type<char>() == false);
   }
+
+  SECTION("Is constructible") {
+    REQUIRE((is_the_constructible_t<double,float>::value));
+    REQUIRE((is_the_constructible_t<int,short>::value));
+    REQUIRE((is_the_constructible_t<std::string,char const *>::value));
+    REQUIRE((is_the_constructible_t<bool,bool>::value));
+    REQUIRE((is_the_constructible_t<std::nullptr_t,std::nullptr_t>::value));
+  }
+
+  //SECTION("Is convertible") {
+    //REQUIRE((is_the_convertible_t<double,float>::value));
+    //REQUIRE((is_the_convertible_t<int,short>::value));
+    //REQUIRE((is_the_convertible_t<std::string,char const *>::value));
+    ////REQUIRE((is_the_convertible_t<bool,bool>::value));
+    ////REQUIRE((is_the_convertible_t<std::nullptr_t,std::nullptr_t>::value));
+//
+    //std::cout << std::is_convertible<double,float>() << "\n";
+    //std::cout << json_container::type_list_type::select_convertible<json_container::memory_size, float>::index_first_small_value << "\n";
+    //std::cout << json_container::type_list_type::select_convertible<json_container::memory_size, float>::index_first_integral_value << "\n";
+    //std::cout << json_container::type_list_type::select_convertible<json_container::memory_size, float>::index_first_arithmetic_value << "\n";
+    //std::cout << json_container::type_list_type::select_convertible<json_container::memory_size, float>::index_first_value << "\n";
+//
+    //double d = 1.;
+    //d = 1.f;
+  //}
 }
 
 TEST_CASE("Variant - Construction", "[variant][construct][runtime]") {
@@ -193,4 +224,13 @@ TEST_CASE("Variant - Construction", "[variant][construct][runtime]") {
     c2 = d1;
     REQUIRE(c2.get<double>() == 2.0);
   }
+}
+
+TEST_CASE("Variant - Construction from inner types ctors", "[variant][construct][runtime]") {
+  json_container c1 { "Roger" };
+  REQUIRE(is<std::string>(c1));
+
+  json_container c2 { 23u, json_container{1} };
+  REQUIRE(is<json_container::array_type>(c2));
+
 }

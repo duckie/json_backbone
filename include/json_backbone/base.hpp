@@ -125,7 +125,7 @@ struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>...
       type_info<Type, Index> const&) {
     return {};
   }
-  
+
   //
   // Sink member function to return a value for unsupported types
   //
@@ -136,7 +136,7 @@ struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>...
   static constexpr std::integral_constant<std::size_t, sizeof...(Types)> type_index(...) {
     return {};
   }
-  
+
   //
   // Returns the type at a given index
   //
@@ -144,8 +144,7 @@ struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>...
   // warnings
   //
   template <std::size_t Index, class Type>
-  static constexpr type_holder<Type> get_type_at(
-      type_info<Type, Index> const&) {
+  static constexpr type_holder<Type> get_type_at(type_info<Type, Index> const&) {
     return {};
   }
 
@@ -186,6 +185,90 @@ struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>...
   static constexpr bool has_type() {
     return decltype(type_index<T>(std::declval<type_list>()))::value < sizeof...(Types);
   }
+
+  //
+  // Returns a type chosen for construction following those rules
+  // - If there is a single argument either bool or nullptr_t, select the last
+  //   type of the list constructible with it.
+  // - If there is a single argument which is integral, select the first
+  //   integral type of the list constructible with it
+  // - If it fails, get the first type constructible in the list
+  //
+  // Constructibility covers convertibility, so is used for the sake
+  // of implicit conversion too
+  //
+  template <std::size_t MemSize, class Arg, class... Args>
+  struct select_constructible {
+    static constexpr std::size_t index_first_small_value =
+        arithmetics::find_first<bool, sizeof...(Types)>(
+            {(sizeof(Types) <= MemSize && std::is_constructible<Types, Arg, Args...>::value)...},
+            true);
+    static constexpr std::size_t index_first_integral_value =
+        arithmetics::find_first<bool, sizeof...(Types)>(
+            {(std::is_integral<Types>() && std::is_constructible<Types, Arg, Args...>::value)...},
+            true);
+    static constexpr std::size_t index_first_arithmetic_value =
+        arithmetics::find_first<bool, sizeof...(Types)>(
+            {(std::is_arithmetic<Types>() && std::is_constructible<Types, Arg, Args...>::value)...},
+            true);
+    static constexpr std::size_t index_first_value =
+        arithmetics::find_first<bool, sizeof...(Types)>(
+            {(std::is_constructible<Types, Arg, Args...>::value)...}, true);
+
+    static constexpr std::size_t index_last_value = arithmetics::find_last<bool, sizeof...(Types)>(
+        {std::is_constructible<Types, Arg, Args...>()...}, true);
+
+    static constexpr std::size_t index_value =
+        ((std::is_same<std::decay_t<Arg>, bool>() || std::is_null_pointer<Arg>()) &&
+         0 == sizeof...(Args) && index_last_value < sizeof...(Types))
+            ? index_last_value
+            : (std::is_integral<Arg>() && 0 == sizeof...(Args) &&
+               index_first_integral_value < sizeof...(Types))
+                  ? index_first_integral_value
+                  : (std::is_arithmetic<Arg>() && 0 == sizeof...(Args) &&
+                     index_first_arithmetic_value < sizeof...(Types))
+                        ? index_first_arithmetic_value
+                        : index_first_value;
+    using type = typename decltype(get_type_at<index_value>(std::declval<type_list>()))::type;
+  };
+
+  //
+  // Returns a type chosen for assingnation following those rules
+  // - If there is a single argument either bool or nullptr_t, select the last
+  //   type of the list constructible with it.
+  // - If there is a single argument which is integral, select the first
+  //   integral type of the list constructible with it
+  // - If it fails, get the first type constructible in the list
+  //
+  // template <std::size_t MemSize, class Arg>
+  // struct select_convertible {
+  // static constexpr std::size_t index_first_small_value =
+  // arithmetics::find_first<bool, sizeof...(Types)>(
+  //{(sizeof(Types) <= MemSize && std::is_convertible<Types, Arg>::value)...}, true);
+  // static constexpr std::size_t index_first_integral_value =
+  // arithmetics::find_first<bool, sizeof...(Types)>(
+  //{(std::is_integral<Types>() && std::is_convertible<Types, Arg>::value)...}, true);
+  // static constexpr std::size_t index_first_arithmetic_value =
+  // arithmetics::find_first<bool, sizeof...(Types)>(
+  //{(std::is_arithmetic<Types>() && std::is_convertible<Types, Arg>::value)...}, true);
+  // static constexpr std::size_t index_first_value =
+  // arithmetics::find_first<bool, sizeof...(Types)>({std::is_convertible<Types, Arg>()...},
+  // true);
+  //
+  // static constexpr std::size_t index_last_value = arithmetics::find_last<bool, sizeof...(Types)>(
+  //{(std::is_convertible<Types, Arg>::value)...}, true);
+  //
+  // static constexpr std::size_t index_value =
+  //((std::is_same<std::decay_t<Arg>, bool>() || std::is_null_pointer<Arg>()) &&
+  // index_last_value < sizeof...(Types))
+  //? index_last_value
+  //: (std::is_integral<Arg>() && index_first_integral_value < sizeof...(Types))
+  //? index_first_integral_value
+  //: (std::is_arithmetic<Arg>() && index_first_arithmetic_value < sizeof...(Types))
+  //? index_first_arithmetic_value
+  //: index_first_value;
+  // using type = typename decltype(get_type_at<index_value>(std::declval<type_list>()))::type;
+  //};
 };
 }  // namespace type_lis_traits
 
@@ -311,10 +394,12 @@ class variant {
   static constexpr std::size_t min_memory_size =
       arithmetics::max_value<std::size_t, sizeof...(Value)>({memory_footprint_t<Value>::value...});
 
+ public:
   // Compute memory size of an array of void* wide enough to hold min_memory_size
   static constexpr std::size_t memory_size =
       sizeof(void*) * (min_memory_size / sizeof(void*) + (min_memory_size % sizeof(void*) ? 1 : 0));
 
+ private:
   std::size_t type_ = sizeof...(Value);
   void* data_[memory_size / sizeof(void*)] = {};
 
@@ -379,10 +464,23 @@ class variant {
     ctors[other.type_](*this, std::move(other));
   }
 
-  template <class T, class Enabler =
-                         std::enable_if_t<!std::is_base_of<variant, std::decay_t<T>>::value, void>>
+  template <class T, class Enabler = std::enable_if_t<
+                         type_list_type::template has_type<std::decay_t<T>>(), void>>
   variant(T&& value) {
     create(std::forward<T>(value));
+  }
+
+  template <class Arg, class... Args,
+            class Enabler = std::enable_if_t<
+                !((type_list_type::template has_type<std::decay_t<Arg>>() || std::is_base_of<variant, std::decay_t<Arg>>::value) && 0 == sizeof...(Args)) 
+                 , void>>
+  variant(Arg&& arg, Args&&... args) {
+    static_assert(
+        type_list_type::template select_constructible<memory_size, Arg, Args...>::index_value <
+            sizeof...(Value),
+        "Construction not supported by the variant.");
+    create(typename type_list_type::template select_constructible<memory_size, Arg, Args...>::type{
+        std::forward<Arg>(arg), std::forward<Args>(args)...});
   }
 
   ~variant() {
@@ -430,8 +528,8 @@ class variant {
     return *this;
   }
 
-  template <class T, class Enabler =
-                         std::enable_if_t<!std::is_base_of<variant, std::decay_t<T>>::value, void>>
+  template <class T, class Enabler = std::enable_if_t<
+                         type_list_type::template has_type<std::decay_t<T>>(), void>>
   variant& operator=(T&& value) {
     assert_has_type<T>();
     if (type_ == type_list_type::template get_index<std::decay_t<T>>()) {
@@ -627,9 +725,9 @@ class basic_container
     return *this;
   }
 
-  template <class T>
-  basic_container(T&& value)
-      : variant_type(std::forward<T>(value)) {
+  template <class Arg, class ... Args>
+  basic_container(Arg&& arg, Args&& ... args)
+      : variant_type(std::forward<Arg>(arg), std::forward<Args>(args)...) {
   }
 
   /*
