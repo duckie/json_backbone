@@ -28,8 +28,7 @@ using json_container = container<std::map,       // User's choice of associative
                                  std::nullptr_t  // A type an element could take
                                  >;
 
-
-void demo1() {
+int main(void) {
   json_container c1;
   json_container c2{"Roger"};  // Automatically maps to compatible ctor of std::string
   json_container c3{1.0};
@@ -37,10 +36,7 @@ void demo1() {
   auto s1 = get<std::string>(c2);  // s1 is a string
   c3 = "Marcel";                   // c3 becomes a string
   c2 = true;                       // c2 becomes a bool
-}
 
-int main(void) {
-  demo1();
   return 0;
 }
 ```
