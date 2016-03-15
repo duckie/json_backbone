@@ -1,7 +1,15 @@
 Json backbone
 ==================
 
-`json_backbone` is a templated C++11 container to hold dynamically structured data. `json_backbone` is easy to use, generic and type safe. Memory usage and performances are up to the user.
+`json_backbone` is a C++14 container to hold dynamically structured data. `json_backbone` is easy to use, generic and type safe. 
+
+`json_backbone` is made of three main parts:
+* A versatile `variant` type optimized for small types.
+* An helper to create recursive variants through a *Associative* container and a *RandomAccess* container.
+* A view interface to loosely visit a strcuture without exceptions.
+
+
+As the project just got a full rewrite, documentation will come progressively. A quick example to represent JSON data:
 
 ```c++
 #include <json_backbone/container.hpp>  // Requires C++11
