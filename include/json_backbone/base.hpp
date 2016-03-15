@@ -470,10 +470,12 @@ class variant {
     create(std::forward<T>(value));
   }
 
-  template <class Arg, class... Args,
-            class Enabler = std::enable_if_t<
-                !((type_list_type::template has_type<std::decay_t<Arg>>() || std::is_base_of<variant, std::decay_t<Arg>>::value) && 0 == sizeof...(Args)) 
-                 , void>>
+  template <
+      class Arg, class... Args,
+      class Enabler = std::enable_if_t<!((type_list_type::template has_type<std::decay_t<Arg>>() ||
+                                          std::is_base_of<variant, std::decay_t<Arg>>::value) &&
+                                         0 == sizeof...(Args)),
+                                       void>>
   variant(Arg&& arg, Args&&... args) {
     static_assert(
         type_list_type::template select_constructible<memory_size, Arg, Args...>::index_value <
@@ -725,8 +727,8 @@ class basic_container
     return *this;
   }
 
-  template <class Arg, class ... Args>
-  basic_container(Arg&& arg, Args&& ... args)
+  template <class Arg, class... Args>
+  basic_container(Arg&& arg, Args&&... args)
       : variant_type(std::forward<Arg>(arg), std::forward<Args>(args)...) {
   }
 
