@@ -530,9 +530,10 @@ class variant {
     return *this;
   }
 
+  // Assignation from a bounded type
   template <class T, class Enabler = std::enable_if_t<
                          type_list_type::template has_type<std::decay_t<T>>(), void>>
-  variant& operator=(T&& value) {
+  variant& assign(T&& value) {
     assert_has_type<T>();
     if (type_ == type_list_type::template get_index<std::decay_t<T>>()) {
       this->template raw<T>() = std::forward<T>(value);
@@ -541,6 +542,28 @@ class variant {
       create<T>(std::forward<T>(value));
     }
     return *this;
+  }
+
+  // Assignation from a type convertible to one of the bounded types
+  template <
+      class T, 
+      class Enabler = std::enable_if_t<!(type_list_type::template has_type<std::decay_t<T>>() ||
+                                          std::is_base_of<variant, std::decay_t<T>>::value),
+                                       void>>
+  variant& assign(T&& value, void* shim = nullptr) {
+    static_assert(
+        type_list_type::template select_constructible<memory_size, T>::index_value <
+            sizeof...(Value),
+        "Assignation not supported by the variant.");
+    return assign(typename type_list_type::template select_constructible<memory_size, T>::type{
+        std::forward<T>(value)});
+  }
+
+  // Assignation operators dispatches call on the matching assign.
+  template <class T, class Enabler = std::enable_if_t<
+                         !std::is_base_of<variant, std::decay_t<T>>::value, void>>
+  variant& operator=(T&& value) {
+    return assign(std::forward<T>(value));
   }
 
   template <class T>
