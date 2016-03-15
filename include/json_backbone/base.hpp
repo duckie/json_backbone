@@ -4,6 +4,7 @@
 #include <utility>
 #include <functional>
 #include <exception>
+#include <limits>
 
 namespace json_backbone {
 
@@ -61,36 +62,28 @@ namespace arithmetics {
 
 // max_value computes the higher value of an array at compile time
 template <class I, std::size_t N>
-I constexpr max_value(std::array<I, N> const& values, I current_value, std::size_t current_index) {
+I constexpr max_value(std::array<I, N> const& values, I current_value = std::numeric_limits<I>::lowest(), std::size_t current_index = 0) {
   return N <= current_index ? current_value
                             : (current_value < values.at(current_index)
                                    ? max_value(values, values.at(current_index), current_index + 1)
                                    : max_value(values, current_value, current_index + 1));
 }
 
-//// max_value computes the higher value of a list at compile time
-template <std::size_t N>
-std::size_t constexpr find_first_true(std::array<bool, N> const& values, std::size_t current_index) {
+template <class I, std::size_t N>
+std::size_t constexpr find_first(std::array<I, N> const& values, I value, std::size_t current_index = 0) {
   return N <= current_index ? N
-                            : values.at(current_index)
+                            : value == values.at(current_index)
                                    ? current_index
-                                   : find_first_true(values,current_index+1);
+                                   : find_first(values, value, current_index+1);
 }
 
-//// max_value computes the higher value of a list at compile time
-template <std::size_t N>
-std::size_t constexpr find_last_true(std::array<bool, N> const& values, std::size_t current_index) {
-  return N < current_index ? N
-                            : values.at(current_index < N ? current_index : N)
-                                   ? current_index
-                                   : find_last_true(values,current_index-1);
+template <class I, std::size_t N>
+std::size_t constexpr find_last(std::array<I, N> const& values, I value, std::size_t current_index = 0) {
+  return N <= current_index ? N
+                            : value == values.at(N-current_index-1)
+                                   ? (N - current_index - 1)
+                                   : find_last(values, value, current_index+1);
 }
-
-template <class Array>
-std::size_t constexpr find_last_true(Array const& value) {
-  return find_last_true<std::declval<Array>().size()>(value,0);
-}
-
 
 };
 
@@ -284,7 +277,7 @@ template <class... Value>
 class variant {
   // Compute minimum size required by types. Default 8
   static constexpr std::size_t min_memory_size =
-      arithmetics::max_value<std::size_t, sizeof...(Value)>({memory_footprint_t<Value>::value...}, 0, 0);
+      arithmetics::max_value<std::size_t, sizeof...(Value)>({memory_footprint_t<Value>::value...});
 
   // Compute memory size of an array of void* wide enough to hold min_memory_size
   static constexpr std::size_t memory_size =
