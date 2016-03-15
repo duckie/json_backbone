@@ -26,6 +26,10 @@ if (NOT MSVC)
   endif()
 endif()
 
+if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
+  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fcolor-diagnostics")
+endif()
+
 ### Boost support ###
 FIND_PACKAGE(Boost REQUIRED)
 if(Boost_FOUND)

@@ -69,13 +69,27 @@ I constexpr max_value(std::array<I, N> const& values, I current_value, std::size
 }
 
 //// max_value computes the higher value of a list at compile time
-//template <std::size_t N>
-//std::size_t constexpr find_first_true(std::array<bool, N> const& values, std::size_t current_index) {
-  //return N <= current_index ? N
-                            //: values.at(current_index)
-                                   //? current_index
-                                   //: find_first_true(values,current_index+1);
-//}
+template <std::size_t N>
+std::size_t constexpr find_first_true(std::array<bool, N> const& values, std::size_t current_index) {
+  return N <= current_index ? N
+                            : values.at(current_index)
+                                   ? current_index
+                                   : find_first_true(values,current_index+1);
+}
+
+//// max_value computes the higher value of a list at compile time
+template <std::size_t N>
+std::size_t constexpr find_last_true(std::array<bool, N> const& values, std::size_t current_index) {
+  return N < current_index ? N
+                            : values.at(current_index < N ? current_index : N)
+                                   ? current_index
+                                   : find_last_true(values,current_index-1);
+}
+
+template <class Array>
+std::size_t constexpr find_last_true(Array const& value) {
+  return find_last_true<std::declval<Array>().size()>(value,0);
+}
 
 
 };

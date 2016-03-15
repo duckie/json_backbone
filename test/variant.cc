@@ -14,21 +14,7 @@ using namespace json_backbone;
 using json_container = container<std::map, std::vector, std::string, std::string, double, int,
                                        unsigned int, bool, std::nullptr_t>;
 
-TEST_CASE("Utils - constexpr computations", "[utils][compile_time]") {
-  SECTION("Constexpr max_value") {
-    using namespace json_backbone::arithmetics;
-    REQUIRE((std::integral_constant<int, max_value<int, 5>({1, 2, 3, 4, 5}, 0, 0)>::value) == 5);
-    REQUIRE((std::integral_constant<int, max_value<int, 5>({1, 2, 5, 4, 3}, 0, 0)>::value) == 5);
-    REQUIRE((std::integral_constant<int, max_value<int, 5>({5, 2, 3, 4, 1}, 0, 0)>::value) == 5);
-    REQUIRE((std::integral_constant<int, max_value<int, 0>({}, 0, 0)>::value) == 0);
-  }
-}
-
-// template <class T> struct templated_struct {};
-// struct type1;
-// struct type2;
-
-TEST_CASE("Container - Static invariants", "[static][compile_time]") {
+TEST_CASE("Variant - Static invariants", "[variant][static][compile_time]") {
   SECTION("Type") {
     REQUIRE((std::is_same<typename json_container::object_type,
                           std::map<std::string, json_container>>::value));
@@ -61,7 +47,7 @@ TEST_CASE("Container - Static invariants", "[static][compile_time]") {
   }
 }
 
-TEST_CASE("Container - Construction", "[construct][runtime]") {
+TEST_CASE("Variant - Construction", "[variant][construct][runtime]") {
   json_container c1;
   json_container c2 { std::string("Roger") };
   json_container c3 { 1.0 };
