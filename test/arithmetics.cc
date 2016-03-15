@@ -1,4 +1,4 @@
-#include <json_backbone/base.hpp>
+#include <json_backbone.hpp>
 #include <catch.hpp>
 #include <chrono>
 #include <iostream>
