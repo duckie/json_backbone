@@ -632,6 +632,26 @@ class variant {
     assert_has_type<T>();
     return std::move(*(reinterpret_cast<T*>(data_[0])));
   }
+
+  // Conversion operator
+  template <class T, class Enabler = std::enable_if_t<
+                         type_list_type::template has_type<std::decay_t<T>>(), void>>
+  operator T& () & {
+    return this->get<T>();
+  }
+
+  template <class T, class Enabler = std::enable_if_t<
+                         type_list_type::template has_type<std::decay_t<T>>(), void>>
+  operator T const& () const & {
+    return this->get<T>();
+  }
+
+  template <class T, class Enabler = std::enable_if_t<
+                         type_list_type::template has_type<std::decay_t<T>>(), void>>
+  operator T() && {
+    return std::move(this->get<T>());
+  }
+  
 };
 
 // Functional version of is
@@ -642,19 +662,19 @@ bool is(variant<Value...> const& value) {
 
 // Functional version of get
 template <class T, class... Value>
-decltype(auto) get(variant<Value...>& value) {
+T get(variant<Value...>& value) {
   return value.template get<T>();
 }
 
 // Functional version of get
 template <class T, class... Value>
-decltype(auto) get(variant<Value...> const& value) {
+T const& get(variant<Value...> const& value) {
   return value.template get<T>();
 }
 
 // Functional version of get
 template <class T, class... Value>
-decltype(auto) get(variant<Value...>&& value) {
+T get(variant<Value...>&& value) {
   return std::move(value.template get<T>());
 }
 
@@ -720,6 +740,8 @@ class container
   container(Arg&& arg, Args&&... args)
       : variant_type(std::forward<Arg>(arg), std::forward<Args>(args)...) {
   }
+
+  //template <class T> 
 };
 
 }  // namespace json_backbone

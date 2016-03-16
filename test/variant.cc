@@ -132,6 +132,17 @@ TEST_CASE("Variant - Construction", "[variant][construct][runtime]") {
     REQUIRE(raw<std::nullptr_t>(c6) == nullptr);
   }
 
+  SECTION("Conversion") {
+    std::string& s2_1 = c2;
+    REQUIRE(s2_1 == "Roger");
+
+    std::string const& s2_2 = c2;
+    REQUIRE(s2_2 == "Roger");
+
+    std::string s2_3 = std::move(c2);
+    REQUIRE(s2_3 == "Roger");
+  }
+
   SECTION("Assign values") {
     c2.get<std::string>() = "Marcel";
     REQUIRE(c2.get<std::string>() == "Marcel");
