@@ -199,6 +199,11 @@ struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>...
   //
   template <std::size_t MemSize, class Arg, class... Args>
   struct select_constructible {
+    static constexpr std::size_t index_first_same_value =
+        arithmetics::find_first<bool, sizeof...(Types)>(
+            {(std::is_same<std::decay_t<Arg>, Types>() &&
+              std::is_constructible<Types, Arg, Args...>::value)...},
+            true);
     static constexpr std::size_t index_first_small_value =
         arithmetics::find_first<bool, sizeof...(Types)>(
             {(sizeof(Types) <= MemSize && std::is_constructible<Types, Arg, Args...>::value)...},
@@ -215,13 +220,9 @@ struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>...
         arithmetics::find_first<bool, sizeof...(Types)>(
             {(std::is_constructible<Types, Arg, Args...>::value)...}, true);
 
-    static constexpr std::size_t index_last_value = arithmetics::find_last<bool, sizeof...(Types)>(
-        {std::is_constructible<Types, Arg, Args...>()...}, true);
-
     static constexpr std::size_t index_value =
-        ((std::is_same<std::decay_t<Arg>, bool>() || std::is_null_pointer<Arg>()) &&
-         0 == sizeof...(Args) && index_last_value < sizeof...(Types))
-            ? index_last_value
+        (index_first_same_value < sizeof...(Types) && 0 == sizeof...(Args))
+            ? index_first_same_value
             : (std::is_integral<Arg>() && 0 == sizeof...(Args) &&
                index_first_integral_value < sizeof...(Types))
                   ? index_first_integral_value
@@ -263,76 +264,6 @@ enable_if_small_t<T, std::function<void(void**)>, MemSize> make_deleter() {
 template <class T, std::size_t MemSize>
 enable_if_big_t<T, std::function<void(void**)>, MemSize> make_deleter() {
   return [](void** data) { delete reinterpret_cast<T*>(*data); };
-}
-
-// make_create_move creates a function that allocates and store a type by move - small type version
-template <class T, std::size_t MemSize>
-enable_if_small_t<T, std::function<void(void**, void*)>, MemSize> make_create_move() {
-  return [](void** data, void* pval) {
-    new (reinterpret_cast<T*>(data)) T(std::move(*reinterpret_cast<T*>(pval)));
-  };
-}
-
-// make_create_move creates a function that allocates and store a type by move - big type version
-template <class T, std::size_t MemSize>
-enable_if_big_t<T, std::function<void(void**, void*)>, MemSize> make_create_move() {
-  return [](void** data, void* pval) {
-    T** ptr = reinterpret_cast<T**>(data);
-    *ptr = new T(std::move(*reinterpret_cast<T*>(pval)));
-  };
-}
-
-// make_create_copy creates a function that allocates and store a type by copy - small type version
-template <class T, std::size_t MemSize>
-enable_if_small_t<T, std::function<void(void**, void const*)>, MemSize> make_create_copy() {
-  return [](void** data, void const* pval) {
-    new (reinterpret_cast<T*>(data)) T(*reinterpret_cast<T const*>(pval));
-  };
-}
-
-// make_create_copy creates a function that allocates and store a type by copy - big type version
-template <class T, std::size_t MemSize>
-enable_if_big_t<T, std::function<void(void**, void const*)>, MemSize> make_create_copy() {
-  return [](void** data, void const* pval) {
-    T** ptr = reinterpret_cast<T**>(data);
-    *ptr = new T(*reinterpret_cast<T const*>(pval));
-  };
-}
-
-// make_store_move creates a function that stores a type by move - small type version
-template <class T, std::size_t MemSize>
-enable_if_small_t<T, std::function<void(void**, void*)>, MemSize> make_store_move() {
-  return [](void** data, void* pval) {
-    T* ptr = reinterpret_cast<T*>(data);
-    *ptr = std::move(*reinterpret_cast<T*>(pval));
-  };
-}
-
-// make_store_move creates a function that stores a type by move - big type version
-template <class T, std::size_t MemSize>
-enable_if_big_t<T, std::function<void(void**, void*)>, MemSize> make_store_move() {
-  return [](void** data, void* pval) {
-    T* ptr = reinterpret_cast<T*>(*data);
-    *ptr = std::move(*reinterpret_cast<T*>(pval));
-  };
-}
-
-// make_store_copy creates a function that stores a type by copy - small type version
-template <class T, std::size_t MemSize>
-enable_if_small_t<T, std::function<void(void**, void const*)>, MemSize> make_store_copy() {
-  return [](void** data, void const* pval) {
-    T* ptr = reinterpret_cast<T*>(data);
-    *ptr = *reinterpret_cast<T const*>(pval);
-  };
-}
-
-// make_store_copy creates a function that stores a type by copy - big type version
-template <class T, std::size_t MemSize>
-enable_if_big_t<T, std::function<void(void**, void const*)>, MemSize> make_store_copy() {
-  return [](void** data, void const* pval) {
-    T* ptr = reinterpret_cast<T*>(*data);
-    *ptr = *reinterpret_cast<T const*>(pval);
-  };
 }
 
 }  // namespace helpers
@@ -386,39 +317,39 @@ class variant {
                   "Type T not supported by this container.");
   }
 
-  // create allocates and moves the value into it
-  template <class T>
-  void create(T&& value) {
-    assert_has_type<T>();
-    static std::array<std::function<void(void**, void*)>, sizeof...(Value)> ctors = {
-        helpers::make_create_move<Value, memory_size>()...};
-    type_ = type_list_type::template get_index<std::decay_t<T>>();
-    ctors[type_](&data_[0], &value);
+  template <class T, class Arg, class... Args,
+            class Enabler = enable_if_small_t<T, void, memory_size>>
+  void allocate(Arg&& arg, Args&&... args) {
+    new (reinterpret_cast<T*>(&data_[0])) T(std::forward<Arg>(arg), std::forward<Args>(args)...);
   }
 
-  // create allocates and copies the value into it
-  template <class T>
-  void create(T const& value) {
-    assert_has_type<T>();
-    static std::array<std::function<void(void**, void const*)>, sizeof...(Value)> ctors = {
-        helpers::make_create_copy<Value, memory_size>()...};
-    type_ = type_list_type::template get_index<std::decay_t<T>>();
-    ctors[type_](&data_[0], &value);
+  template <class T, class Arg, class... Args,
+            class Enabler = enable_if_big_t<T, void, memory_size>>
+  void allocate(Arg&& arg, Args&&... args, void* shim = nullptr) {
+    T** ptr = reinterpret_cast<T**>(&data_[0]);
+    *ptr = new T(std::forward<Arg>(arg), std::forward<Args>(args)...);
+  }
+
+  template <class Arg, class... Args>
+  void create(Arg&& arg, Args&&... args) {
+    using target_type =
+        typename type_list_type::template select_constructible<memory_size, Arg, Args...>::type;
+    assert_has_type<target_type>();
+    type_ = type_list_type::template get_index<std::decay_t<target_type>>();
+    allocate<target_type>(std::forward<Arg>(arg), std::forward<Args>(args)...);
   }
 
  public:
-
-  template<bool HasDefault = (type_list_type::template select_default<memory_size>::index_value < sizeof ... (Value))
-    , class Enabler = std::enable_if_t<HasDefault,void>>
+  template <bool HasDefault = (type_list_type::template select_default<memory_size>::index_value <
+                               sizeof...(Value)),
+            class Enabler = std::enable_if_t<HasDefault, void>>
   variant() {
-    create(typename type_list_type::template select_default<memory_size>::type {});
+    create(typename type_list_type::template select_default<memory_size>::type{});
   }
 
   variant(variant const& other) {
     static std::array<std::function<void(variant&, variant const&)>, sizeof...(Value)> ctors = {
-        [](variant& self, variant const& other) {
-          self.template create<Value>(other.template get<Value>());
-        }...};
+        [](variant& self, variant const& other) { self.create(other.template get<Value>()); }...};
 
     ctors[other.type_](*this, other);
   }
@@ -426,26 +357,17 @@ class variant {
   variant(variant&& other) {
     static std::array<std::function<void(variant&, variant && )>, sizeof...(Value)> ctors = {
         [](variant& self, variant const& other) {
-          self.template create<Value>(std::move(other.template get<Value>()));
+          self.create(std::move(other.template get<Value>()));
         }...};
 
     ctors[other.type_](*this, std::move(other));
   }
 
-  // Construction from a bounded type
-  template <class T, class Enabler = std::enable_if_t<
-                         type_list_type::template has_type<std::decay_t<T>>(), void>>
-  variant(T&& value) {
-    create(std::forward<T>(value));
-  }
-
   // Construction with a compatible constructor from a bounded type
   template <
       class Arg, class... Args,
-      class Enabler = std::enable_if_t<!((type_list_type::template has_type<std::decay_t<Arg>>() ||
-                                          std::is_base_of<variant, std::decay_t<Arg>>::value) &&
-                                         0 == sizeof...(Args)),
-                                       void>>
+      class Enabler = std::enable_if_t<
+          !(std::is_base_of<variant, std::decay_t<Arg>>::value && 0 == sizeof...(Args)), void>>
   variant(Arg&& arg, Args&&... args) {
     static_assert(
         type_list_type::template select_constructible<memory_size, Arg, Args...>::index_value <
@@ -468,9 +390,7 @@ class variant {
         }...};
 
     static std::array<std::function<void(variant&, variant const&)>, sizeof...(Value)> ctors = {
-        [](variant& self, variant const& other) {
-          self.template create<Value>(other.template get<Value>());
-        }...};
+        [](variant& self, variant const& other) { self.create(other.template get<Value>()); }...};
 
     if (type_ == other.type_) {
       stores[type_](*this, other);
@@ -489,7 +409,7 @@ class variant {
 
     static std::array<std::function<void(variant&, variant && )>, sizeof...(Value)> ctors = {
         [](variant& self, variant&& other) {
-          self.template create<Value>(std::move(other.template get<Value>()));
+          self.create(std::move(other.template get<Value>()));
         }...};
 
     if (type_ == other.type_) {
@@ -516,23 +436,21 @@ class variant {
   }
 
   // Assignation from a type convertible to one of the bounded types
-  template <
-      class T, 
-      class Enabler = std::enable_if_t<!(type_list_type::template has_type<std::decay_t<T>>() ||
-                                          std::is_base_of<variant, std::decay_t<T>>::value),
-                                       void>>
+  template <class T, class Enabler =
+                         std::enable_if_t<!(type_list_type::template has_type<std::decay_t<T>>() ||
+                                            std::is_base_of<variant, std::decay_t<T>>::value),
+                                          void>>
   variant& assign(T&& value, void* shim = nullptr) {
-    static_assert(
-        type_list_type::template select_constructible<memory_size, T>::index_value <
-            sizeof...(Value),
-        "Assignation not supported by the variant.");
+    static_assert(type_list_type::template select_constructible<memory_size, T>::index_value <
+                      sizeof...(Value),
+                  "Assignation not supported by the variant.");
     return assign(typename type_list_type::template select_constructible<memory_size, T>::type{
         std::forward<T>(value)});
   }
 
   // Assignation operators dispatches call on the matching assign.
-  template <class T, class Enabler = std::enable_if_t<
-                         !std::is_base_of<variant, std::decay_t<T>>::value, void>>
+  template <class T, class Enabler =
+                         std::enable_if_t<!std::is_base_of<variant, std::decay_t<T>>::value, void>>
   inline variant& operator=(T&& value) {
     return assign(std::forward<T>(value));
   }
@@ -636,13 +554,13 @@ class variant {
   // Conversion operator
   template <class T, class Enabler = std::enable_if_t<
                          type_list_type::template has_type<std::decay_t<T>>(), void>>
-  operator T& () & {
+  operator T&() & {
     return this->get<T>();
   }
 
   template <class T, class Enabler = std::enable_if_t<
                          type_list_type::template has_type<std::decay_t<T>>(), void>>
-  operator T const& () const & {
+  operator T const&() const & {
     return this->get<T>();
   }
 
@@ -651,7 +569,6 @@ class variant {
   operator T() && {
     return std::move(this->get<T>());
   }
-  
 };
 
 // Functional version of is
@@ -699,12 +616,11 @@ inline decltype(auto) raw(variant<Value...>&& value) noexcept {
 //
 // base_container is an variant extended with an associative container and a random access container
 //
-template <template <class...> class ObjectBase,
-          template <class...> class ArrayBase, class Key, class... Value>
+template <template <class...> class ObjectBase, template <class...> class ArrayBase, class Key,
+          class... Value>
 class container
     : public variant<ObjectBase<Key, container<ObjectBase, ArrayBase, Key, Value...>>,
-                     ArrayBase<container<ObjectBase, ArrayBase, Key, Value...>>,
-                     Value...> {
+                     ArrayBase<container<ObjectBase, ArrayBase, Key, Value...>>, Value...> {
   friend attr_init<container>;
   friend array_element_init<container>;
 
@@ -718,7 +634,8 @@ class container
   using value_type_list_type =
       type_list_traits::type_list<std::make_index_sequence<sizeof...(Value)>, Value...>;
 
-  container() : variant_type {} {}
+  container() : variant_type{} {
+  }
 
   container(container const& value) : variant_type(value) {
   }
@@ -741,7 +658,8 @@ class container
       : variant_type(std::forward<Arg>(arg), std::forward<Args>(args)...) {
   }
 
-  //template <class T> 
+  // template <class T, class Enabler = std::enable_if_t<
+  // type_list_type::template has_type<std::decay_t<T>>(), void>>
 };
 
 }  // namespace json_backbone
