@@ -407,11 +407,11 @@ class variant {
   variant& operator=(variant const& other) {
     static std::array<std::function<void(variant&, variant const&)>, sizeof...(Value)> stores = {
         [](variant& self, variant const& other) {
-          self.template get<Value>() = other.template get<Value>();
+          self.template get<Value>() = other.template raw<Value>();
         }...};
 
     static std::array<std::function<void(variant&, variant const&)>, sizeof...(Value)> ctors = {
-        [](variant& self, variant const& other) { self.create(other.template get<Value>()); }...};
+        [](variant& self, variant const& other) { self.create(other.template raw<Value>()); }...};
 
     if (type_ == other.type_) {
       stores[type_](*this, other);
@@ -425,12 +425,12 @@ class variant {
   variant& operator=(variant&& other) {
     static std::array<std::function<void(variant&, variant && )>, sizeof...(Value)> stores = {
         [](variant& self, variant&& other) {
-          self.template get<Value>() = std::move(other.template get<Value>());
+          self.template get<Value>() = std::move(other.template raw<Value>());
         }...};
 
     static std::array<std::function<void(variant&, variant && )>, sizeof...(Value)> ctors = {
         [](variant& self, variant&& other) {
-          self.create(std::move(other.template get<Value>()));
+          self.create(std::move(other.template raw<Value>()));
         }...};
 
     if (type_ == other.type_) {
@@ -548,14 +548,14 @@ class variant {
   template <class T>
   inline enable_if_small_t<T, T const&, memory_size> raw() const& noexcept {
     assert_has_type<T>();
-    if (is<T>()) return *(reinterpret_cast<T*>(&data_[0]));
+    return *(reinterpret_cast<T const*>(&data_[0]));
   }
 
   // raw returns directly without any check
   template <class T>
   inline enable_if_big_t<T, T const&, memory_size> raw() const& noexcept {
     assert_has_type<T>();
-    if (is<T>()) return *(reinterpret_cast<T*>(data_[0]));
+    return *(reinterpret_cast<T const*>(data_[0]));
   }
 
   // raw returns directly without any check
@@ -678,8 +678,10 @@ class container
       : variant_type(std::forward<Arg>(arg), std::forward<Args>(args)...) {
   }
 
-  // template <class T, class Enabler = std::enable_if_t<
-  // type_list_type::template has_type<std::decay_t<T>>(), void>>
+   template <class T, class Enabler = std::enable_if_t<!std::is_integral<std::decay_t<T>>(),void>>
+     container& operator[] (T&& value) & {
+       //auto it = this->template 
+     }
 };
 
 }  // namespace json_backbone

@@ -8,7 +8,8 @@
 
 using namespace json_backbone;
 
-using json_container = container<std::map, std::vector, std::string, std::nullptr_t, bool, unsigned int, int, double, std::string>;
+using json_container = container<std::map, std::vector, std::string, std::nullptr_t, bool,
+                                 unsigned int, int, double, std::string>;
 
 template <class Type, std::size_t Index>
 using is_same_at_t =
@@ -36,7 +37,8 @@ TEST_CASE("Variant - Static invariants", "[variant][static][compile_time]") {
     REQUIRE(json_container::type_list_type::get_index<double>() == 4);
     REQUIRE(json_container::type_list_type::get_index<std::string>() == 5);
     REQUIRE((json_container::type_list_type::get_index<std::vector<json_container>>()) == 6);
-    REQUIRE((json_container::type_list_type::get_index<std::map<std::string, json_container>>()) == 7);
+    REQUIRE((json_container::type_list_type::get_index<std::map<std::string, json_container>>()) ==
+            7);
     REQUIRE(json_container::type_list_type::get_index<char>() == 8);
   }
 
@@ -68,7 +70,7 @@ TEST_CASE("Variant - Static invariants", "[variant][static][compile_time]") {
   SECTION("Is constructible") {
     REQUIRE((is_the_constructible_t<double, float>::value));
     REQUIRE((is_the_constructible_t<int, short>::value));
-    REQUIRE((is_the_constructible_t<std::string, char const *>::value));
+    REQUIRE((is_the_constructible_t<std::string, char const*>::value));
     REQUIRE((is_the_constructible_t<bool, bool>::value));
     REQUIRE((is_the_constructible_t<std::nullptr_t, std::nullptr_t>::value));
   }
@@ -218,7 +220,8 @@ TEST_CASE("Variant - Construction", "[variant][construct][runtime]") {
   }
 }
 
-TEST_CASE("Variant - Construction from bounded types ctors other than copy and move", "[variant][construct][runtime]") {
+TEST_CASE("Variant - Construction from bounded types ctors other than copy and move",
+          "[variant][construct][runtime]") {
   json_container c1{"Roger"};
   REQUIRE(is<std::string>(c1));
 
@@ -226,7 +229,8 @@ TEST_CASE("Variant - Construction from bounded types ctors other than copy and m
   REQUIRE(is<json_container::array_type>(c2));
 }
 
-TEST_CASE("Variant - Assignation from types convertible to a bounded types", "[variant][construct][runtime]") {
+TEST_CASE("Variant - Assignation from types convertible to a bounded types",
+          "[variant][construct][runtime]") {
   json_container c1;
   c1 = "Roger";
   REQUIRE(is<std::string>(c1));
