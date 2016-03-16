@@ -292,9 +292,16 @@ enable_if_big_t<T, std::function<void(void**)>, MemSize> make_deleter() {
 // bad_type is thrown at runtime when accessing a container with the wrong type
 template <class Container>
 struct bad_type : public std::exception {
-  virtual ~bad_type() = default;
   char const* what() const noexcept override {
     return "Requested type does not match current type of the variant.";
+  }
+};
+
+// non_existing_element is thrown when you try to get and element through [] but is does not exist
+template <class Container>
+struct non_existing_element : public std::exception {
+  char const* what() const noexcept override {
+    return "Requested element does not exist and the object is const.";
   }
 };
 
@@ -440,6 +447,10 @@ class variant {
       ctors[other.type_](*this, std::move(other));
     }
     return *this;
+  }
+
+  inline size_t type_index() const {
+    return type_;
   }
 
   // Assignation from a bounded type
@@ -678,10 +689,36 @@ class container
       : variant_type(std::forward<Arg>(arg), std::forward<Args>(args)...) {
   }
 
-   template <class T, class Enabler = std::enable_if_t<!std::is_integral<std::decay_t<T>>(),void>>
-     container& operator[] (T&& value) & {
-       //auto it = this->template 
-     }
+  container& operator[](size_t value) & {
+    return this->template get<array_type>()[value];
+  }
+
+  container const& operator[](size_t value) const & {
+    return this->template get<array_type>()[value];
+  }
+
+  container operator[](size_t value) && {
+    return this->template get<array_type>()[value];
+  }
+
+  template <class T, class Enabler = std::enable_if_t<!std::is_integral<std::decay_t<T>>(), void>>
+  container& operator[](T&& value) & {
+    return this->template get<object_type>()[std::forward<T>(value)];
+  }
+
+  template <class T, class Enabler = std::enable_if_t<!std::is_integral<std::decay_t<T>>(), void>>
+  container const& operator[](T&& value) const & {
+    auto it = this->template get<object_type>().find(std::forward<T>(value));
+    if (it != this->template get<object_type>().end()) {
+      return it->second;
+    }
+    throw non_existing_element<container>{};
+  }
+
+  template <class T, class Enabler = std::enable_if_t<!std::is_integral<std::decay_t<T>>(), void>>
+  container operator[](T&& value) && {
+    return std::move(this->template get<object_type>()[std::forward<T>(value)]);
+  }
 };
 
 }  // namespace json_backbone
