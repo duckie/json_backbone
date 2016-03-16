@@ -8,11 +8,11 @@ using namespace json_backbone;
 using json_container = container<std::map,       // User's choice of associative container
                                  std::vector,    // User's choice of random access container
                                  std::string,    // key_type for the associative container
-                                 std::string,    // A type an element could take
-                                 double,         // A type an element could take
-                                 int,            // A type an element could take
+                                 std::nullptr_t, // A type an element could take
                                  bool,           // A type an element could take
-                                 std::nullptr_t  // A type an element could take
+                                 int,            // A type an element could take
+                                 double,         // A type an element could take
+                                 std::string     // A type an element could take
                                  >;
 
 void demo1() {

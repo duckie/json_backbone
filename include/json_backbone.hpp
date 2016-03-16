@@ -208,13 +208,28 @@ struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>...
         arithmetics::find_first<bool, sizeof...(Types)>(
             {(sizeof(Types) <= MemSize && std::is_constructible<Types, Arg, Args...>::value)...},
             true);
+    static constexpr std::size_t index_first_integral_ssig_value =
+        arithmetics::find_first<bool, sizeof...(Types)>(
+            {(std::is_integral<Types>() && sizeof(Arg) <= sizeof(Types) &&
+              std::is_signed<Types>() == std::is_signed<Arg>() &&
+              std::is_constructible<Types, Arg, Args...>::value)...},
+            true);
     static constexpr std::size_t index_first_integral_value =
         arithmetics::find_first<bool, sizeof...(Types)>(
-            {(std::is_integral<Types>() && std::is_constructible<Types, Arg, Args...>::value)...},
+            {(std::is_integral<Types>() && sizeof(Arg) <= sizeof(Types) &&
+              std::is_constructible<Types, Arg, Args...>::value)...},
             true);
     static constexpr std::size_t index_first_arithmetic_value =
         arithmetics::find_first<bool, sizeof...(Types)>(
-            {(std::is_arithmetic<Types>() && std::is_constructible<Types, Arg, Args...>::value)...},
+            {(std::is_arithmetic<Types>() && !std::is_integral<Types>() &&
+              sizeof(Arg) <= sizeof(Types) &&
+              std::is_constructible<Types, Arg, Args...>::value)...},
+            true);
+    static constexpr std::size_t index_first_ptrwise_value =
+        arithmetics::find_first<bool, sizeof...(Types)>(
+            {(!(std::is_integral<Types>() && std::is_pointer<std::decay_t<Arg>>() &&
+                0 == sizeof...(Args)) &&
+              std::is_constructible<Types, Arg, Args...>::value)...},
             true);
     static constexpr std::size_t index_first_value =
         arithmetics::find_first<bool, sizeof...(Types)>(
@@ -224,12 +239,17 @@ struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>...
         (index_first_same_value < sizeof...(Types) && 0 == sizeof...(Args))
             ? index_first_same_value
             : (std::is_integral<Arg>() && 0 == sizeof...(Args) &&
-               index_first_integral_value < sizeof...(Types))
-                  ? index_first_integral_value
-                  : (std::is_arithmetic<Arg>() && 0 == sizeof...(Args) &&
-                     index_first_arithmetic_value < sizeof...(Types))
-                        ? index_first_arithmetic_value
-                        : index_first_value;
+               index_first_integral_ssig_value < sizeof...(Types))
+                  ? index_first_integral_ssig_value
+                  : (std::is_integral<Arg>() && 0 == sizeof...(Args) &&
+                     index_first_integral_value < sizeof...(Types))
+                        ? index_first_integral_value
+                        : (std::is_arithmetic<Arg>() && 0 == sizeof...(Args) &&
+                           index_first_arithmetic_value < sizeof...(Types))
+                              ? index_first_arithmetic_value
+                              : (index_first_ptrwise_value < sizeof...(Types))
+                                    ? index_first_ptrwise_value
+                                    : index_first_value;
     using type = typename decltype(get_type_at<index_value>(std::declval<type_list>()))::type;
   };
 
@@ -241,9 +261,10 @@ struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>...
   //
   template <std::size_t MemSize>
   struct select_default {
-    static constexpr std::size_t index_last_value = arithmetics::find_last<bool, sizeof...(Types)>(
-        {std::is_default_constructible<Types>()...}, true);
-    static constexpr std::size_t index_value = index_last_value;
+    static constexpr std::size_t index_first_value =
+        arithmetics::find_first<bool, sizeof...(Types)>({std::is_default_constructible<Types>()...},
+                                                        true);
+    static constexpr std::size_t index_value = index_first_value;
     using type = typename decltype(get_type_at<index_value>(std::declval<type_list>()))::type;
   };
 };
@@ -619,15 +640,14 @@ inline decltype(auto) raw(variant<Value...>&& value) noexcept {
 template <template <class...> class ObjectBase, template <class...> class ArrayBase, class Key,
           class... Value>
 class container
-    : public variant<ObjectBase<Key, container<ObjectBase, ArrayBase, Key, Value...>>,
-                     ArrayBase<container<ObjectBase, ArrayBase, Key, Value...>>, Value...> {
+    : public variant<Value..., ArrayBase<container<ObjectBase, ArrayBase, Key, Value...>>,
+                     ObjectBase<Key, container<ObjectBase, ArrayBase, Key, Value...>>> {
   friend attr_init<container>;
   friend array_element_init<container>;
 
  public:
-  using variant_type =
-      variant<ObjectBase<Key, container<ObjectBase, ArrayBase, Key, Value...>>,
-              ArrayBase<container<ObjectBase, ArrayBase, Key, Value...>>, Value...>;
+  using variant_type = variant<Value..., ArrayBase<container<ObjectBase, ArrayBase, Key, Value...>>,
+                               ObjectBase<Key, container<ObjectBase, ArrayBase, Key, Value...>>>;
   using object_type = ObjectBase<Key, container>;
   using array_type = ArrayBase<container>;
   using key_type = Key;

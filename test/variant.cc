@@ -8,8 +8,7 @@
 
 using namespace json_backbone;
 
-using json_container = container<std::map, std::vector, std::string, std::string, double, int,
-                                 unsigned int, bool, std::nullptr_t>;
+using json_container = container<std::map, std::vector, std::string, std::nullptr_t, bool, unsigned int, int, double, std::string>;
 
 template <class Type, std::size_t Index>
 using is_same_at_t =
@@ -30,27 +29,26 @@ TEST_CASE("Variant - Static invariants", "[variant][static][compile_time]") {
   }
 
   SECTION("Inner types indexes") {
-    REQUIRE((json_container::type_list_type::get_index<std::map<std::string, json_container>>()) ==
-            0);
-    REQUIRE((json_container::type_list_type::get_index<std::vector<json_container>>()) == 1);
-    REQUIRE(json_container::type_list_type::get_index<std::string>() == 2);
-    REQUIRE(json_container::type_list_type::get_index<double>() == 3);
-    REQUIRE(json_container::type_list_type::get_index<int>() == 4);
-    REQUIRE(json_container::type_list_type::get_index<unsigned int>() == 5);
-    REQUIRE(json_container::type_list_type::get_index<bool>() == 6);
-    REQUIRE(json_container::type_list_type::get_index<std::nullptr_t>() == 7);
+    REQUIRE(json_container::type_list_type::get_index<std::nullptr_t>() == 0);
+    REQUIRE(json_container::type_list_type::get_index<bool>() == 1);
+    REQUIRE(json_container::type_list_type::get_index<unsigned int>() == 2);
+    REQUIRE(json_container::type_list_type::get_index<int>() == 3);
+    REQUIRE(json_container::type_list_type::get_index<double>() == 4);
+    REQUIRE(json_container::type_list_type::get_index<std::string>() == 5);
+    REQUIRE((json_container::type_list_type::get_index<std::vector<json_container>>()) == 6);
+    REQUIRE((json_container::type_list_type::get_index<std::map<std::string, json_container>>()) == 7);
     REQUIRE(json_container::type_list_type::get_index<char>() == 8);
   }
 
   SECTION("Inner types from indexes") {
-    REQUIRE((is_same_at_t<std::map<std::string, json_container>, 0>::value));
-    REQUIRE((is_same_at_t<std::vector<json_container>, 1>::value));
-    REQUIRE((is_same_at_t<std::string, 2>::value));
-    REQUIRE((is_same_at_t<double, 3>::value));
-    REQUIRE((is_same_at_t<int, 4>::value));
-    REQUIRE((is_same_at_t<unsigned int, 5>::value));
-    REQUIRE((is_same_at_t<bool, 6>::value));
-    REQUIRE((is_same_at_t<std::nullptr_t, 7>::value));
+    REQUIRE((is_same_at_t<std::nullptr_t, 0>::value));
+    REQUIRE((is_same_at_t<bool, 1>::value));
+    REQUIRE((is_same_at_t<unsigned int, 2>::value));
+    REQUIRE((is_same_at_t<int, 3>::value));
+    REQUIRE((is_same_at_t<double, 4>::value));
+    REQUIRE((is_same_at_t<std::string, 5>::value));
+    REQUIRE((is_same_at_t<std::vector<json_container>, 6>::value));
+    REQUIRE((is_same_at_t<std::map<std::string, json_container>, 7>::value));
     REQUIRE((is_same_at_t<void, 8>::value));
   }
 
