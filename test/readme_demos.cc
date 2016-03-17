@@ -2,6 +2,8 @@
 #include <vector>
 #include <map>
 #include <string>
+#include <iostream>
+#include <sstream>
 
 using namespace json_backbone;
 
@@ -21,7 +23,15 @@ element_init<json_container> operator""_a(char const* name, size_t length) {
   return json_container::key_type{name, length};
 }
 
+// Define a visitor helper
+struct recursive_printer
+    : public const_func_aggregate_visitor<json_container, recursive_printer const&, std::ostream&> {
+  using const_func_aggregate_visitor<json_container, recursive_printer const&,
+                                     std::ostream&>::const_func_aggregate_visitor;
+};
+
 void demo1() {
+  // Create a container
   auto c = make_object({"name"_a = "Roger",     //
                         "size"_a = 1.92,        //
                         "subscribed"_a = true,  //
@@ -35,9 +45,45 @@ void demo1() {
                                                    })}),
                         "grades"_a = make_array<json_container>({1, true, "Ole"})});
 
+  // Play with it
   auto s1 = get<std::string>(c["name"]);  // is a string
   c["firstname"] = nullptr;               // Creates a null element
   c["firstname"] = "Marcel";              // This element becomes a string
+
+  // Dump to json
+  std::ostringstream result_stream;
+  // Instantiate statically to avoid multiple creationc cost
+  static recursive_printer const printer{
+      [](std::nullptr_t val, auto&, auto& out) { out << "null"; },
+      [](bool val, auto&, auto& out) { out << (val ? "true" : "false"); },
+      [](int val, auto&, auto& out) { out << val; },
+      [](double val, auto&, auto& out) { out << val; },
+      [](auto const& str, auto&, auto& out) { out << '"' << str << '"'; },
+      [](auto const& arr, auto& self, auto& out) {
+        out << "[";
+        bool sep = false;
+        for (auto& v : arr) {
+          out << (sep ? "," : "");
+          apply_visitor(v, self, self, out);
+          sep = true;
+        }
+        out << "]";
+      },
+      [](auto const& obj, auto& self, auto& out) {
+        out << "{";
+        bool sep = false;
+        for (auto& v : obj) {
+          out << (sep ? "," : "") << "\"" << v.first << "\":";
+          apply_visitor(v.second, self, self, out);
+          sep = true;
+        }
+        out << "}";
+      }};
+
+  // Apply the visitor. "printer" appears two times, once as the actual
+  // visitor and once as an extra argument passed to it along with the stream
+  apply_visitor(c, printer, printer, result_stream);
+  std::cout << result_stream.str() << std::endl;
 }
 
 int main(void) {
