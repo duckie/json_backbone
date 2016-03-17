@@ -228,8 +228,8 @@ Data can be accessed in a variety of ways:
 ```c++
 std::string& s1 = v4.get<std::string>();  // Checks actual type stored, throws if does not match
 auto s2 = get<std::string>(v4);           // Equivalent to previous call
-auto s3 = v4.get<std::string>();          // Access the data directly without any check
-auto s4 = get<std::string>(v4);           // Equivalent to previous call
+auto s3 = v4.raw<std::string>();          // Access the data directly without any check
+auto s4 = raw<std::string>(v4);           // Equivalent to previous call
 
 std::string& s5 = v4;  // Makes use of conversion operators, throws if bad type
 
