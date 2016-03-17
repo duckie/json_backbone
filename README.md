@@ -223,6 +223,18 @@ std::cout << v1.is<std::nullptr_t>() << v2.is<int>() << v3.is<double>() << v4.is
 
 ### Access to data
 
+Data can be accessed in a variety of ways:
 
+```c++
+std::string& s1 = v4.get<std::string>();  // Checks actual type stored, throws if does not match
+auto s2 = get<std::string>(v4);           // Equivalent to previous call
+auto s3 = v4.get<std::string>();          // Access the data directly without any check
+auto s4 = get<std::string>(v4);           // Equivalent to previous call
 
+std::string& s5 = v4;  // Makes use of conversion operators, throws if bad type
+
+bool is_string = v4.is<std::string>();  // Check actual type
+```
+
+Other ways of investigating the actual type will be covered in the visiting part.
 
