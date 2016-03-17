@@ -431,8 +431,8 @@ class variant {
 
   // Assign from other variant
   variant& operator=(variant const& other) {
-    static std::array<void(*)(variant&, variant const&), sizeof...(Value)> stores = {
-      copy_assign_fp<Value>...};
+    static std::array<void (*)(variant&, variant const&), sizeof...(Value)> stores = {
+        copy_assign_fp<Value>...};
 
     static std::array<void (*)(variant&, variant const&), sizeof...(Value)> ctors = {
         copy_ctor_fp<Value>...};
@@ -447,8 +447,8 @@ class variant {
   }
 
   variant& operator=(variant&& other) {
-    static std::array<void(*)(variant&, variant && ), sizeof...(Value)> stores = {
-      move_assign_fp<Value>...};
+    static std::array<void (*)(variant&, variant&&), sizeof...(Value)> stores = {
+        move_assign_fp<Value>...};
 
     static std::array<void (*)(variant&, variant&&), sizeof...(Value)> ctors = {
         move_ctor_fp<Value>...};
@@ -782,19 +782,29 @@ Container make_array(std::initializer_list<Container>&& elements) {
   return typename Container::array_type{std::move(elements)};
 }
 
+namespace visiting_helpers {
+template <class Visitor, class Value, class... Types>
+void applier_fp(variant<Types...>& values, Visitor visitor) {
+  visitor(values.template get<Value>());
+}
+
+template <class Visitor, class Value, class... Types>
+void const_applier_fp(variant<Types...> const& values, Visitor visitor) {
+  visitor(values.template get<Value>());
+}
+}
+
 template <class Visitor, class... Value>
 void apply_visitor(variant<Value...>& values, Visitor&& visitor) {
-  static std::array<std::function<void(variant<Value...>&, Visitor)>, sizeof...(Value)> appliers = {
-      [](variant<Value...>& values, Visitor visitor) { visitor(values.template get<Value>()); }...};
+  static std::array<void(*)(variant<Value...>&, Visitor), sizeof...(Value)> appliers = {
+    visiting_helpers::applier_fp<Visitor,Value, Value...> ...};
   appliers[values.type_index()](values, std::forward<Visitor>(visitor));
 };
 
 template <class Visitor, class... Value>
 void apply_visitor(variant<Value...> const& values, Visitor&& visitor) {
-  static std::array<std::function<void(variant<Value...> const&, Visitor)>, sizeof...(Value)>
-      appliers = {[](variant<Value...> const& values, Visitor visitor) {
-        visitor(values.template get<Value>());
-      }...};
+  static std::array<void(*)(variant<Value...> const&, Visitor), sizeof...(Value)> appliers = {
+    visiting_helpers::const_applier_fp<Visitor,Value, Value...> ...};
   appliers[values.type_index()](values, std::forward<Visitor>(visitor));
 };
 
