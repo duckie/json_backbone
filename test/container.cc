@@ -2,6 +2,7 @@
 #include <catch.hpp>
 #include <chrono>
 #include <iostream>
+#include <sstream>
 #include <list>
 #include <vector>
 #include <map>
@@ -11,11 +12,36 @@
 // using json_container = json_bac
 using namespace json_backbone;
 
-using json_container = container<std::map, std::vector, std::string, std::nullptr_t, bool,
-                                 unsigned int, int, double, std::string>;
+// Declare a container specifically tailored for JSON data
+using json_container = container<std::map,        // User's choice of associative container
+                                 std::vector,     // User's choice of random access container
+                                 std::string,     // key_type for the associative container
+                                 std::nullptr_t,  // A type an element could take
+                                 bool,            // A type an element could take
+                                 int,             // A type an element could take
+                                 double,          // A type an element could take
+                                 std::string      // A type an element could take
+                                 >;
+
 
 element_init<json_container> operator""_a(char const* name, size_t length) {
   return json_container::key_type{name, length};
+}
+
+struct loop_separator {
+  bool first_passed = false;
+  std::string sep;
+  loop_separator(std::string s = ",") : sep(s) {}
+  operator bool() {
+    bool res = first_passed;
+    if (!first_passed)
+      first_passed = true;
+    return res;
+  }
+};
+std::ostream& operator << (std::ostream& out, loop_separator& sep) {
+  out << (sep ? sep.sep : "");
+  return out;
 }
 
 TEST_CASE("Container - access", "[container][access][runtime]") {
@@ -50,6 +76,44 @@ TEST_CASE("Container - access", "[container][access][runtime]") {
   }
 }
 
+struct visitor_test_01 {
+  std::ostringstream& output;
+
+  visitor_test_01(std::ostringstream& o) : output(o) {}
+
+  void operator()(json_container::object_type const& value) {
+    output << "{";
+    loop_separator sep;
+    for(auto& v : value) {
+      output << sep << "\"" << v.first << "\":";
+      apply_visitor(v.second,*this);
+    }
+    output << "}";
+  }
+
+  void operator()(json_container::array_type const& value) {
+    output << "[";
+    loop_separator sep;
+    for(auto& v : value) {
+      output << sep;
+      apply_visitor(v,*this);
+    }
+    output << "]";
+  }
+  
+  void operator()(std::string const& value) {
+    output << '"' << value << '"';
+  }
+
+  void operator()(std::nullptr_t const&) {
+    output << "null";
+  }
+
+  template <class T> void operator()(T const& value) {
+    output << value;
+  }
+};
+
 TEST_CASE("Container - creation", "[container][access][runtime]") {
   auto c = make_object({"name"_a = "Roger",     //
                         "size"_a = 1.92,        //
@@ -78,5 +142,11 @@ TEST_CASE("Container - creation", "[container][access][runtime]") {
     REQUIRE(c["children"].get_array()[1]["name"].get<std::string>() == "Jesabel");
     REQUIRE(c["children"].get_array()[1]["age"].get<int>() == 8);
     REQUIRE(c["children"].get_array()[1]["size"].get<double>() == 1.28);
+  }
+
+  SECTION("Apply visitor") {
+    std::ostringstream result_stream;
+    apply_visitor(c,visitor_test_01{result_stream});
+    REQUIRE(result_stream.str() == R"json({"children":[{"age":6,"name":"Martha"},{"age":8,"name":"Jesabelle"}],"grades":[1,1,"Ole"],"name":"Roger","size":1.92,"subscribed":1})json");
   }
 }

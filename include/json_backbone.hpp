@@ -258,7 +258,7 @@ struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>...
   // Returns a type chosen for default construction
   //
   // Rules:
-  // - Select last default constructible type
+  // - Select first default constructible type
   //
   template <std::size_t MemSize>
   struct select_default {
@@ -269,7 +269,7 @@ struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>...
     using type = typename decltype(get_type_at<index_value>(std::declval<type_list>()))::type;
   };
 };
-}  // namespace type_lis_traits
+}  // namespace type_list_traits
 
 //
 // helpers creates functions to be used by the variant
@@ -306,11 +306,22 @@ struct non_existing_element : public std::exception {
   }
 };
 
+// Forward declare friends
+
+// template <class... Value> class variant;
+// template <class Visitor, class ... Value> void apply_visitor(variant<Value...>& values, Visitor&&
+// visitor);
+// template <class Visitor, class ... Value> void apply_visitor(variant<Value...> const& values,
+// Visitor&& visitor);
+
 //
 // variant is a discriminated union optimized for small types
 //
 template <class... Value>
 class variant {
+  // template <class Visitor> friend void apply_visitor(variant&,Visitor);
+  // template <class Visitor> friend void apply_visitor(variant const&,Visitor);
+
   // Compute minimum size required by types. Default 8
   static constexpr std::size_t min_memory_size =
       arithmetics::max_value<std::size_t, sizeof...(Value)>({memory_footprint_t<Value>::value...});
@@ -654,7 +665,6 @@ template <template <class...> class ObjectBase, template <class...> class ArrayB
 class container
     : public variant<Value..., ArrayBase<container<ObjectBase, ArrayBase, Key, Value...>>,
                      ObjectBase<Key, container<ObjectBase, ArrayBase, Key, Value...>>> {
-
  public:
   using variant_type = variant<Value..., ArrayBase<container<ObjectBase, ArrayBase, Key, Value...>>,
                                ObjectBase<Key, container<ObjectBase, ArrayBase, Key, Value...>>>;
@@ -692,7 +702,7 @@ class container
     return this->template get<object_type>();
   }
 
-  inline object_type const& get_object() const& {
+  inline object_type const& get_object() const & {
     return this->template get<object_type>();
   }
 
@@ -704,7 +714,7 @@ class container
     return this->template get<array_type>();
   }
 
-  inline array_type const& get_array() const& {
+  inline array_type const& get_array() const & {
     return this->template get<array_type>();
   }
 
@@ -744,28 +754,48 @@ class container
   }
 };
 
-template <class Container> class element_init {
+template <class Container>
+class element_init {
   typename Container::object_type::key_type key_;
   Container value_;
+
  public:
   using container_type = Container;
-  element_init(typename Container::object_type::key_type const& key) : key_{key} {}
-  element_init(typename Container::object_type::key_type&& key) : key_{std::move(key)} {}
-  template <class T> 
-    typename Container::object_type::value_type operator=(T&& value) && {
-      return {std::move(key_), std::move(value)};
-    }
+  element_init(typename Container::object_type::key_type const& key) : key_{key} {
+  }
+  element_init(typename Container::object_type::key_type&& key) : key_{std::move(key)} {
+  }
+  template <class T>
+  typename Container::object_type::value_type operator=(T&& value) && {
+    return {std::move(key_), std::move(value)};
+  }
 };
 
 template <class Container, class Key = typename Container::key_type>
-Container make_object(std::initializer_list<std::pair<Key const,Container>>&& elements) {
-  return typename Container::object_type { std::move(elements) };
+Container make_object(std::initializer_list<std::pair<Key const, Container>>&& elements) {
+  return typename Container::object_type{std::move(elements)};
 }
 
 template <class Container>
 Container make_array(std::initializer_list<Container>&& elements) {
-  return typename Container::array_type{ std::move(elements) };
+  return typename Container::array_type{std::move(elements)};
 }
+
+template <class Visitor, class... Value>
+void apply_visitor(variant<Value...>& values, Visitor&& visitor) {
+  static std::array<std::function<void(variant<Value...>&, Visitor)>, sizeof...(Value)> appliers = {
+      [](variant<Value...>& values, Visitor visitor) { visitor(values.template get<Value>()); }...};
+  appliers[values.type_index()](values, std::forward<Visitor>(visitor));
+};
+
+template <class Visitor, class... Value>
+void apply_visitor(variant<Value...> const& values, Visitor&& visitor) {
+  static std::array<std::function<void(variant<Value...> const&, Visitor)>, sizeof...(Value)>
+      appliers = {[](variant<Value...> const& values, Visitor visitor) {
+        visitor(values.template get<Value>());
+      }...};
+  appliers[values.type_index()](values, std::forward<Visitor>(visitor));
+};
 
 }  // namespace json_backbone
 

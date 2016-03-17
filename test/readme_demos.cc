@@ -5,7 +5,7 @@
 
 using namespace json_backbone;
 
-// Declare a container specifically tailored for JSON DATA
+// Declare a container specifically tailored for JSON data
 using json_container = container<std::map,        // User's choice of associative container
                                  std::vector,     // User's choice of random access container
                                  std::string,     // key_type for the associative container
