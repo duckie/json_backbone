@@ -23,7 +23,6 @@ using json_container = container<std::map,        // User's choice of associativ
                                  std::string      // A type an element could take
                                  >;
 
-
 element_init<json_container> operator""_a(char const* name, size_t length) {
   return json_container::key_type{name, length};
 }
@@ -31,15 +30,15 @@ element_init<json_container> operator""_a(char const* name, size_t length) {
 struct loop_separator {
   bool first_passed = false;
   std::string sep;
-  loop_separator(std::string s = ",") : sep(s) {}
+  loop_separator(std::string s = ",") : sep(s) {
+  }
   operator bool() {
     bool res = first_passed;
-    if (!first_passed)
-      first_passed = true;
+    if (!first_passed) first_passed = true;
     return res;
   }
 };
-std::ostream& operator << (std::ostream& out, loop_separator& sep) {
+std::ostream& operator<<(std::ostream& out, loop_separator& sep) {
   out << (sep ? sep.sep : "");
   return out;
 }
@@ -79,14 +78,15 @@ TEST_CASE("Container - access", "[container][access][runtime]") {
 struct visitor_test_01 {
   std::ostringstream& output;
 
-  visitor_test_01(std::ostringstream& o) : output(o) {}
+  visitor_test_01(std::ostringstream& o) : output(o) {
+  }
 
   void operator()(json_container::object_type const& value) {
     output << "{";
     loop_separator sep;
-    for(auto& v : value) {
+    for (auto& v : value) {
       output << sep << "\"" << v.first << "\":";
-      apply_visitor(v.second,*this);
+      apply_visitor(v.second, *this);
     }
     output << "}";
   }
@@ -94,13 +94,13 @@ struct visitor_test_01 {
   void operator()(json_container::array_type const& value) {
     output << "[";
     loop_separator sep;
-    for(auto& v : value) {
+    for (auto& v : value) {
       output << sep;
-      apply_visitor(v,*this);
+      apply_visitor(v, *this);
     }
     output << "]";
   }
-  
+
   void operator()(std::string const& value) {
     output << '"' << value << '"';
   }
@@ -109,9 +109,16 @@ struct visitor_test_01 {
     output << "null";
   }
 
-  template <class T> void operator()(T const& value) {
+  template <class T>
+  void operator()(T const& value) {
     output << value;
   }
+};
+
+struct recursive_printer
+    : public const_func_aggregate_visitor<json_container, recursive_printer const&, std::ostringstream&> {
+  using const_func_aggregate_visitor<json_container, recursive_printer const&,
+                                     std::ostringstream&>::const_func_aggregate_visitor;
 };
 
 TEST_CASE("Container - creation", "[container][access][runtime]") {
@@ -146,7 +153,45 @@ TEST_CASE("Container - creation", "[container][access][runtime]") {
 
   SECTION("Apply visitor") {
     std::ostringstream result_stream;
-    apply_visitor(c,visitor_test_01{result_stream});
-    REQUIRE(result_stream.str() == R"json({"children":[{"age":6,"name":"Martha"},{"age":8,"name":"Jesabelle"}],"grades":[1,1,"Ole"],"name":"Roger","size":1.92,"subscribed":1})json");
+    visitor_test_01 visitor {result_stream};
+    apply_visitor(c, visitor);
+    REQUIRE(
+        result_stream.str() ==
+        R"json({"children":[{"age":6,"name":"Martha"},{"age":8,"name":"Jesabelle"}],"grades":[1,1,"Ole"],"name":"Roger","size":1.92,"subscribed":1})json");
+  }
+
+  SECTION("Apply aggregate visitor") {
+    std::ostringstream result_stream;
+    // Instantiate only once
+    static recursive_printer const printer{
+        [](std::nullptr_t val, auto&, auto& out) { out << "null"; },
+        [](bool val, auto&, auto& out) { out << (val ? "true" : "false"); },
+        [](int val, auto&, auto& out) { out << val; },
+        [](double val, auto&, auto& out) { out << val; },
+        [](auto const& str, auto&, auto& out) { out << '"' << str << '"'; },
+        [](auto const& arr, auto& self, auto& out) {
+          out << "[";
+          loop_separator sep;
+          for (auto& v : arr) {
+            out << sep;
+            apply_visitor(v, self, self, out);
+          }
+          out << "]";
+        },
+        [](auto const& obj, auto& self, auto& out) {
+          out << "{";
+          loop_separator sep;
+          for (auto& v : obj) {
+            out << sep << "\"" << v.first << "\":";
+            apply_visitor(v.second, self, self, out);
+          }
+          out << "}";
+        }};
+
+    apply_visitor(c, printer, printer, result_stream);
+
+    REQUIRE(
+        result_stream.str() ==
+        R"json({"children":[{"age":6,"name":"Martha"},{"age":8,"name":"Jesabelle"}],"grades":[1,true,"Ole"],"name":"Roger","size":1.92,"subscribed":true})json");
   }
 }
