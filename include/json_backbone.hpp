@@ -205,10 +205,6 @@ struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>...
             {(std::is_same<std::decay_t<Arg>, Types>() &&
               std::is_constructible<Types, Arg, Args...>::value)...},
             true);
-    static constexpr std::size_t index_first_small_value =
-        arithmetics::find_first<bool, sizeof...(Types)>(
-            {(sizeof(Types) <= MemSize && std::is_constructible<Types, Arg, Args...>::value)...},
-            true);
     static constexpr std::size_t index_first_integral_ssig_value =
         arithmetics::find_first<bool, sizeof...(Types)>(
             {(std::is_integral<Types>() && sizeof(Arg) <= sizeof(Types) &&

@@ -95,21 +95,31 @@ struct BigType2 {
 };
 
 namespace json_backbone {
-template <> struct is_small_type<BigType> {
+template <>
+struct is_small_type<BigType> {
   static constexpr bool value = true;
 };
 }
 
 void demo2() {
-  std::cout
-    << sizeof(variant<BigType,BigType2>)
-    << " != "
-    << sizeof(variant<BigType2>)
-    << std::endl;
+  std::cout << sizeof(variant<BigType, BigType2>) << " != " << sizeof(variant<BigType2>)
+            << std::endl;
+}
+
+void demo3() {
+  using variant_t = variant<std::nullptr_t, double, int, std::string>;
+  variant_t v1{};          // stored as a std::nullptr_t
+  variant_t v2{short(1)};  // stored as int
+  variant_t v3{1.f};       // stored as double
+  variant_t v4{"Roger"};   // stored as std::string
+  // variant_t v5{23u};    // would not compile
+
+  std::cout << v1.is<std::nullptr_t>() << v2.is<int>() << v3.is<double>() << v4.is<std::string>()
+            << std::endl;
 }
 
 int main(void) {
   demo1();
   demo2();
-  return 0;
+  demo3();
 }
