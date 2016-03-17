@@ -276,16 +276,16 @@ struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>...
 //
 namespace helpers {
 
-// make_deleter creates a function that deletes a type - smalYl type version
+// deleter_fp is a function that deletes a type - smalYl type version
 template <class T, std::size_t MemSize>
-enable_if_small_t<T, std::function<void(void**)>, MemSize> make_deleter() {
-  return [](void** data) { reinterpret_cast<T*>(data)->~T(); };
+enable_if_small_t<T, void, MemSize> deleter_fp(void** data) {
+  reinterpret_cast<T*>(data)->~T();
 }
 
-// make_deleter creates a function that deletes a type - big type version
+// deleter_fp is a function that deletes a type - big type version
 template <class T, std::size_t MemSize>
-enable_if_big_t<T, std::function<void(void**)>, MemSize> make_deleter() {
-  return [](void** data) { delete reinterpret_cast<T*>(*data); };
+enable_if_big_t<T, void, MemSize> deleter_fp(void** data) {
+  delete reinterpret_cast<T*>(*data);
 }
 
 }  // namespace helpers
@@ -308,20 +308,11 @@ struct non_existing_element : public std::exception {
 
 // Forward declare friends
 
-// template <class... Value> class variant;
-// template <class Visitor, class ... Value> void apply_visitor(variant<Value...>& values, Visitor&&
-// visitor);
-// template <class Visitor, class ... Value> void apply_visitor(variant<Value...> const& values,
-// Visitor&& visitor);
-
 //
 // variant is a discriminated union optimized for small types
 //
 template <class... Value>
 class variant {
-  // template <class Visitor> friend void apply_visitor(variant&,Visitor);
-  // template <class Visitor> friend void apply_visitor(variant const&,Visitor);
-
   // Compute minimum size required by types. Default 8
   static constexpr std::size_t min_memory_size =
       arithmetics::max_value<std::size_t, sizeof...(Value)>({memory_footprint_t<Value>::value...});
@@ -339,13 +330,13 @@ class variant {
   using type_list_type =
       type_list_traits::type_list<std::make_index_sequence<sizeof...(Value)>, Value...>;
 
- protected:
+ private:
   //
-  // Destroys currently hold object and deallocates heap if needed
+  // Destroys currently held object and deallocates heap if needed
   //
   void clear() {
-    static std::array<std::function<void(void**)>, sizeof...(Value)> deleters = {
-        helpers::make_deleter<Value, memory_size>()...};
+    static std::array<void (*)(void**), sizeof...(Value)> deleters = {
+        helpers::deleter_fp<Value, memory_size>...};
     if (type_ < sizeof...(Value))  // Should only be the case in some ctors
       deleters[type_](&data_[0]);
   }
@@ -379,6 +370,26 @@ class variant {
     allocate<target_type>(std::forward<Arg>(arg), std::forward<Args>(args)...);
   }
 
+  template <class T>
+  static void copy_ctor_fp(variant& self, variant const& other) {
+    self.create(other.template raw<T>());
+  }
+
+  template <class T>
+  static void move_ctor_fp(variant& self, variant&& other) {
+    self.create(std::move(other.template raw<T>()));
+  }
+
+  template <class T>
+  static void copy_assign_fp(variant& self, variant const& other) {
+    self.template get<T>() = other.template raw<T>();
+  }
+
+  template <class T>
+  static void move_assign_fp(variant& self, variant&& other) {
+    self.template get<T>() = std::move(other.template raw<T>());
+  }
+
  public:
   template <bool HasDefault = (type_list_type::template select_default<memory_size>::index_value <
                                sizeof...(Value)),
@@ -388,18 +399,14 @@ class variant {
   }
 
   variant(variant const& other) {
-    static std::array<std::function<void(variant&, variant const&)>, sizeof...(Value)> ctors = {
-        [](variant& self, variant const& other) { self.create(other.template get<Value>()); }...};
-
+    static std::array<void (*)(variant&, variant const&), sizeof...(Value)> ctors = {
+        copy_ctor_fp<Value>...};
     ctors[other.type_](*this, other);
   }
 
   variant(variant&& other) {
-    static std::array<std::function<void(variant&, variant && )>, sizeof...(Value)> ctors = {
-        [](variant& self, variant const& other) {
-          self.create(std::move(other.template get<Value>()));
-        }...};
-
+    static std::array<void (*)(variant&, variant&&), sizeof...(Value)> ctors = {
+        move_ctor_fp<Value>...};
     ctors[other.type_](*this, std::move(other));
   }
 
@@ -424,13 +431,11 @@ class variant {
 
   // Assign from other variant
   variant& operator=(variant const& other) {
-    static std::array<std::function<void(variant&, variant const&)>, sizeof...(Value)> stores = {
-        [](variant& self, variant const& other) {
-          self.template get<Value>() = other.template raw<Value>();
-        }...};
+    static std::array<void(*)(variant&, variant const&), sizeof...(Value)> stores = {
+      copy_assign_fp<Value>...};
 
-    static std::array<std::function<void(variant&, variant const&)>, sizeof...(Value)> ctors = {
-        [](variant& self, variant const& other) { self.create(other.template raw<Value>()); }...};
+    static std::array<void (*)(variant&, variant const&), sizeof...(Value)> ctors = {
+        copy_ctor_fp<Value>...};
 
     if (type_ == other.type_) {
       stores[type_](*this, other);
@@ -442,15 +447,11 @@ class variant {
   }
 
   variant& operator=(variant&& other) {
-    static std::array<std::function<void(variant&, variant && )>, sizeof...(Value)> stores = {
-        [](variant& self, variant&& other) {
-          self.template get<Value>() = std::move(other.template raw<Value>());
-        }...};
+    static std::array<void(*)(variant&, variant && ), sizeof...(Value)> stores = {
+      move_assign_fp<Value>...};
 
-    static std::array<std::function<void(variant&, variant && )>, sizeof...(Value)> ctors = {
-        [](variant& self, variant&& other) {
-          self.create(std::move(other.template raw<Value>()));
-        }...};
+    static std::array<void (*)(variant&, variant&&), sizeof...(Value)> ctors = {
+        move_ctor_fp<Value>...};
 
     if (type_ == other.type_) {
       stores[type_](*this, std::move(other));
@@ -796,6 +797,27 @@ void apply_visitor(variant<Value...> const& values, Visitor&& visitor) {
       }...};
   appliers[values.type_index()](values, std::forward<Visitor>(visitor));
 };
+
+// template <class Visitor, class... Value>
+// void visit(variant<Value...>& values, std::function<void(Value&)> ... action) {
+// static std::array<std::function<void(variant<Value...>&, Visitor)>, sizeof...(Value)> appliers =
+// {
+//[](variant<Value...>& values, std::function<void(Value&)>& action) { action(values.template
+// get<Value>()); }...};
+// std::array<std::function<void(Value&)>,sizeof ... (Value)> actions { action ... };
+// appliers[values.type_index()](values, actions[values.type_index()]);
+//};
+//
+//
+// template <class Visitor, class... Value>
+// void visit(variant<Value...> const& values, std::function<void(Value const&)> ... action) {
+// static std::array<std::function<void(variant<Value...> const&, Visitor)>, sizeof...(Value)>
+// appliers = {
+//[](variant<Value...> const& values, std::function<void(Value const&)>& action) {
+// action(values.template get<Value>()); }...};
+// std::array<std::function<void()>,sizeof ... (Value)> actions { [&]() { action( ... };
+// appliers[values.type_index()](values, actions[values.type_index()]);
+//};
 
 }  // namespace json_backbone
 
