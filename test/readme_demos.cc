@@ -5,24 +5,39 @@
 
 using namespace json_backbone;
 
-using json_container = container<std::map,       // User's choice of associative container
-                                 std::vector,    // User's choice of random access container
-                                 std::string,    // key_type for the associative container
-                                 std::nullptr_t, // A type an element could take
-                                 bool,           // A type an element could take
-                                 int,            // A type an element could take
-                                 double,         // A type an element could take
-                                 std::string     // A type an element could take
+// Declare a container specifically tailored for JSON DATA
+using json_container = container<std::map,        // User's choice of associative container
+                                 std::vector,     // User's choice of random access container
+                                 std::string,     // key_type for the associative container
+                                 std::nullptr_t,  // A type an element could take
+                                 bool,            // A type an element could take
+                                 int,             // A type an element could take
+                                 double,          // A type an element could take
+                                 std::string      // A type an element could take
                                  >;
 
-void demo1() {
-  json_container c1;
-  json_container c2{"Roger"};  // Automatically maps to compatible ctor of std::string
-  json_container c3{1.0};
+// Create a helper to clarify creation syntax
+element_init<json_container> operator""_a(char const* name, size_t length) {
+  return json_container::key_type{name, length};
+}
 
-  auto s1 = get<std::string>(c2);  // s1 is a string
-  c3 = "Marcel";                   // c3 becomes a string
-  c2 = true;                       // c2 becomes a bool
+void demo1() {
+  auto c = make_object({"name"_a = "Roger",     //
+                        "size"_a = 1.92,        //
+                        "subscribed"_a = true,  //
+                        "children"_a = make_array({make_object({
+                                                       "name"_a = "Martha",  //
+                                                       "age"_a = 6           //
+                                                   }),
+                                                   make_object({
+                                                       "name"_a = "Jesabelle",  //
+                                                       "age"_a = 8              //
+                                                   })}),
+                        "grades"_a = make_array<json_container>({1, true, "Ole"})});
+
+  auto s1 = get<std::string>(c["name"]);  // is a string
+  c["firstname"] = nullptr;               // Creates a null element
+  c["firstname"] = "Marcel";              // This element becomes a string
 }
 
 int main(void) {

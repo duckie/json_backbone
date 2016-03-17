@@ -5,6 +5,7 @@
 #include <functional>
 #include <exception>
 #include <limits>
+#include <initializer_list>
 
 namespace json_backbone {
 
@@ -13,7 +14,7 @@ namespace json_backbone {
 // template <class value_type>
 // using std_array_default_allocators = std::vector<value_type>;
 template <class Container>
-class attr_init;
+class element_init;
 
 template <class Container>
 class array_element_init;
@@ -653,8 +654,6 @@ template <template <class...> class ObjectBase, template <class...> class ArrayB
 class container
     : public variant<Value..., ArrayBase<container<ObjectBase, ArrayBase, Key, Value...>>,
                      ObjectBase<Key, container<ObjectBase, ArrayBase, Key, Value...>>> {
-  friend attr_init<container>;
-  friend array_element_init<container>;
 
  public:
   using variant_type = variant<Value..., ArrayBase<container<ObjectBase, ArrayBase, Key, Value...>>,
@@ -689,6 +688,30 @@ class container
       : variant_type(std::forward<Arg>(arg), std::forward<Args>(args)...) {
   }
 
+  inline object_type& get_object() & {
+    return this->template get<object_type>();
+  }
+
+  inline object_type const& get_object() const& {
+    return this->template get<object_type>();
+  }
+
+  inline object_type get_object() && {
+    return std::move(this->template get<object_type>());
+  }
+
+  inline array_type& get_array() & {
+    return this->template get<array_type>();
+  }
+
+  inline array_type const& get_array() const& {
+    return this->template get<array_type>();
+  }
+
+  inline array_type get_array() && {
+    return std::move(this->template get<array_type>());
+  }
+
   container& operator[](size_t value) & {
     return this->template get<array_type>()[value];
   }
@@ -720,6 +743,29 @@ class container
     return std::move(this->template get<object_type>()[std::forward<T>(value)]);
   }
 };
+
+template <class Container> class element_init {
+  typename Container::object_type::key_type key_;
+  Container value_;
+ public:
+  using container_type = Container;
+  element_init(typename Container::object_type::key_type const& key) : key_{key} {}
+  element_init(typename Container::object_type::key_type&& key) : key_{std::move(key)} {}
+  template <class T> 
+    typename Container::object_type::value_type operator=(T&& value) && {
+      return {std::move(key_), std::move(value)};
+    }
+};
+
+template <class Container, class Key = typename Container::key_type>
+Container make_object(std::initializer_list<std::pair<Key const,Container>>&& elements) {
+  return typename Container::object_type { std::move(elements) };
+}
+
+template <class Container>
+Container make_array(std::initializer_list<Container>&& elements) {
+  return typename Container::array_type{ std::move(elements) };
+}
 
 }  // namespace json_backbone
 
