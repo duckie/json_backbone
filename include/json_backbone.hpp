@@ -425,9 +425,7 @@ class variant {
   }
 
   // Non-virtual destructor to spare a useless virtual table
-  ~variant() {
-    clear();
-  }
+  ~variant() { clear(); }
 
   // Assign from other variant
   variant& operator=(variant const& other) {
@@ -462,9 +460,7 @@ class variant {
     return *this;
   }
 
-  inline size_t type_index() const {
-    return type_;
-  }
+  inline size_t type_index() const { return type_; }
 
   // Assignation from a bounded type
   template <class T, class Enabler = std::enable_if_t<
@@ -675,14 +671,11 @@ class container
   using value_type_list_type =
       type_list_traits::type_list<std::make_index_sequence<sizeof...(Value)>, Value...>;
 
-  container() : variant_type{} {
-  }
+  container() : variant_type{} {}
 
-  container(container const& value) : variant_type(value) {
-  }
+  container(container const& value) : variant_type(value) {}
 
-  container(container&& value) : variant_type(std::move(value)) {
-  }
+  container(container&& value) : variant_type(std::move(value)) {}
 
   container& operator=(container const& value) {
     variant_type::operator=(value);
@@ -696,44 +689,27 @@ class container
 
   template <class Arg, class... Args>
   container(Arg&& arg, Args&&... args)
-      : variant_type(std::forward<Arg>(arg), std::forward<Args>(args)...) {
-  }
+      : variant_type(std::forward<Arg>(arg), std::forward<Args>(args)...) {}
 
-  inline object_type& get_object() & {
-    return this->template get<object_type>();
-  }
+  inline object_type& get_object() & { return this->template get<object_type>(); }
 
-  inline object_type const& get_object() const & {
-    return this->template get<object_type>();
-  }
+  inline object_type const& get_object() const & { return this->template get<object_type>(); }
 
-  inline object_type get_object() && {
-    return std::move(this->template get<object_type>());
-  }
+  inline object_type get_object() && { return std::move(this->template get<object_type>()); }
 
-  inline array_type& get_array() & {
-    return this->template get<array_type>();
-  }
+  inline array_type& get_array() & { return this->template get<array_type>(); }
 
-  inline array_type const& get_array() const & {
-    return this->template get<array_type>();
-  }
+  inline array_type const& get_array() const & { return this->template get<array_type>(); }
 
-  inline array_type get_array() && {
-    return std::move(this->template get<array_type>());
-  }
+  inline array_type get_array() && { return std::move(this->template get<array_type>()); }
 
-  container& operator[](size_t value) & {
-    return this->template get<array_type>()[value];
-  }
+  container& operator[](size_t value) & { return this->template get<array_type>()[value]; }
 
   container const& operator[](size_t value) const & {
     return this->template get<array_type>()[value];
   }
 
-  container operator[](size_t value) && {
-    return this->template get<array_type>()[value];
-  }
+  container operator[](size_t value) && { return this->template get<array_type>()[value]; }
 
   template <class T, class Enabler = std::enable_if_t<!std::is_integral<std::decay_t<T>>(), void>>
   container& operator[](T&& value) & {
@@ -743,9 +719,7 @@ class container
   template <class T, class Enabler = std::enable_if_t<!std::is_integral<std::decay_t<T>>(), void>>
   container const& operator[](T&& value) const & {
     auto it = this->template get<object_type>().find(std::forward<T>(value));
-    if (it != this->template get<object_type>().end()) {
-      return it->second;
-    }
+    if (it != this->template get<object_type>().end()) { return it->second; }
     throw non_existing_element<container>{};
   }
 
@@ -762,10 +736,8 @@ class element_init {
 
  public:
   using container_type = Container;
-  element_init(typename Container::object_type::key_type const& key) : key_{key} {
-  }
-  element_init(typename Container::object_type::key_type&& key) : key_{std::move(key)} {
-  }
+  element_init(typename Container::object_type::key_type const& key) : key_{key} {}
+  element_init(typename Container::object_type::key_type&& key) : key_{std::move(key)} {}
   template <class T>
   typename Container::object_type::value_type operator=(T&& value) && {
     return {std::move(key_), std::move(value)};
@@ -814,17 +786,16 @@ void apply_visitor(variant<Value...>& values, Visitor& visitor, ExtraArguments&&
   static std::array<void (*)(variant<Value...>&, Visitor&, ExtraArguments...), sizeof...(Value)>
       appliers = {visiting_helpers::applier_maker<variant<Value...>>::template applier_fp<
           Visitor&, Value, ExtraArguments...>...};
-  appliers[values.type_index()](values, visitor,
-                                std::forward<ExtraArguments>(extras)...);
+  appliers[values.type_index()](values, visitor, std::forward<ExtraArguments>(extras)...);
 };
 
 template <class Visitor, class... Value, class... ExtraArguments>
 void apply_visitor(variant<Value...>& values, Visitor const& visitor, ExtraArguments&&... extras) {
-  static std::array<void (*)(variant<Value...>&, Visitor const&, ExtraArguments...), sizeof...(Value)>
-      appliers = {visiting_helpers::applier_maker<variant<Value...>>::template applier_fp<
+  static std::array<void (*)(variant<Value...>&, Visitor const&, ExtraArguments...),
+                    sizeof...(Value)> appliers = {
+      visiting_helpers::applier_maker<variant<Value...>>::template applier_fp<
           Visitor const&, Value, ExtraArguments...>...};
-  appliers[values.type_index()](values, visitor,
-                                std::forward<ExtraArguments>(extras)...);
+  appliers[values.type_index()](values, visitor, std::forward<ExtraArguments>(extras)...);
 };
 
 template <class Visitor, class... Value, class... ExtraArguments>
@@ -833,18 +804,17 @@ void apply_visitor(variant<Value...> const& values, Visitor& visitor, ExtraArgum
                     sizeof...(Value)> appliers = {
       visiting_helpers::applier_maker<variant<Value...>>::template const_applier_fp<
           Visitor&, Value, ExtraArguments...>...};
-  appliers[values.type_index()](values, visitor,
-                                std::forward<ExtraArguments>(extras)...);
+  appliers[values.type_index()](values, visitor, std::forward<ExtraArguments>(extras)...);
 };
 
 template <class Visitor, class... Value, class... ExtraArguments>
-void apply_visitor(variant<Value...> const& values, Visitor const& visitor, ExtraArguments&&... extras) {
+void apply_visitor(variant<Value...> const& values, Visitor const& visitor,
+                   ExtraArguments&&... extras) {
   static std::array<void (*)(variant<Value...> const&, Visitor const&, ExtraArguments...),
                     sizeof...(Value)> appliers = {
       visiting_helpers::applier_maker<variant<Value...>>::template const_applier_fp<
           Visitor const&, Value, ExtraArguments...>...};
-  appliers[values.type_index()](values, visitor,
-                                std::forward<ExtraArguments>(extras)...);
+  appliers[values.type_index()](values, visitor, std::forward<ExtraArguments>(extras)...);
 };
 
 //
@@ -860,8 +830,7 @@ struct func_aggregate_visitor<variant<Value...>, ExtraArguments...> {
   using variant_type = variant<Value...>;
   std::tuple<std::function<void(Value&, ExtraArguments...)>...> appliers;
   func_aggregate_visitor(std::function<void(Value&, ExtraArguments...)>... applier)
-      : appliers{applier...} {
-  }
+      : appliers{applier...} {}
   template <class T>
   void operator()(T&& value, ExtraArguments... extras) const {
     std::get<variant_type::type_list_type::template get_index<std::decay_t<T>>()>(appliers)(
@@ -891,8 +860,7 @@ struct const_func_aggregate_visitor<variant<Value...>, ExtraArguments...> {
   using variant_type = variant<Value...>;
   std::tuple<std::function<void(Value const&, ExtraArguments...)>...> appliers;
   const_func_aggregate_visitor(std::function<void(Value const&, ExtraArguments...)>... applier)
-      : appliers{applier...} {
-  }
+      : appliers{applier...} {}
   template <class T>
   void operator()(T&& value, ExtraArguments... extras) const {
     std::get<variant_type::type_list_type::template get_index<std::decay_t<T>>()>(appliers)(

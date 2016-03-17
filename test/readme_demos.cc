@@ -86,7 +86,30 @@ void demo1() {
   std::cout << result_stream.str() << std::endl;
 }
 
+struct BigType {
+  char data[128];
+};
+
+struct BigType2 {
+  BigType data;
+};
+
+namespace json_backbone {
+template <> struct is_small_type<BigType> {
+  static constexpr bool value = true;
+};
+}
+
+void demo2() {
+  std::cout
+    << sizeof(variant<BigType,BigType2>)
+    << " != "
+    << sizeof(variant<BigType2>)
+    << std::endl;
+}
+
 int main(void) {
   demo1();
+  demo2();
   return 0;
 }

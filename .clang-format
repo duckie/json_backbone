@@ -7,5 +7,6 @@ NamespaceIndentation: None
 SpaceBeforeAssignmentOperators: true
 Standard: Cpp11
 UseTab: Never
-AllowShortFunctionsOnASingleLine: false
+AllowShortBlocksOnASingleLine: true
+AllowShortFunctionsOnASingleLine: true 
 AllowAllParametersOfDeclarationOnNextLine: true

@@ -30,8 +30,7 @@ element_init<json_container> operator""_a(char const* name, size_t length) {
 struct loop_separator {
   bool first_passed = false;
   std::string sep;
-  loop_separator(std::string s = ",") : sep(s) {
-  }
+  loop_separator(std::string s = ",") : sep(s) {}
   operator bool() {
     bool res = first_passed;
     if (!first_passed) first_passed = true;
@@ -78,8 +77,7 @@ TEST_CASE("Container - access", "[container][access][runtime]") {
 struct visitor_test_01 {
   std::ostringstream& output;
 
-  visitor_test_01(std::ostringstream& o) : output(o) {
-  }
+  visitor_test_01(std::ostringstream& o) : output(o) {}
 
   void operator()(json_container::object_type const& value) {
     output << "{";
@@ -101,13 +99,9 @@ struct visitor_test_01 {
     output << "]";
   }
 
-  void operator()(std::string const& value) {
-    output << '"' << value << '"';
-  }
+  void operator()(std::string const& value) { output << '"' << value << '"'; }
 
-  void operator()(std::nullptr_t const&) {
-    output << "null";
-  }
+  void operator()(std::nullptr_t const&) { output << "null"; }
 
   template <class T>
   void operator()(T const& value) {
@@ -116,7 +110,8 @@ struct visitor_test_01 {
 };
 
 struct recursive_printer
-    : public const_func_aggregate_visitor<json_container, recursive_printer const&, std::ostringstream&> {
+    : public const_func_aggregate_visitor<json_container, recursive_printer const&,
+                                          std::ostringstream&> {
   using const_func_aggregate_visitor<json_container, recursive_printer const&,
                                      std::ostringstream&>::const_func_aggregate_visitor;
 };
@@ -153,7 +148,7 @@ TEST_CASE("Container - creation", "[container][access][runtime]") {
 
   SECTION("Apply visitor") {
     std::ostringstream result_stream;
-    visitor_test_01 visitor {result_stream};
+    visitor_test_01 visitor{result_stream};
     apply_visitor(c, visitor);
     REQUIRE(
         result_stream.str() ==

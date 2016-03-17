@@ -145,33 +145,43 @@ By default, the `variant`stores small types on the stack and other ones on the h
 
 By default, a small type is any type `T`verifying  ``sizeof(T) <= sizeof(void*)``.
 
-This behavior can be customized by the user. Suppose we are using a platform on which ``sizeof(void*) < sizeof(double)`` and we define this variant:
+This behavior can be customized by the user. Suppose we are using a type such that``sizeof(void*) < sizeof(BigType)`` and we define this variant:
 
 ```
-using small_variant_t = variant<std::nullptr_t,double>;
+using small_variant_t = variant<std::nullptr_t,BigType>;
 ```
 
-In the context of this variant, any double value would not be considered a small type and would be allocated on the heap. So much for efficiency. You can override this behavior by specializing a template:
-
-```
-namespace json_backbone {
-template <> struct is_small_type<double> { static constexpr bool value = true; }
-}
-```
-
-Now, any variant using `double` will consider it a small type and allocate it on the stack. Moreover, any other type in those variants which size is less than or equal to `sizeof(double)`will be optimized as small types too, even though it was not explicitely requested:
+In the context of this variant, any `BigType` value would not be considered a small type and would be allocated on the heap. You can override this behavior by specializing a template:
 
 ```
 namespace json_backbone {
-template <> struct is_small_type<double> { static constexpr bool value = true; }
+template <> struct is_small_type<BigType> { static constexpr bool value = true; }
 }
+```
 
-struct NotOptimized {
-  char data[sizeof(double)];
+Now, any variant using `BigType` will consider it a small type and allocate it on the stack. Moreover, any other type in those variants which size is less than or equal to `sizeof(BigType)` will be optimized as a small type too, even though it was not explicitely requested:
+
+```c++
+struct BigType {
+  char data[128];
 };
 
-// Here NotOptimized will be allocated on the stack too
-using optim_variant = json_backbone::variant<double, NotOptimized>;
-// Here NotOptimized is not considered small, so is allocated on the heap
-using optim_variant = json_backbone::variant<NotOptimized>;
+struct BigType2 {
+  BigType data;
+};
+
+namespace json_backbone {
+template <> struct is_small_type<BigType> {
+  static constexpr bool value = true;
+};
+}
+
+int main(void) {
+  std::cout
+    << sizeof(variant<BigType,BigType2>) // BigType2 values allocated on stack
+    << " != "
+    << sizeof(variant<BigType2>) // BigType2 values allocated on heap
+    << std::endl;
+  return 0;
+}
 ```
