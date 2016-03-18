@@ -192,8 +192,7 @@ struct sub;
 template <typename OpTag>
 struct binary_op;
 
-//using expression = variant<std::nullptr_t,int>;
-using expression = variant<std::nullptr_t,int, binary_op<add>, binary_op<sub>>;
+using expression = variant<int, binary_op<add>, binary_op<sub>>;
 
 template <typename OpTag>
 struct binary_op {
@@ -206,12 +205,9 @@ struct binary_op {
 }
 
 TEST_CASE("Variant - Automatic recursion", "[variant][construct][runtime][recursion]") {
-  std::cout << "Alllooo \n";
-  std::cout << (json_container::memory_size == 0) << std::endl;
-  std::cout << (expression::memory_size == 0) << std::endl;
-  //std::cout << (sizeof(std::nullptr_t)) << std::endl;
-  //std::cout << "Bah ? " << (expression::type_list_type::select_default<expression::memory_size>::index_value) << std::endl;
-  expression exp1;
-  //REQUIRE(get<int>(exp1) == 0);
-  REQUIRE(true);
+  expression exp1 {1};
+  expression exp2 {2};
+  expression exp3 { binary_op<add>(exp1,exp2); };  // resolves to binary_op<add>
+  REQUIRE(get<int>(exp1) == 1);
+  REQUIRE(get<int>(exp2) == 2);
 }

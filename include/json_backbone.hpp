@@ -223,19 +223,19 @@ struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>...
             true);
     static constexpr std::size_t index_first_integral_ssig_value =
         arithmetics::find_first<bool, sizeof...(Types)>(
-            {(std::is_integral<Types>() && sizeof(Arg) <= sizeof(Types) &&
+            {(std::is_integral<Types>() && sizeof(Arg) <= bounded_type_traits<Types>::resolution_size &&
               std::is_signed<Types>() == std::is_signed<Arg>() &&
               std::is_constructible<Types, Arg, Args...>::value)...},
             true);
     static constexpr std::size_t index_first_integral_value =
         arithmetics::find_first<bool, sizeof...(Types)>(
-            {(std::is_integral<Types>() && sizeof(Arg) <= sizeof(Types) &&
+            {(std::is_integral<Types>() && sizeof(Arg) <= bounded_type_traits<Types>::resolution_size &&
               std::is_constructible<Types, Arg, Args...>::value)...},
             true);
     static constexpr std::size_t index_first_arithmetic_value =
         arithmetics::find_first<bool, sizeof...(Types)>(
             {(std::is_arithmetic<Types>() && !std::is_integral<Types>() &&
-              sizeof(Arg) <= sizeof(Types) &&
+              sizeof(Arg) <= bounded_type_traits<Types>::resolution_size &&
               std::is_constructible<Types, Arg, Args...>::value)...},
             true);
     static constexpr std::size_t index_first_ptrwise_value =
