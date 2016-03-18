@@ -18,11 +18,14 @@ The declaration is the same. Let's use and example :
 using variant_t = json_backbone::variant<std::nullptr_t, int, std::string>;
 ```
 
+The variant does not comply to the [current state of the standard](http://open-std.org/JTC1/SC22/WG21/docs/papers/2016/p0088r1.html) and is not supposed to.
+
 Constraints on bounded types:
 * Bounded types must be *CopyConstructible* and *MoveConstructible*.
 * Complete at the point of the `variant`instantiation.
 
 The `variant`:
+* Does not have an empty state.
 * is *DefaultConstructible* if at least one of the bounded types is default constructible.
 * is *CopyConstructible* and *MoveConstructible*.
 * is *Assignable* from every *Assignable* bounded types and every type convertible to a bounded type.

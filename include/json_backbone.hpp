@@ -20,16 +20,22 @@ template <class Container>
 class array_element_init;
 
 //
-// is_small_type inherits from true_type if type is considered small
+// is_small_type is true if type is complete with size <= sizeof(void*), false otherwise
 //
 // User can specialize this traits to force a type to be considered small
 // even if it would not in the first place.
-//
 // Example : double in 32bits platforms will not be considered small
 // but maybe you would like it to do so.
+// is_small_type is written in old SFINAE style to support incomplete type
+// thus enabling automatic recrusion without a recursive_wrapper
 //
-template <class T>
-struct is_small_type : public std::integral_constant<bool, (sizeof(T) <= sizeof(void*))> {};
+template <typename T>
+struct is_small_type {
+  template <typename U>
+  static auto test(U*) -> std::integral_constant<bool, sizeof(U) <= sizeof(void*)>;
+  static auto test(...) -> std::false_type;
+  static constexpr bool value = decltype(test((T*)0))::value;
+};
 
 //
 // memory_footprint_t represents minimum size needed to store the type

@@ -21,61 +21,6 @@ using is_the_constructible_t =
                      json_container::memory_size, Args...>::type,
                  Type>;
 
-TEST_CASE("Variant - Static invariants", "[variant][static][compile_time]") {
-  SECTION("Type") {
-    REQUIRE((std::is_same<typename json_container::object_type,
-                          std::map<std::string, json_container>>::value));
-    REQUIRE(
-        (std::is_same<typename json_container::array_type, std::vector<json_container>>::value));
-  }
-
-  SECTION("Inner types indexes") {
-    REQUIRE(json_container::type_list_type::get_index<std::nullptr_t>() == 0);
-    REQUIRE(json_container::type_list_type::get_index<bool>() == 1);
-    REQUIRE(json_container::type_list_type::get_index<unsigned int>() == 2);
-    REQUIRE(json_container::type_list_type::get_index<int>() == 3);
-    REQUIRE(json_container::type_list_type::get_index<double>() == 4);
-    REQUIRE(json_container::type_list_type::get_index<std::string>() == 5);
-    REQUIRE((json_container::type_list_type::get_index<std::vector<json_container>>()) == 6);
-    REQUIRE((json_container::type_list_type::get_index<std::map<std::string, json_container>>()) ==
-            7);
-    REQUIRE(json_container::type_list_type::get_index<char>() == 8);
-  }
-
-  SECTION("Inner types from indexes") {
-    REQUIRE((is_same_at_t<std::nullptr_t, 0>::value));
-    REQUIRE((is_same_at_t<bool, 1>::value));
-    REQUIRE((is_same_at_t<unsigned int, 2>::value));
-    REQUIRE((is_same_at_t<int, 3>::value));
-    REQUIRE((is_same_at_t<double, 4>::value));
-    REQUIRE((is_same_at_t<std::string, 5>::value));
-    REQUIRE((is_same_at_t<std::vector<json_container>, 6>::value));
-    REQUIRE((is_same_at_t<std::map<std::string, json_container>, 7>::value));
-    REQUIRE((is_same_at_t<void, 8>::value));
-  }
-
-  SECTION("Inner types existence") {
-    REQUIRE((json_container::type_list_type::has_type<std::map<std::string, json_container>>()) ==
-            true);
-    REQUIRE((json_container::type_list_type::has_type<std::vector<json_container>>()) == true);
-    REQUIRE(json_container::type_list_type::has_type<std::string>() == true);
-    REQUIRE(json_container::type_list_type::has_type<double>() == true);
-    REQUIRE(json_container::type_list_type::has_type<int>() == true);
-    REQUIRE(json_container::type_list_type::has_type<unsigned int>() == true);
-    REQUIRE(json_container::type_list_type::has_type<bool>() == true);
-    REQUIRE(json_container::type_list_type::has_type<std::nullptr_t>() == true);
-    REQUIRE(json_container::type_list_type::has_type<char>() == false);
-  }
-
-  SECTION("Is constructible") {
-    REQUIRE((is_the_constructible_t<double, float>::value));
-    REQUIRE((is_the_constructible_t<int, short>::value));
-    REQUIRE((is_the_constructible_t<std::string, char const*>::value));
-    REQUIRE((is_the_constructible_t<bool, bool>::value));
-    REQUIRE((is_the_constructible_t<std::nullptr_t, std::nullptr_t>::value));
-  }
-}
-
 TEST_CASE("Variant - Construction", "[variant][construct][runtime]") {
   json_container c1;
   json_container c2{std::string("Roger")};
@@ -238,4 +183,34 @@ TEST_CASE("Variant - Assignation from types convertible to a bounded types",
   json_container c2;
   c2 = 1.f;
   REQUIRE(is<double>(c2));
+  std::cout << "Alllooo \n";
+}
+
+namespace {
+struct add;
+struct sub;
+template <typename OpTag>
+struct binary_op;
+
+//using expression = variant<std::nullptr_t,int>;
+using expression = variant<std::nullptr_t,int, binary_op<add>, binary_op<sub>>;
+
+template <typename OpTag>
+struct binary_op {
+  expression left;  // variant instantiated here...
+  expression right;
+
+  binary_op(const expression& lhs, const expression& rhs) : left(lhs), right(rhs) {}
+};
+
+}
+
+TEST_CASE("Variant - Automatic recursion", "[variant][construct][runtime][recursion]") {
+  std::cout << "Alllooo \n";
+  //std::cout << (json_container::memory_size == 0) << std::endl;
+  //std::cout << (expression::memory_size == 0) << std::endl;
+  //std::cout << "Bah ? " << (expression::type_list_type::select_default<>::index_value) << std::endl;
+  //expression exp1;
+  //REQUIRE(get<int>(exp1) == 0);
+  REQUIRE(true);
 }

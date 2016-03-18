@@ -30,6 +30,7 @@ endmacro()
 add_project_test(arithmetics CATCH)
 add_project_test(variant CATCH)
 add_project_test(container CATCH)
+add_project_test(static CATCH)
 add_project_test(readme_demos)
 
 #add_nc_test(unit_tests_boost_spirit GT $<TARGET_OBJECTS:json_backbone_boost>)
