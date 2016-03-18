@@ -207,10 +207,11 @@ struct binary_op {
 
 TEST_CASE("Variant - Automatic recursion", "[variant][construct][runtime][recursion]") {
   std::cout << "Alllooo \n";
-  //std::cout << (json_container::memory_size == 0) << std::endl;
-  //std::cout << (expression::memory_size == 0) << std::endl;
-  //std::cout << "Bah ? " << (expression::type_list_type::select_default<>::index_value) << std::endl;
-  //expression exp1;
+  std::cout << (json_container::memory_size == 0) << std::endl;
+  std::cout << (expression::memory_size == 0) << std::endl;
+  //std::cout << (sizeof(std::nullptr_t)) << std::endl;
+  //std::cout << "Bah ? " << (expression::type_list_type::select_default<expression::memory_size>::index_value) << std::endl;
+  expression exp1;
   //REQUIRE(get<int>(exp1) == 0);
   REQUIRE(true);
 }

@@ -65,7 +65,7 @@ TEST_CASE("Container - access", "[container][access][runtime]") {
 
     REQUIRE(std::string(c1) == "Roger");
     REQUIRE(double(c2) == 1.92);
-    REQUIRE(c3);
+    REQUIRE((c3 ? true : false));  // Odd but needed for GCC to compile here
     REQUIRE(c4.get<json_container::array_type>().size());
 
     auto& c5 = c4[1];

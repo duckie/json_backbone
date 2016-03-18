@@ -20,7 +20,7 @@ template <class Container>
 class array_element_init;
 
 //
-// is_small_type is true if type is complete with size <= sizeof(void*), false otherwise
+// bounded_type_traits says if a type is small or is complete or not
 //
 // User can specialize this traits to force a type to be considered small
 // even if it would not in the first place.
@@ -30,11 +30,21 @@ class array_element_init;
 // thus enabling automatic recrusion without a recursive_wrapper
 //
 template <typename T>
-struct is_small_type {
+struct bounded_type_traits {
   template <typename U>
-  static auto test(U*) -> std::integral_constant<bool, sizeof(U) <= sizeof(void*)>;
-  static auto test(...) -> std::false_type;
-  static constexpr bool value = decltype(test((T*)0))::value;
+  static auto test_is_small(U*) -> std::integral_constant<bool, sizeof(U) == sizeof(U)>;
+  static auto test_is_small(...) -> std::false_type;
+  static constexpr bool is_small_type = decltype(test_is_small((T*)0))::value;
+
+  template <typename U>
+  static auto resolve_size(U*) -> std::integral_constant<std::size_t, sizeof(U)>;
+  static auto resolve_size(...) -> std::integral_constant<std::size_t, 0>;
+  static constexpr std::size_t resolution_size = decltype(resolve_size((T*)0))::value;
+  //static constexpr size_t resolution_size = decltype(test((T*)0))::value;
+};
+
+template <typename T>
+struct is_small_type : std::integral_constant<bool, bounded_type_traits<T>::is_small_type> {
 };
 
 //
@@ -46,20 +56,20 @@ struct is_small_type {
 //
 template <class T>
 using memory_footprint_t =
-    std::conditional_t<is_small_type<T>::value, std::integral_constant<std::size_t, sizeof(T)>,
+    std::conditional_t<is_small_type<T>::value, std::integral_constant<std::size_t, bounded_type_traits<T>::resolution_size>,
                        std::integral_constant<std::size_t, sizeof(T*)>>;
 
 //
 // enable_if_small_t is enable_if_t when the type fits in the given size
 //
 template <class T, class Return, std::size_t MemSize>
-using enable_if_small_t = std::enable_if_t<(sizeof(T) <= MemSize), Return>;
+using enable_if_small_t = std::enable_if_t<(0 < bounded_type_traits<T>::resolution_size && bounded_type_traits<T>::resolution_size <= MemSize), Return>;
 
 //
 // enable_if_big_t is enable_if_t when the type doesnt fit in the given size
 //
 template <class T, class Return, std::size_t MemSize>
-using enable_if_big_t = std::enable_if_t<(MemSize < sizeof(T)), Return>;
+using enable_if_big_t = std::enable_if_t<(0 == bounded_type_traits<T>::resolution_size || MemSize < bounded_type_traits<T>::resolution_size), Return>;
 
 //
 // arithmetics provides compiles times arithmetics over arrays
