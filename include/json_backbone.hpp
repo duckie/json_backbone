@@ -29,17 +29,17 @@ class array_element_init;
 // is_small_type is written in old SFINAE style to support incomplete type
 // thus enabling automatic recrusion without a recursive_wrapper
 //
-template <typename T>
+template <typename T, int ContextId = 0>
 struct bounded_type_traits {
   template <typename U>
   static auto test_is_small(U*) -> std::integral_constant<bool, sizeof(U) == sizeof(U)>;
   static auto test_is_small(...) -> std::false_type;
-  static constexpr bool is_small_type = decltype(test_is_small((T*)0))::value;
+  static constexpr bool is_small_type = decltype(test_is_small((std::decay_t<T>*)0))::value;
 
   template <typename U>
   static auto resolve_size(U*) -> std::integral_constant<std::size_t, sizeof(U)>;
   static auto resolve_size(...) -> std::integral_constant<std::size_t, 0>;
-  static constexpr std::size_t resolution_size = decltype(resolve_size((T*)0))::value;
+  static constexpr std::size_t resolution_size = decltype(resolve_size((std::decay_t<T>*)0))::value;
   //static constexpr size_t resolution_size = decltype(test((T*)0))::value;
 };
 
@@ -216,6 +216,7 @@ struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>...
   //
   template <std::size_t MemSize, class Arg, class... Args>
   struct select_constructible {
+    static constexpr int CtxId = 1;
     static constexpr std::size_t index_first_same_value =
         arithmetics::find_first<bool, sizeof...(Types)>(
             {(std::is_same<std::decay_t<Arg>, Types>() &&
@@ -223,19 +224,19 @@ struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>...
             true);
     static constexpr std::size_t index_first_integral_ssig_value =
         arithmetics::find_first<bool, sizeof...(Types)>(
-            {(std::is_integral<Types>() && sizeof(Arg) <= bounded_type_traits<Types>::resolution_size &&
+            {(std::is_integral<Types>() && bounded_type_traits<Arg,CtxId>::resolution_size <= bounded_type_traits<Types,CtxId>::resolution_size &&
               std::is_signed<Types>() == std::is_signed<Arg>() &&
               std::is_constructible<Types, Arg, Args...>::value)...},
             true);
     static constexpr std::size_t index_first_integral_value =
         arithmetics::find_first<bool, sizeof...(Types)>(
-            {(std::is_integral<Types>() && sizeof(Arg) <= bounded_type_traits<Types>::resolution_size &&
+            {(std::is_integral<Types>() && bounded_type_traits<Arg,CtxId>::resolution_size <= bounded_type_traits<Types,CtxId>::resolution_size &&
               std::is_constructible<Types, Arg, Args...>::value)...},
             true);
     static constexpr std::size_t index_first_arithmetic_value =
         arithmetics::find_first<bool, sizeof...(Types)>(
             {(std::is_arithmetic<Types>() && !std::is_integral<Types>() &&
-              sizeof(Arg) <= bounded_type_traits<Types>::resolution_size &&
+              bounded_type_traits<Arg,CtxId>::resolution_size <= bounded_type_traits<Types,CtxId>::resolution_size &&
               std::is_constructible<Types, Arg, Args...>::value)...},
             true);
     static constexpr std::size_t index_first_ptrwise_value =

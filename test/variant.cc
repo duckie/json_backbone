@@ -207,7 +207,9 @@ struct binary_op {
 TEST_CASE("Variant - Automatic recursion", "[variant][construct][runtime][recursion]") {
   expression exp1 {1};
   expression exp2 {2};
-  expression exp3 { binary_op<add>(exp1,exp2); };  // resolves to binary_op<add>
+  //std::cout << (expression::type_list_type::template select_constructible<expression::memory_size, expression&,expression&>::index_value) << std::endl;
+  //std::cout << (expression::type_list_type::template select_constructible<expression::memory_size, binary_op<add>&&>::index_value) << std::endl;
+  expression exp3 { binary_op<add>(exp1,exp2) };  // resolves to binary_op<add>, why does it compiles !!!
   REQUIRE(get<int>(exp1) == 1);
   REQUIRE(get<int>(exp2) == 2);
 }
