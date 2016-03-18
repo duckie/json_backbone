@@ -187,8 +187,9 @@ TEST_CASE("Variant - Assignation from types convertible to a bounded types",
 }
 
 namespace {
-struct add;
+struct add {};
 struct sub;
+struct mult;
 template <typename OpTag>
 struct binary_op;
 
@@ -205,11 +206,19 @@ struct binary_op {
 }
 
 TEST_CASE("Variant - Automatic recursion", "[variant][construct][runtime][recursion]") {
+  std::cout << sizeof(json_container) << std::endl;
+  std::cout << json_container::memory_size << std::endl;
+  std::cout << "------------\n";
   expression exp1 {1};
   expression exp2 {2};
-  //std::cout << (expression::type_list_type::template select_constructible<expression::memory_size, expression&,expression&>::index_value) << std::endl;
+  std::cout << bounded_type_traits<binary_op<add>>::resolution_size << std::endl;
+  std::cout << bounded_type_traits<binary_op<add>,3>::resolution_size << std::endl;
+  std::cout << bounded_type_traits_2<binary_op<sub>,3,char>::resolution_size << std::endl;
+  std::cout << expression::memory_size << std::endl;
+  std::cout << sizeof(expression) << std::endl;
   //std::cout << (expression::type_list_type::template select_constructible<expression::memory_size, binary_op<add>&&>::index_value) << std::endl;
-  expression exp3 { binary_op<add>(exp1,exp2) };  // resolves to binary_op<add>, why does it compiles !!!
+  std::cout << (expression::type_list_type::template select_constructible<expression::memory_size, expression const&,expression const&>::index_value) << std::endl;
+  //expression exp3 { exp1,exp2 };  // resolves to binary_op<add>, why does it compiles !!!
   REQUIRE(get<int>(exp1) == 1);
   REQUIRE(get<int>(exp2) == 2);
 }

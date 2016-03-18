@@ -29,21 +29,43 @@ class array_element_init;
 // is_small_type is written in old SFINAE style to support incomplete type
 // thus enabling automatic recrusion without a recursive_wrapper
 //
-template <typename T, int ContextId = 0>
+template <typename T, int ContextId = 0, class Wtf = void>
 struct bounded_type_traits {
-  template <typename U>
-  static auto test_is_small(U*) -> std::integral_constant<bool, sizeof(U) == sizeof(U)>;
-  static auto test_is_small(...) -> std::false_type;
-  static constexpr bool is_small_type = decltype(test_is_small((std::decay_t<T>*)0))::value;
+  static constexpr int context_id = ContextId;
 
-  template <typename U>
+  template <int CtxId, typename U>
+  static auto test_is_small(U*) -> std::integral_constant<bool, sizeof(U) <= sizeof(void*)>;
+  template <int CtxId>
+  static auto test_is_small(...) -> std::false_type;
+  static constexpr bool is_small_type = decltype(test_is_small<context_id>((std::decay_t<T>*)0))::value;
+
+  template <int CtxId, typename U>
   static auto resolve_size(U*) -> std::integral_constant<std::size_t, sizeof(U)>;
+  template <int CtxId>
   static auto resolve_size(...) -> std::integral_constant<std::size_t, 0>;
-  static constexpr std::size_t resolution_size = decltype(resolve_size((std::decay_t<T>*)0))::value;
+  static constexpr std::size_t resolution_size = decltype(resolve_size<context_id>((std::decay_t<T>*)0))::value;
   //static constexpr size_t resolution_size = decltype(test((T*)0))::value;
 };
 
-template <typename T>
+template <typename T, int ContextId = 0, class Wtf = void>
+struct bounded_type_traits_2 {
+  static constexpr int context_id = ContextId;
+
+  template <int CtxId, typename U>
+  static auto test_is_small(U*) -> std::integral_constant<bool, sizeof(U) == sizeof(U)>;
+  template <int CtxId>
+  static auto test_is_small(...) -> std::false_type;
+  static constexpr bool is_small_type = decltype(test_is_small<context_id>((std::decay_t<T>*)0))::value;
+
+  template <int CtxId, typename U>
+  static auto resolve_size(U*) -> std::integral_constant<std::size_t, sizeof(U)>;
+  template <int CtxId>
+  static auto resolve_size(...) -> std::integral_constant<std::size_t, 0>;
+  static constexpr std::size_t resolution_size = decltype(resolve_size<context_id>((std::decay_t<T>*)0))::value;
+  //static constexpr size_t resolution_size = decltype(test((T*)0))::value;
+};
+
+template <typename T, int ContextId = 0>
 struct is_small_type : std::integral_constant<bool, bounded_type_traits<T>::is_small_type> {
 };
 
@@ -54,22 +76,22 @@ struct is_small_type : std::integral_constant<bool, bounded_type_traits<T>::is_s
 // this type wether it is a small type or not. Big types needs to
 // be pointed to whiole small ones are directly stored
 //
-template <class T>
+template <class T, int ContextId = 0>
 using memory_footprint_t =
-    std::conditional_t<is_small_type<T>::value, std::integral_constant<std::size_t, bounded_type_traits<T>::resolution_size>,
+    std::conditional_t<is_small_type<T>::value, std::integral_constant<std::size_t, bounded_type_traits<T,ContextId>::resolution_size>,
                        std::integral_constant<std::size_t, sizeof(T*)>>;
 
 //
 // enable_if_small_t is enable_if_t when the type fits in the given size
 //
-template <class T, class Return, std::size_t MemSize>
-using enable_if_small_t = std::enable_if_t<(0 < bounded_type_traits<T>::resolution_size && bounded_type_traits<T>::resolution_size <= MemSize), Return>;
+template <class T, class Return, std::size_t MemSize, int ContextId = 0>
+using enable_if_small_t = std::enable_if_t<(0 < bounded_type_traits<T,ContextId>::resolution_size && bounded_type_traits<T,ContextId>::resolution_size <= MemSize), Return>;
 
 //
 // enable_if_big_t is enable_if_t when the type doesnt fit in the given size
 //
-template <class T, class Return, std::size_t MemSize>
-using enable_if_big_t = std::enable_if_t<(0 == bounded_type_traits<T>::resolution_size || MemSize < bounded_type_traits<T>::resolution_size), Return>;
+template <class T, class Return, std::size_t MemSize, int ContextId = 0>
+using enable_if_big_t = std::enable_if_t<(0 == bounded_type_traits<T,ContextId>::resolution_size || MemSize < bounded_type_traits<T,ContextId>::resolution_size), Return>;
 
 //
 // arithmetics provides compiles times arithmetics over arrays
@@ -289,7 +311,7 @@ struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>...
 //
 namespace helpers {
 
-// deleter_fp is a function that deletes a type - smalYl type version
+// deleter_fp is a function that deletes a type - small type version
 template <class T, std::size_t MemSize>
 enable_if_small_t<T, void, MemSize> deleter_fp(void** data) {
   reinterpret_cast<T*>(data)->~T();
