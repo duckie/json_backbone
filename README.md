@@ -60,11 +60,11 @@ int main(void) {
 }
 ```
 
-`json_backbone` comes from a frustrating situation in C++ when it comes to JSON and its siblings. Implementing a dynamic structure is a matter of trade-offs. Each library on the market makes its own. If you choose a library for its satisfying parsing performances, the memory layout may not suit your use-case. Whatever you do, if you change your mind, it means migrating your code to a new API, or writing a implementation of the abstraction layer you spent so much time to write, or just write your very own implementation. `json_backbone` aims at letting you make the trade-offs while keeping a consistent and reusable API. To learn more, head to the [documentation](doc/md/main.d).
+`json_backbone` comes from a frustrating situation in C++ when it comes to JSON and its siblings. Implementing a dynamic structure is a matter of trade-offs. Each library on the market makes its own. If you choose a library for its satisfying parsing performances, the memory layout may not suit your use-case. Whatever you do, if you change your mind, it means migrating your code to a new API, or writing a implementation of the abstraction layer you spent so much time to write, or just write your very own implementation. `json_backbone` aims at letting you make the trade-offs while keeping a consistent and reusable API. To learn more, head to the [documentation](doc/md/main.md).
 
 ## Documentation
 
-[Available here](doc/md/main.d).
+[Available here](doc/md/main.md).
 
 ## Build
 
