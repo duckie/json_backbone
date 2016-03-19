@@ -29,45 +29,44 @@ class array_element_init;
 // is_small_type is written in old SFINAE style to support incomplete type
 // thus enabling automatic recrusion without a recursive_wrapper
 //
-template <typename T, int ContextId = 0, class Wtf = void>
-struct bounded_type_traits {
-  static constexpr int context_id = ContextId;
+//template <class T>
+//struct is_complete {
+  //template <class U>
+  //static auto resolve_size(U*) -> std::integral_constant<bool, sizeof(U)>;
+  //static auto resolve_size(...) -> std::false_type;
+  //static constexpr bool value = decltype(resolve_size((T*)0))::value;
+//};
+template <typename T>
+struct is_complete {
+  //template <typename U>
+  //static auto resolve_size(U*) -> std::integral_constant<bool, sizeof(U) == sizeof(U)>;
+  //static auto resolve_size(U*) -> std::integral_constant<bool, std::is_same<decltype(std::declval<T>()),T&&>::value>;
+  //static auto resolve_size(U*) -> std::integral_constant<bool, typeid(T) == typeid(T)>;
+  //static auto resolve_size(...) -> std::false_type;
+  //static constexpr bool value = decltype(resolve_size((std::decay_t<T>*)0))::value;
+  ////static T & getT();   
+  //static char (& pass(T))[2]; 
+  //static char pass(...);   
+  //static constexpr bool value = sizeof(pass(std::declval<T>()))==2;
 
-  template <int CtxId, typename U>
-  static auto test_is_small(U*) -> std::integral_constant<bool, sizeof(U) <= sizeof(void*)>;
-  template <int CtxId>
-  static auto test_is_small(...) -> std::false_type;
-  static constexpr bool is_small_type = decltype(test_is_small<context_id>((std::decay_t<T>*)0))::value;
+  static T f(int);
 
-  template <int CtxId, typename U>
-  static auto resolve_size(U*) -> std::integral_constant<std::size_t, sizeof(U)>;
-  template <int CtxId>
-  static auto resolve_size(...) -> std::integral_constant<std::size_t, 0>;
-  static constexpr std::size_t resolution_size = decltype(resolve_size<context_id>((std::decay_t<T>*)0))::value;
-  //static constexpr size_t resolution_size = decltype(test((T*)0))::value;
+  template <class U>
+    static constexpr bool g(U*)
+    { return true; }
+
+  template <class U>
+    static constexpr bool g(...)
+    { return false; }
+
+  static constexpr bool value = g<int>(0);
 };
 
-template <typename T, int ContextId = 0, class Wtf = void>
-struct bounded_type_traits_2 {
-  static constexpr int context_id = ContextId;
-
-  template <int CtxId, typename U>
-  static auto test_is_small(U*) -> std::integral_constant<bool, sizeof(U) == sizeof(U)>;
-  template <int CtxId>
-  static auto test_is_small(...) -> std::false_type;
-  static constexpr bool is_small_type = decltype(test_is_small<context_id>((std::decay_t<T>*)0))::value;
-
-  template <int CtxId, typename U>
-  static auto resolve_size(U*) -> std::integral_constant<std::size_t, sizeof(U)>;
-  template <int CtxId>
-  static auto resolve_size(...) -> std::integral_constant<std::size_t, 0>;
-  static constexpr std::size_t resolution_size = decltype(resolve_size<context_id>((std::decay_t<T>*)0))::value;
-  //static constexpr size_t resolution_size = decltype(test((T*)0))::value;
-};
-
-template <typename T, int ContextId = 0>
-struct is_small_type : std::integral_constant<bool, bounded_type_traits<T>::is_small_type> {
-};
+// Is small type
+template <class T> struct is_small_type : std::integral_constant<bool,(sizeof(T) <= sizeof(T*))> {};
+template <class T, bool IsComplete = is_complete<T>::value> struct is_small_type_impl;
+template <class T> struct is_small_type_impl<T,true> : std::integral_constant<bool, is_small_type<T>::value> {};
+template <class T> struct is_small_type_impl<T,false> : std::false_type {};
 
 //
 // memory_footprint_t represents minimum size needed to store the type
@@ -76,22 +75,27 @@ struct is_small_type : std::integral_constant<bool, bounded_type_traits<T>::is_s
 // this type wether it is a small type or not. Big types needs to
 // be pointed to whiole small ones are directly stored
 //
-template <class T, int ContextId = 0>
-using memory_footprint_t =
-    std::conditional_t<is_small_type<T>::value, std::integral_constant<std::size_t, bounded_type_traits<T,ContextId>::resolution_size>,
-                       std::integral_constant<std::size_t, sizeof(T*)>>;
+
+template <class T, bool IsComplete = is_complete<T>::value> struct memory_footprint;
+template <class T> struct memory_footprint<T,true> : std::integral_constant<std::size_t, (is_small_type_impl<T>::value?sizeof(T):sizeof(void*))> {};
+template <class T> struct memory_footprint<T,false> : std::integral_constant<std::size_t, sizeof(void*)> {};
+
+//template <class T>
+//using memory_footprint_t =
+    //std::conditional_t<is_small_type<T>::value, std::integral_constant<std::size_t, bounded_type_traits<T>::resolution_size>,
+                       //std::integral_constant<std::size_t, sizeof(T*)>>;
 
 //
 // enable_if_small_t is enable_if_t when the type fits in the given size
 //
-template <class T, class Return, std::size_t MemSize, int ContextId = 0>
-using enable_if_small_t = std::enable_if_t<(0 < bounded_type_traits<T,ContextId>::resolution_size && bounded_type_traits<T,ContextId>::resolution_size <= MemSize), Return>;
+template <class T, class Return, std::size_t MemSize>
+using enable_if_small_t = std::enable_if_t<(sizeof(T) <= sizeof(void*)), Return>;
 
 //
 // enable_if_big_t is enable_if_t when the type doesnt fit in the given size
 //
-template <class T, class Return, std::size_t MemSize, int ContextId = 0>
-using enable_if_big_t = std::enable_if_t<(0 == bounded_type_traits<T,ContextId>::resolution_size || MemSize < bounded_type_traits<T,ContextId>::resolution_size), Return>;
+template <class T, class Return, std::size_t MemSize>
+using enable_if_big_t = std::enable_if_t<(sizeof(void*) < sizeof(T)), Return>;
 
 //
 // arithmetics provides compiles times arithmetics over arrays
@@ -238,7 +242,6 @@ struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>...
   //
   template <std::size_t MemSize, class Arg, class... Args>
   struct select_constructible {
-    static constexpr int CtxId = 1;
     static constexpr std::size_t index_first_same_value =
         arithmetics::find_first<bool, sizeof...(Types)>(
             {(std::is_same<std::decay_t<Arg>, Types>() &&
@@ -246,19 +249,19 @@ struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>...
             true);
     static constexpr std::size_t index_first_integral_ssig_value =
         arithmetics::find_first<bool, sizeof...(Types)>(
-            {(std::is_integral<Types>() && bounded_type_traits<Arg,CtxId>::resolution_size <= bounded_type_traits<Types,CtxId>::resolution_size &&
+            {(std::is_integral<Types>() && sizeof(Arg) <= sizeof(Types) &&
               std::is_signed<Types>() == std::is_signed<Arg>() &&
               std::is_constructible<Types, Arg, Args...>::value)...},
             true);
     static constexpr std::size_t index_first_integral_value =
         arithmetics::find_first<bool, sizeof...(Types)>(
-            {(std::is_integral<Types>() && bounded_type_traits<Arg,CtxId>::resolution_size <= bounded_type_traits<Types,CtxId>::resolution_size &&
+            {(std::is_integral<Types>() && sizeof(Arg) <= sizeof(Types) &&
               std::is_constructible<Types, Arg, Args...>::value)...},
             true);
     static constexpr std::size_t index_first_arithmetic_value =
         arithmetics::find_first<bool, sizeof...(Types)>(
             {(std::is_arithmetic<Types>() && !std::is_integral<Types>() &&
-              bounded_type_traits<Arg,CtxId>::resolution_size <= bounded_type_traits<Types,CtxId>::resolution_size &&
+              sizeof(Arg) <= sizeof(Types) &&
               std::is_constructible<Types, Arg, Args...>::value)...},
             true);
     static constexpr std::size_t index_first_ptrwise_value =
@@ -311,7 +314,7 @@ struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>...
 //
 namespace helpers {
 
-// deleter_fp is a function that deletes a type - small type version
+// deleter_fp is a function that deletes a type - smalYl type version
 template <class T, std::size_t MemSize>
 enable_if_small_t<T, void, MemSize> deleter_fp(void** data) {
   reinterpret_cast<T*>(data)->~T();
@@ -350,7 +353,7 @@ template <class... Value>
 class variant {
   // Compute minimum size required by types. Default 8
   static constexpr std::size_t min_memory_size =
-      arithmetics::max_value<std::size_t, sizeof...(Value)>({memory_footprint_t<Value>::value...});
+      arithmetics::max_value<std::size_t, sizeof...(Value)>({memory_footprint<Value>::value...});
 
  public:
   // Compute memory size of an array of void* wide enough to hold min_memory_size
