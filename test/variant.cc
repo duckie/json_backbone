@@ -193,7 +193,7 @@ struct mult;
 template <typename OpTag>
 struct binary_op;
 
-using expression = variant<int, binary_op<add>, binary_op<sub>>;
+using expression = variant<int, recursive_wrapper<binary_op<add>>, recursive_wrapper<binary_op<sub>>>;
 
 template <typename OpTag>
 struct binary_op {
@@ -211,9 +211,9 @@ TEST_CASE("Variant - Automatic recursion", "[variant][construct][runtime][recurs
   std::cout << "------------\n";
   expression exp1 {1};
   expression exp2 {2};
-  std::cout << bounded_type_traits<binary_op<add>>::resolution_size << std::endl;
-  std::cout << bounded_type_traits<binary_op<add>,3>::resolution_size << std::endl;
-  std::cout << bounded_type_traits_2<binary_op<sub>,3,char>::resolution_size << std::endl;
+  //std::cout << bounded_type_traits<binary_op<add>>::resolution_size << std::endl;
+  //std::cout << bounded_type_traits<binary_op<add>,3>::resolution_size << std::endl;
+  //std::cout << bounded_type_traits_2<binary_op<sub>,3,char>::resolution_size << std::endl;
   std::cout << expression::memory_size << std::endl;
   std::cout << sizeof(expression) << std::endl;
   //std::cout << (expression::type_list_type::template select_constructible<expression::memory_size, binary_op<add>&&>::index_value) << std::endl;

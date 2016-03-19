@@ -20,53 +20,48 @@ template <class Container>
 class array_element_init;
 
 //
-// bounded_type_traits says if a type is small or is complete or not
+// is_complete detects if type is complete at first instantiation
 //
-// User can specialize this traits to force a type to be considered small
-// even if it would not in the first place.
-// Example : double in 32bits platforms will not be considered small
-// but maybe you would like it to do so.
-// is_small_type is written in old SFINAE style to support incomplete type
-// thus enabling automatic recrusion without a recursive_wrapper
+// "at first instantiation" is utterly important so that ODR would not be violated
+// Unfortunetaley, clang behaves badly with it and produces completeley 
+// erroneous code. Thus we rely on recursive_wrappper.
 //
-//template <class T>
+//
+//template <typename T>
 //struct is_complete {
+  //static T f(int);
   //template <class U>
-  //static auto resolve_size(U*) -> std::integral_constant<bool, sizeof(U)>;
-  //static auto resolve_size(...) -> std::false_type;
-  //static constexpr bool value = decltype(resolve_size((T*)0))::value;
+  //static constexpr bool g(U*) {
+    //return true;
+  //}
+  //template <class U>
+  //static constexpr bool g(...) {
+    //return false;
+  //}
+  //static constexpr bool value = g<int>(0);
 //};
-template <typename T>
-struct is_complete {
-  //template <typename U>
-  //static auto resolve_size(U*) -> std::integral_constant<bool, sizeof(U) == sizeof(U)>;
-  //static auto resolve_size(U*) -> std::integral_constant<bool, std::is_same<decltype(std::declval<T>()),T&&>::value>;
-  //static auto resolve_size(U*) -> std::integral_constant<bool, typeid(T) == typeid(T)>;
-  //static auto resolve_size(...) -> std::false_type;
-  //static constexpr bool value = decltype(resolve_size((std::decay_t<T>*)0))::value;
-  ////static T & getT();   
-  //static char (& pass(T))[2]; 
-  //static char pass(...);   
-  //static constexpr bool value = sizeof(pass(std::declval<T>()))==2;
 
-  static T f(int);
-
-  template <class U>
-    static constexpr bool g(U*)
-    { return true; }
-
-  template <class U>
-    static constexpr bool g(...)
-    { return false; }
-
-  static constexpr bool value = g<int>(0);
+template <class T> struct recursive_wrapper;
+template <class T> struct is_recursive : std::false_type {};
+//template <class T> struct is_recursive<T> : std::false_type {};
+template <class T> struct is_recursive<recursive_wrapper<T>> : std::true_type {};
+template <class T> struct bounded_identity {
+  using type = T;
 };
+template <class T> struct bounded_identity<recursive_wrapper<T>> {
+  using type = T;
+};
+template <class T> using bounded_identity_t = typename bounded_identity<T>::type;
 
 // Is small type
-template <class T> struct is_small_type : std::integral_constant<bool,(sizeof(T) <= sizeof(T*))> {};
-template <class T, bool IsComplete = is_complete<T>::value> struct is_small_type_impl;
-template <class T> struct is_small_type_impl<T,true> : std::integral_constant<bool, is_small_type<T>::value> {};
-template <class T> struct is_small_type_impl<T,false> : std::false_type {};
+template <class T>
+struct is_small_type : std::integral_constant<bool, (sizeof(T) <= sizeof(T*))> {};
+template <class T, bool IsRecursive = is_recursive<T>::value>
+struct is_small_type_impl;
+template <class T>
+struct is_small_type_impl<T, false> : std::integral_constant<bool, is_small_type<T>::value> {};
+template <class T>
+struct is_small_type_impl<T, true> : std::false_type {};
 
 //
 // memory_footprint_t represents minimum size needed to store the type
@@ -75,27 +70,34 @@ template <class T> struct is_small_type_impl<T,false> : std::false_type {};
 // this type wether it is a small type or not. Big types needs to
 // be pointed to whiole small ones are directly stored
 //
+template <class T, bool IsRecursive = is_recursive<T>::value>
+struct memory_footprint;
+template <class T>
+struct memory_footprint<T, false>
+    : std::integral_constant<std::size_t,
+                             (is_small_type_impl<T>::value ? sizeof(T) : sizeof(void*))> {};
+template <class T>
+struct memory_footprint<T, true> : std::integral_constant<std::size_t, sizeof(void*)> {};
 
-template <class T, bool IsComplete = is_complete<T>::value> struct memory_footprint;
-template <class T> struct memory_footprint<T,true> : std::integral_constant<std::size_t, (is_small_type_impl<T>::value?sizeof(T):sizeof(void*))> {};
-template <class T> struct memory_footprint<T,false> : std::integral_constant<std::size_t, sizeof(void*)> {};
+// template <class T>
+// using memory_footprint_t =
+// std::conditional_t<is_small_type<T>::value, std::integral_constant<std::size_t,
+// bounded_type_traits<T>::resolution_size>,
+// std::integral_constant<std::size_t, sizeof(T*)>>;
 
-//template <class T>
-//using memory_footprint_t =
-    //std::conditional_t<is_small_type<T>::value, std::integral_constant<std::size_t, bounded_type_traits<T>::resolution_size>,
-                       //std::integral_constant<std::size_t, sizeof(T*)>>;
+template <class T, std::size_t MemSize> struct store_on_stack : std::integral_constant<bool, is_small_type_impl<T>::value && memory_footprint<T>::value <= MemSize)> {}
 
 //
 // enable_if_small_t is enable_if_t when the type fits in the given size
 //
-template <class T, class Return, std::size_t MemSize>
-using enable_if_small_t = std::enable_if_t<(sizeof(T) <= sizeof(void*)), Return>;
+//template <class T, class Return, std::size_t MemSize>
+//using enable_if_small_t = std::enable_if_t<(is_small_type_impl<T>::value && memory_footprint<T>::value <= MemSize), Return>;
 
 //
 // enable_if_big_t is enable_if_t when the type doesnt fit in the given size
 //
-template <class T, class Return, std::size_t MemSize>
-using enable_if_big_t = std::enable_if_t<(sizeof(void*) < sizeof(T)), Return>;
+//template <class T, class Return, std::size_t MemSize>
+//using enable_if_big_t = std::enable_if_t<(!is_small_type_impl<T>::value || MemSize < memory_footprint<T>::value), Return>;
 
 //
 // arithmetics provides compiles times arithmetics over arrays
@@ -249,19 +251,19 @@ struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>...
             true);
     static constexpr std::size_t index_first_integral_ssig_value =
         arithmetics::find_first<bool, sizeof...(Types)>(
-            {(std::is_integral<Types>() && sizeof(Arg) <= sizeof(Types) &&
+            {(std::is_integral<Types>() && sizeof(Arg) <= memory_footprint<Types>::value &&
               std::is_signed<Types>() == std::is_signed<Arg>() &&
               std::is_constructible<Types, Arg, Args...>::value)...},
             true);
     static constexpr std::size_t index_first_integral_value =
         arithmetics::find_first<bool, sizeof...(Types)>(
-            {(std::is_integral<Types>() && sizeof(Arg) <= sizeof(Types) &&
+            {(std::is_integral<Types>() && sizeof(Arg) <= memory_footprint<Types>::value &&
               std::is_constructible<Types, Arg, Args...>::value)...},
             true);
     static constexpr std::size_t index_first_arithmetic_value =
         arithmetics::find_first<bool, sizeof...(Types)>(
             {(std::is_arithmetic<Types>() && !std::is_integral<Types>() &&
-              sizeof(Arg) <= sizeof(Types) &&
+              sizeof(Arg) <= memory_footprint<Types>::value &&
               std::is_constructible<Types, Arg, Args...>::value)...},
             true);
     static constexpr std::size_t index_first_ptrwise_value =
@@ -301,7 +303,7 @@ struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>...
   template <std::size_t MemSize>
   struct select_default {
     static constexpr std::size_t index_first_value =
-        arithmetics::find_first<bool, sizeof...(Types)>({std::is_default_constructible<Types>()...},
+        arithmetics::find_first<bool, sizeof...(Types)>({std::is_default_constructible<bounded_identity_t<Types>>()...},
                                                         true);
     static constexpr std::size_t index_value = index_first_value;
     using type = typename decltype(get_type_at<index_value>(std::declval<type_list>()))::type;
@@ -314,15 +316,15 @@ struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>...
 //
 namespace helpers {
 
-// deleter_fp is a function that deletes a type - smalYl type version
-template <class T, std::size_t MemSize>
-enable_if_small_t<T, void, MemSize> deleter_fp(void** data) {
+// deleter_fp is a function that deletes a type - small type version
+template <class T, bool OnStack, class Enabler = std::enable_if_t<OnStack,void>>
+void deleter_fp(void** data) {
   reinterpret_cast<T*>(data)->~T();
 }
 
 // deleter_fp is a function that deletes a type - big type version
-template <class T, std::size_t MemSize>
-enable_if_big_t<T, void, MemSize> deleter_fp(void** data) {
+template <class T, bool OnStack, class Enabler = std::enable_if_t<!OnStack,void>>
+void deleter_fp(void** data) {
   delete reinterpret_cast<T*>(*data);
 }
 
@@ -365,8 +367,10 @@ class variant {
   void* data_[memory_size / sizeof(void*)] = {};
 
  public:
-  using type_list_type =
+  using type_list_t =
       type_list_traits::type_list<std::make_index_sequence<sizeof...(Value)>, Value...>;
+  using target_type_list_t =
+      type_list_traits::type_list<std::make_index_sequence<sizeof...(Value)>, bounded_identity_t<Value>...>;
 
  private:
   //
@@ -374,7 +378,7 @@ class variant {
   //
   void clear() {
     static std::array<void (*)(void**), sizeof...(Value)> deleters = {
-        helpers::deleter_fp<Value, memory_size>...};
+        helpers::deleter_fp<bounded_identity_t<Value>, store_on_stack<Value, memory_size>::value>...};
     if (type_ < sizeof...(Value))  // Should only be the case in some ctors
       deleters[type_](&data_[0]);
   }
@@ -382,18 +386,18 @@ class variant {
   // Fails to compile if type is not supported
   template <class T>
   inline void assert_has_type() const {
-    static_assert(type_list_type::template has_type<std::decay_t<T>>(),
+    static_assert(target_type_list_t::template has_type<bounded_identity_t<std::decay_t<T>>>(),
                   "Type T not supported by this container.");
   }
 
-  template <class T, class Arg, class... Args,
-            class Enabler = enable_if_small_t<T, void, memory_size>>
+  template <class T, class Arg, class... Args, bool OnStack,
+            class Enabler = enable_if__t<OnStack, void>>
   void allocate(Arg&& arg, Args&&... args) {
     new (reinterpret_cast<T*>(&data_[0])) T(std::forward<Arg>(arg), std::forward<Args>(args)...);
   }
 
-  template <class T, class Arg, class... Args,
-            class Enabler = enable_if_big_t<T, void, memory_size>>
+  template <class T, class Arg, class... Args, bool OnStack,
+            class Enabler = enable_if__t<!OnStack, void>>
   void allocate(Arg&& arg, Args&&... args, void* shim = nullptr) {
     T** ptr = reinterpret_cast<T**>(&data_[0]);
     *ptr = new T(std::forward<Arg>(arg), std::forward<Args>(args)...);
@@ -402,10 +406,12 @@ class variant {
   template <class Arg, class... Args>
   void create(Arg&& arg, Args&&... args) {
     using target_type =
-        typename type_list_type::template select_constructible<memory_size, Arg, Args...>::type;
+        typename target_type_list_t::template select_constructible<memory_size, Arg, Args...>::type;
     assert_has_type<target_type>();
-    type_ = type_list_type::template get_index<std::decay_t<target_type>>();
-    allocate<target_type>(std::forward<Arg>(arg), std::forward<Args>(args)...);
+    using type_index = std::integral_constant<std::size_t, target_type_list_t::template get_index<std::decay_t<target_type>>()>;
+    using on_stack = store_on_stack<typename type_list_t::template type_at<type_index::value>::type>;
+    type_ = type_index::value;
+    allocate<target_type, on_stack::value>(std::forward<Arg>(arg), std::forward<Args>(args)...);
   }
 
   template <class T>
@@ -429,11 +435,11 @@ class variant {
   }
 
  public:
-  template <bool HasDefault = (type_list_type::template select_default<memory_size>::index_value <
+  template <bool HasDefault = (target_type_list_t::template select_default<memory_size>::index_value <
                                sizeof...(Value)),
             class Enabler = std::enable_if_t<HasDefault, void>>
   variant() {
-    create(typename type_list_type::template select_default<memory_size>::type{});
+    create(typename target_type_list_t::template select_default<memory_size>::type {});
   }
 
   variant(variant const& other) {
