@@ -8,50 +8,50 @@
 #include <initializer_list>
 
 namespace json_backbone {
-
-// template <class key_type, class value_type>
-// using std_object_default_allocators = std::map<key_type, value_type>;
-// template <class value_type>
-// using std_array_default_allocators = std::vector<value_type>;
-template <class Container>
-class element_init;
-
-template <class Container>
-class array_element_init;
-
 //
 // is_complete detects if type is complete at first instantiation
 //
 // "at first instantiation" is utterly important so that ODR would not be violated
-// Unfortunetaley, clang behaves badly with it and produces completeley 
+// Unfortunetaley, clang behaves badly with it and produces completeley
 // erroneous code. Thus we rely on recursive_wrappper.
 //
+// This is not broken in Clang but Clang does not behave is this is
+// instantiated for within the type
 //
-//template <typename T>
-//struct is_complete {
-  //static T f(int);
-  //template <class U>
-  //static constexpr bool g(U*) {
-    //return true;
-  //}
-  //template <class U>
-  //static constexpr bool g(...) {
-    //return false;
-  //}
-  //static constexpr bool value = g<int>(0);
-//};
+template <typename T>
+struct is_complete {
+  static T f(int);
+  template <class U>
+  static constexpr bool g(decltype((void)f(std::declval<U>()))*) {
+    return true;
+  }
+  template <class U>
+  static constexpr bool g(...) {
+    return false;
+  }
+  static constexpr bool value = g<int>(0);
+};
 
-template <class T> struct recursive_wrapper;
-template <class T> struct is_recursive : std::false_type {};
-//template <class T> struct is_recursive<T> : std::false_type {};
-template <class T> struct is_recursive<recursive_wrapper<T>> : std::true_type {};
-template <class T> struct bounded_identity {
+// Recrusive helper - any incomplete type is considered recursive (broken on clang)
+template <class T>
+struct recursive_wrapper;
+template <class T>
+struct is_recursive : std::integral_constant<bool, !is_complete<T>::value> {};
+template <class T>
+struct is_recursive<recursive_wrapper<T>> : std::true_type {};
+
+// bounded_identity represents the implementend type, it extracts
+// the real type from its recursive property
+template <class T>
+struct bounded_identity {
   using type = T;
 };
-template <class T> struct bounded_identity<recursive_wrapper<T>> {
+template <class T>
+struct bounded_identity<recursive_wrapper<T>> {
   using type = T;
 };
-template <class T> using bounded_identity_t = typename bounded_identity<T>::type;
+template <class T>
+using bounded_identity_t = typename bounded_identity<T>::type;
 
 // Is small type
 template <class T>
@@ -79,25 +79,10 @@ struct memory_footprint<T, false>
 template <class T>
 struct memory_footprint<T, true> : std::integral_constant<std::size_t, sizeof(void*)> {};
 
-// template <class T>
-// using memory_footprint_t =
-// std::conditional_t<is_small_type<T>::value, std::integral_constant<std::size_t,
-// bounded_type_traits<T>::resolution_size>,
-// std::integral_constant<std::size_t, sizeof(T*)>>;
-
-template <class T, std::size_t MemSize> struct store_on_stack : std::integral_constant<bool, is_small_type_impl<T>::value && memory_footprint<T>::value <= MemSize)> {}
-
-//
-// enable_if_small_t is enable_if_t when the type fits in the given size
-//
-//template <class T, class Return, std::size_t MemSize>
-//using enable_if_small_t = std::enable_if_t<(is_small_type_impl<T>::value && memory_footprint<T>::value <= MemSize), Return>;
-
-//
-// enable_if_big_t is enable_if_t when the type doesnt fit in the given size
-//
-//template <class T, class Return, std::size_t MemSize>
-//using enable_if_big_t = std::enable_if_t<(!is_small_type_impl<T>::value || MemSize < memory_footprint<T>::value), Return>;
+// Helper to generate adequate allocations and deallocation functions
+template <class T, std::size_t MemSize>
+struct store_on_stack : std::integral_constant<bool, (is_small_type_impl<T>::value &&
+                                                      memory_footprint<T>::value <= MemSize)> {};
 
 //
 // arithmetics provides compiles times arithmetics over arrays
@@ -129,6 +114,14 @@ std::size_t constexpr find_last(std::array<I, N> const& values, I value,
   return N <= current_index ? N : value == values.at(N - current_index - 1)
                                       ? (N - current_index - 1)
                                       : find_last(values, value, current_index + 1);
+}
+
+template <class I, std::size_t N>
+bool constexpr all_equals(std::array<I, N> const& values, I current_value,
+                          std::size_t current_index = 0) {
+  return N <= current_index ? true : (current_value == values.at(current_index))
+                                         ? all_equals(values, current_value, current_index + 1)
+                                         : false;
 }
 };
 
@@ -239,6 +232,8 @@ struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>...
   //   integral type of the list constructible with it
   // - If it fails, get the first type constructible in the list
   //
+  // All types must be complete at time of initialization.
+  //
   // Constructibility covers convertibility, so is used for the sake
   // of implicit conversion too
   //
@@ -293,6 +288,23 @@ struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>...
                                     : index_first_value;
     using type = typename decltype(get_type_at<index_value>(std::declval<type_list>()))::type;
   };
+};
+
+//
+// Bounded types traits
+//
+// Those traits are supposed to work even with incomplete types
+//
+template <class... Types>
+struct bounded_type_traits {
+  template <class T, bool IsRecursive = is_recursive<T>::value>
+  struct is_default_constructible;
+  template <class T>
+  struct is_default_constructible<T, true> : std::false_type {};
+  template <class T>
+  struct is_default_constructible<T, false>
+      : std::integral_constant<bool, std::is_default_constructible<bounded_identity_t<T>>::value> {
+  };
 
   //
   // Returns a type chosen for default construction
@@ -300,13 +312,9 @@ struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>...
   // Rules:
   // - Select first default constructible type
   //
-  template <std::size_t MemSize>
   struct select_default {
-    static constexpr std::size_t index_first_value =
-        arithmetics::find_first<bool, sizeof...(Types)>({std::is_default_constructible<bounded_identity_t<Types>>()...},
-                                                        true);
-    static constexpr std::size_t index_value = index_first_value;
-    using type = typename decltype(get_type_at<index_value>(std::declval<type_list>()))::type;
+    static constexpr std::size_t index_value = arithmetics::find_first<bool, sizeof...(Types)>(
+        {is_default_constructible<Types>::value...}, true);
   };
 };
 }  // namespace type_list_traits
@@ -317,15 +325,15 @@ struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>...
 namespace helpers {
 
 // deleter_fp is a function that deletes a type - small type version
-template <class T, bool OnStack, class Enabler = std::enable_if_t<OnStack,void>>
-void deleter_fp(void** data) {
-  reinterpret_cast<T*>(data)->~T();
+template <class T, class Impl, std::size_t MemSize>
+std::enable_if_t<store_on_stack<T, MemSize>::value, void> deleter_fp(void** data) {
+  reinterpret_cast<Impl*>(data)->~Impl();
 }
 
 // deleter_fp is a function that deletes a type - big type version
-template <class T, bool OnStack, class Enabler = std::enable_if_t<!OnStack,void>>
-void deleter_fp(void** data) {
-  delete reinterpret_cast<T*>(*data);
+template <class T, class Impl, std::size_t MemSize>
+std::enable_if_t<!store_on_stack<T, MemSize>::value, void> deleter_fp(void** data) {
+  delete reinterpret_cast<Impl*>(*data);
 }
 
 }  // namespace helpers
@@ -348,11 +356,22 @@ struct non_existing_element : public std::exception {
 
 // Forward declare friends
 
+// Template helper for auto-detection of recrusive types. Broken on Clang
+template <class T>
+struct completeness_test {
+  static constexpr bool value = T::test_complete;
+};
+
 //
 // variant is a discriminated union optimized for small types
 //
 template <class... Value>
 class variant {
+  // Helpers for auto-detection of recrusive types. Broken on Clang
+  static constexpr bool test_complete = arithmetics::all_equals<bool, sizeof...(Value)>(
+      {(is_complete<Value>::value || true)...}, true);
+  friend class completeness_test<variant>;
+
   // Compute minimum size required by types. Default 8
   static constexpr std::size_t min_memory_size =
       arithmetics::max_value<std::size_t, sizeof...(Value)>({memory_footprint<Value>::value...});
@@ -367,22 +386,17 @@ class variant {
   void* data_[memory_size / sizeof(void*)] = {};
 
  public:
+  // Original list of types kepit to know wether a type is rerusive or not
   using type_list_t =
       type_list_traits::type_list<std::make_index_sequence<sizeof...(Value)>, Value...>;
-  using target_type_list_t =
-      type_list_traits::type_list<std::make_index_sequence<sizeof...(Value)>, bounded_identity_t<Value>...>;
+  // List of implemented types used to find constructors
+  using target_type_list_t = type_list_traits::type_list<std::make_index_sequence<sizeof...(Value)>,
+                                                         bounded_identity_t<Value>...>;
+
+  // Limited type list used for incomplete contexts only
+  using bounded_traits_t = type_list_traits::bounded_type_traits<Value...>;
 
  private:
-  //
-  // Destroys currently held object and deallocates heap if needed
-  //
-  void clear() {
-    static std::array<void (*)(void**), sizeof...(Value)> deleters = {
-        helpers::deleter_fp<bounded_identity_t<Value>, store_on_stack<Value, memory_size>::value>...};
-    if (type_ < sizeof...(Value))  // Should only be the case in some ctors
-      deleters[type_](&data_[0]);
-  }
-
   // Fails to compile if type is not supported
   template <class T>
   inline void assert_has_type() const {
@@ -390,15 +404,38 @@ class variant {
                   "Type T not supported by this container.");
   }
 
-  template <class T, class Arg, class... Args, bool OnStack,
-            class Enabler = enable_if__t<OnStack, void>>
-  void allocate(Arg&& arg, Args&&... args) {
+  template <class T>
+  struct resolve_type {
+    using target_type = std::decay_t<T>;
+    using type_index =
+        std::integral_constant<std::size_t,
+                               target_type_list_t::template get_index<std::decay_t<target_type>>()>;
+    using type = typename type_list_t::template type_at<type_index::value>::type;
+    using on_stack_type = store_on_stack<type, memory_size>;
+  };
+
+  template <class T, class Return>
+  using enable_if_stack_t = std::enable_if_t<resolve_type<T>::on_stack_type::value, Return>;
+  template <class T, class Return>
+  using enable_if_heap_t = std::enable_if_t<!resolve_type<T>::on_stack_type::value, Return>;
+
+  //
+  // Destroys currently held object and deallocates heap if needed
+  //
+  void clear() {
+    static std::array<void (*)(void**), sizeof...(Value)> deleters = {
+        helpers::deleter_fp<Value, bounded_identity_t<Value>, memory_size>...};
+    if (type_ < sizeof...(Value))  // Should only be the case in some ctors
+      deleters[type_](&data_[0]);
+  }
+
+  template <class T, class Arg, class... Args>
+  enable_if_stack_t<T, void> allocate(Arg&& arg, Args&&... args) {
     new (reinterpret_cast<T*>(&data_[0])) T(std::forward<Arg>(arg), std::forward<Args>(args)...);
   }
 
-  template <class T, class Arg, class... Args, bool OnStack,
-            class Enabler = enable_if__t<!OnStack, void>>
-  void allocate(Arg&& arg, Args&&... args, void* shim = nullptr) {
+  template <class T, class Arg, class... Args>
+  enable_if_heap_t<T, void> allocate(Arg&& arg, Args&&... args) {
     T** ptr = reinterpret_cast<T**>(&data_[0]);
     *ptr = new T(std::forward<Arg>(arg), std::forward<Args>(args)...);
   }
@@ -408,38 +445,40 @@ class variant {
     using target_type =
         typename target_type_list_t::template select_constructible<memory_size, Arg, Args...>::type;
     assert_has_type<target_type>();
-    using type_index = std::integral_constant<std::size_t, target_type_list_t::template get_index<std::decay_t<target_type>>()>;
-    using on_stack = store_on_stack<typename type_list_t::template type_at<type_index::value>::type>;
-    type_ = type_index::value;
-    allocate<target_type, on_stack::value>(std::forward<Arg>(arg), std::forward<Args>(args)...);
+    using resolved_type = resolve_type<target_type>;
+    type_ = resolved_type::type_index::value;
+    allocate<target_type>(std::forward<Arg>(arg), std::forward<Args>(args)...);
   }
 
   template <class T>
   static void copy_ctor_fp(variant& self, variant const& other) {
-    self.create(other.template raw<T>());
+    self.create(other.template raw<bounded_identity_t<T>>());
   }
 
   template <class T>
   static void move_ctor_fp(variant& self, variant&& other) {
-    self.create(std::move(other.template raw<T>()));
+    self.create(std::move(other.template raw<bounded_identity_t<T>>()));
   }
 
   template <class T>
   static void copy_assign_fp(variant& self, variant const& other) {
-    self.template get<T>() = other.template raw<T>();
+    self.template get<bounded_identity_t<T>>() = other.template raw<bounded_identity_t<T>>();
   }
 
   template <class T>
   static void move_assign_fp(variant& self, variant&& other) {
-    self.template get<T>() = std::move(other.template raw<T>());
+    self.template get<bounded_identity_t<T>>() =
+        std::move(other.template raw<bounded_identity_t<T>>());
   }
 
  public:
-  template <bool HasDefault = (target_type_list_t::template select_default<memory_size>::index_value <
-                               sizeof...(Value)),
+  // Template resolution must work event with incomplete types here
+  template <bool HasDefault = (bounded_traits_t::select_default::index_value < sizeof...(Value)),
             class Enabler = std::enable_if_t<HasDefault, void>>
   variant() {
-    create(typename target_type_list_t::template select_default<memory_size>::type {});
+    using target_type = typename target_type_list_t::template type_at<
+        bounded_traits_t::select_default::index_value>::type;
+    create(nullptr);
   }
 
   variant(variant const& other) {
@@ -461,11 +500,15 @@ class variant {
           !(std::is_base_of<variant, std::decay_t<Arg>>::value && 0 == sizeof...(Args)), void>>
   variant(Arg&& arg, Args&&... args) {
     static_assert(
-        type_list_type::template select_constructible<memory_size, Arg, Args...>::index_value <
+        target_type_list_t::template select_constructible<memory_size, Arg, Args...>::index_value <
             sizeof...(Value),
         "Construction not supported by the variant.");
-    create(typename type_list_type::template select_constructible<memory_size, Arg, Args...>::type{
-        std::forward<Arg>(arg), std::forward<Args>(args)...});
+    using target_type =
+        typename target_type_list_t::template select_constructible<memory_size, Arg, Args...>::type;
+    assert_has_type<target_type>();
+    // allocate<target_type>  (
+    // std::forward<Arg>(arg), std::forward<Args>(args)...);
+    create(std::forward<Arg>(arg), std::forward<Args>(args)...);
   }
 
   // Non-virtual destructor to spare a useless virtual table
@@ -508,10 +551,10 @@ class variant {
 
   // Assignation from a bounded type
   template <class T, class Enabler = std::enable_if_t<
-                         type_list_type::template has_type<std::decay_t<T>>(), void>>
+                         target_type_list_t::template has_type<std::decay_t<T>>(), void>>
   variant& assign(T&& value) {
-    assert_has_type<T>();
-    if (type_ == type_list_type::template get_index<std::decay_t<T>>()) {
+    assert_has_type<std::decay_t<T>>();
+    if (type_ == target_type_list_t::template get_index<std::decay_t<T>>()) {
       this->template raw<T>() = std::forward<T>(value);
     } else {
       clear();
@@ -521,15 +564,15 @@ class variant {
   }
 
   // Assignation from a type convertible to one of the bounded types
-  template <class T, class Enabler =
-                         std::enable_if_t<!(type_list_type::template has_type<std::decay_t<T>>() ||
-                                            std::is_base_of<variant, std::decay_t<T>>::value),
-                                          void>>
+  template <class T, class Enabler = std::enable_if_t<
+                         !(target_type_list_t::template has_type<std::decay_t<T>>() ||
+                           std::is_base_of<variant, std::decay_t<T>>::value),
+                         void>>
   variant& assign(T&& value, void* shim = nullptr) {
-    static_assert(type_list_type::template select_constructible<memory_size, T>::index_value <
+    static_assert(target_type_list_t::template select_constructible<memory_size, T>::index_value <
                       sizeof...(Value),
                   "Assignation not supported by the variant.");
-    return assign(typename type_list_type::template select_constructible<memory_size, T>::type{
+    return assign(typename target_type_list_t::template select_constructible<memory_size, T>::type{
         std::forward<T>(value)});
   }
 
@@ -543,12 +586,12 @@ class variant {
   template <class T>
   inline bool is() const noexcept {
     assert_has_type<T>();
-    return type_ == type_list_type::template get_index<std::decay_t<T>>();
+    return type_ == target_type_list_t::template get_index<T>();
   }
 
   // get checks the type is correct and returns it
   template <class T>
-  enable_if_small_t<T, T&, memory_size> get() & {
+  enable_if_stack_t<T, T&> get() & {
     assert_has_type<T>();
     if (is<T>()) return *(reinterpret_cast<T*>(&data_[0]));
     throw bad_type<variant>{};
@@ -556,7 +599,7 @@ class variant {
 
   // get checks the type is correct and returns it
   template <class T>
-  enable_if_big_t<T, T&, memory_size> get() & {
+  enable_if_heap_t<T, T&> get() & {
     assert_has_type<T>();
     if (is<T>()) return *(reinterpret_cast<T*>(data_[0]));
     throw bad_type<variant>{};
@@ -564,7 +607,7 @@ class variant {
 
   // get checks the type is correct and returns it
   template <class T>
-  enable_if_small_t<T, T const&, memory_size> get() const & {
+  enable_if_stack_t<T, T const&> get() const & {
     assert_has_type<T>();
     if (is<T>()) return *(reinterpret_cast<T const*>(&data_[0]));
     throw bad_type<variant>{};
@@ -572,7 +615,7 @@ class variant {
 
   // get checks the type is correct and returns it
   template <class T>
-  enable_if_big_t<T, T const&, memory_size> get() const & {
+  enable_if_heap_t<T, T const&> get() const & {
     assert_has_type<T>();
     if (is<T>()) return *(reinterpret_cast<T const*>(data_[0]));
     throw bad_type<variant>{};
@@ -580,7 +623,7 @@ class variant {
 
   // get checks the type is correct and returns it
   template <class T>
-  enable_if_small_t<T, T, memory_size> get() && {
+  enable_if_stack_t<T, T> get() && {
     assert_has_type<T>();
     if (is<T>()) return std::move(*(reinterpret_cast<T*>(&data_[0])));
     throw bad_type<variant>{};
@@ -588,7 +631,7 @@ class variant {
 
   // get checks the type is correct and returns it
   template <class T>
-  enable_if_big_t<T, T, memory_size> get() && {
+  enable_if_heap_t<T, T> get() && {
     assert_has_type<T>();
     if (is<T>()) return std::move(*(reinterpret_cast<T*>(data_[0])));
     throw bad_type<variant>{};
@@ -596,63 +639,63 @@ class variant {
 
   // raw returns directly without any check
   template <class T>
-      inline enable_if_small_t<T, T&, memory_size> raw() & noexcept {
+      inline enable_if_stack_t<T, T&> raw() & noexcept {
     assert_has_type<T>();
     return *(reinterpret_cast<T*>(&data_[0]));
   }
 
   // raw returns directly without any check
   template <class T>
-      inline enable_if_big_t<T, T&, memory_size> raw() & noexcept {
+      inline enable_if_heap_t<T, T&> raw() & noexcept {
     assert_has_type<T>();
     return *(reinterpret_cast<T*>(data_[0]));
   }
 
   // raw returns directly without any check
   template <class T>
-  inline enable_if_small_t<T, T const&, memory_size> raw() const& noexcept {
+  inline enable_if_stack_t<T, T const&> raw() const& noexcept {
     assert_has_type<T>();
     return *(reinterpret_cast<T const*>(&data_[0]));
   }
 
   // raw returns directly without any check
   template <class T>
-  inline enable_if_big_t<T, T const&, memory_size> raw() const& noexcept {
+  inline enable_if_heap_t<T, T const&> raw() const& noexcept {
     assert_has_type<T>();
     return *(reinterpret_cast<T const*>(data_[0]));
   }
 
   // raw returns directly without any check
   template <class T>
-      inline enable_if_small_t<T, T, memory_size> raw() && noexcept {
+      inline enable_if_stack_t<T, T> raw() && noexcept {
     assert_has_type<T>();
     return std::move(*(reinterpret_cast<T*>(&data_[0])));
   }
 
   // raw returns directly without any check
   template <class T>
-      inline enable_if_big_t<T, T, memory_size> raw() && noexcept {
+      inline enable_if_heap_t<T, T> raw() && noexcept {
     assert_has_type<T>();
     return std::move(*(reinterpret_cast<T*>(data_[0])));
   }
 
   // Conversion operator
   template <class T, class Enabler = std::enable_if_t<
-                         type_list_type::template has_type<std::decay_t<T>>(), void>>
+                         target_type_list_t::template has_type<std::decay_t<T>>(), void>>
   operator T&() & {
-    return this->get<T>();
+    return this->get<std::decay_t<T>>();
   }
 
   template <class T, class Enabler = std::enable_if_t<
-                         type_list_type::template has_type<std::decay_t<T>>(), void>>
+                         target_type_list_t::template has_type<std::decay_t<T>>(), void>>
   operator T const&() const & {
-    return this->get<T>();
+    return this->get<std::decay_t<T>>();
   }
 
   template <class T, class Enabler = std::enable_if_t<
-                         type_list_type::template has_type<std::decay_t<T>>(), void>>
+                         target_type_list_t::template has_type<std::decay_t<T>>(), void>>
   operator T() && {
-    return std::move(this->get<T>());
+    return std::move(this->get<std::decay_t<T>>());
   }
 };
 
@@ -794,8 +837,8 @@ Container make_object(std::initializer_list<std::pair<Key const, Container>>&& e
 }
 
 template <class Container>
-Container make_array(std::initializer_list<Container>&& elements) {
-  return typename Container::array_type{std::move(elements)};
+Container make_array(std::initializer_list<Container> elements) {
+  return typename Container::array_type{elements};
 }
 
 namespace visiting_helpers {
@@ -877,7 +920,7 @@ struct func_aggregate_visitor<variant<Value...>, ExtraArguments...> {
       : appliers{applier...} {}
   template <class T>
   void operator()(T&& value, ExtraArguments... extras) const {
-    std::get<variant_type::type_list_type::template get_index<std::decay_t<T>>()>(appliers)(
+    std::get<variant_type::target_type_list_t::template get_index<std::decay_t<T>>()>(appliers)(
         std::forward<T>(value), extras...);
   }
 };
@@ -907,7 +950,7 @@ struct const_func_aggregate_visitor<variant<Value...>, ExtraArguments...> {
       : appliers{applier...} {}
   template <class T>
   void operator()(T&& value, ExtraArguments... extras) const {
-    std::get<variant_type::type_list_type::template get_index<std::decay_t<T>>()>(appliers)(
+    std::get<variant_type::target_type_list_t::template get_index<std::decay_t<T>>()>(appliers)(
         std::forward<T>(value), extras...);
   }
 };
@@ -936,4 +979,4 @@ const_func_aggregate_visitor<variant<Value...>> make_visitor(
 
 }  // namespace json_backbone
 
-#endif  // NESTED_COMPILER_BASE_HEADER
+#endif  // JSON_BACKBONE_BASE_HEADER

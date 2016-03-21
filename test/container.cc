@@ -1,7 +1,7 @@
+#include <iostream>
 #include <json_backbone.hpp>
 #include <catch.hpp>
 #include <chrono>
-#include <iostream>
 #include <sstream>
 #include <list>
 #include <vector>
@@ -63,6 +63,7 @@ TEST_CASE("Container - access", "[container][access][runtime]") {
     REQUIRE(c3.is<bool>());
     REQUIRE(c4.is<json_container::array_type>());
 
+    REQUIRE(c1.get<std::string>() == "Roger");
     REQUIRE(std::string(c1) == "Roger");
     REQUIRE(double(c2) == 1.92);
     REQUIRE((c3 ? true : false));  // Odd but needed for GCC to compile here

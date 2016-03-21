@@ -1,7 +1,7 @@
+#include <iostream>
 #include <json_backbone.hpp>
 #include <catch.hpp>
 #include <chrono>
-#include <iostream>
 #include <vector>
 #include <map>
 #include <type_traits>
@@ -13,11 +13,11 @@ using json_container = container<std::map, std::vector, std::string, std::nullpt
 
 template <class Type, std::size_t Index>
 using is_same_at_t =
-    std::is_same<typename json_container::type_list_type::type_at<Index>::type, Type>;
+    std::is_same<typename json_container::target_type_list_t::type_at<Index>::type, Type>;
 
 template <class Type, class... Args>
 using is_the_constructible_t =
-    std::is_same<typename json_container::type_list_type::select_constructible<
+    std::is_same<typename json_container::target_type_list_t::select_constructible<
                      json_container::memory_size, Args...>::type,
                  Type>;
 
@@ -78,14 +78,14 @@ TEST_CASE("Variant - Construction", "[variant][construct][runtime]") {
   }
 
   SECTION("Conversion") {
-    std::string& s2_1 = c2;
-    REQUIRE(s2_1 == "Roger");
-
-    std::string const& s2_2 = c2;
-    REQUIRE(s2_2 == "Roger");
-
-    std::string s2_3 = std::move(c2);
-    REQUIRE(s2_3 == "Roger");
+     std::string& s2_1 = c2;
+     REQUIRE(s2_1 == "Roger");
+    
+     std::string const& s2_2 = c2;
+     REQUIRE(s2_2 == "Roger");
+    
+     std::string s2_3 = std::move(c2);
+     REQUIRE(s2_3 == "Roger");
   }
 
   SECTION("Assign values") {
@@ -183,7 +183,6 @@ TEST_CASE("Variant - Assignation from types convertible to a bounded types",
   json_container c2;
   c2 = 1.f;
   REQUIRE(is<double>(c2));
-  std::cout << "Alllooo \n";
 }
 
 namespace {
@@ -193,7 +192,9 @@ struct mult;
 template <typename OpTag>
 struct binary_op;
 
-using expression = variant<int, recursive_wrapper<binary_op<add>>, recursive_wrapper<binary_op<sub>>>;
+using expression =
+    variant<int, recursive_wrapper<binary_op<add>>, recursive_wrapper<binary_op<sub>>>;
+//static_assert(completeness_test<expression>::value, "To use with clang for auto detection");
 
 template <typename OpTag>
 struct binary_op {
@@ -202,23 +203,12 @@ struct binary_op {
 
   binary_op(const expression& lhs, const expression& rhs) : left(lhs), right(rhs) {}
 };
-
 }
 
 TEST_CASE("Variant - Automatic recursion", "[variant][construct][runtime][recursion]") {
-  std::cout << sizeof(json_container) << std::endl;
-  std::cout << json_container::memory_size << std::endl;
-  std::cout << "------------\n";
-  expression exp1 {1};
-  expression exp2 {2};
-  //std::cout << bounded_type_traits<binary_op<add>>::resolution_size << std::endl;
-  //std::cout << bounded_type_traits<binary_op<add>,3>::resolution_size << std::endl;
-  //std::cout << bounded_type_traits_2<binary_op<sub>,3,char>::resolution_size << std::endl;
-  std::cout << expression::memory_size << std::endl;
-  std::cout << sizeof(expression) << std::endl;
-  //std::cout << (expression::type_list_type::template select_constructible<expression::memory_size, binary_op<add>&&>::index_value) << std::endl;
-  std::cout << (expression::type_list_type::template select_constructible<expression::memory_size, expression const&,expression const&>::index_value) << std::endl;
-  //expression exp3 { exp1,exp2 };  // resolves to binary_op<add>, why does it compiles !!!
+  expression exp1{1};
+  expression exp2{2};
+  expression exp3{exp1, exp2};  // resolves to binary_op<add>, why does it compiles !!!
   REQUIRE(get<int>(exp1) == 1);
   REQUIRE(get<int>(exp2) == 2);
 }
