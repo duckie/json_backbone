@@ -338,20 +338,22 @@ std::enable_if_t<!store_on_stack<T, MemSize>::value, void> deleter_fp(void** dat
 
 }  // namespace helpers
 
-// bad_type is thrown at runtime when accessing a container with the wrong type
-template <class Container>
-struct bad_type : public std::exception {
-  char const* what() const noexcept override {
-    return "Requested type does not match current type of the variant.";
-  }
+// bad_variant_access is thrown at runtime when accessing a container with the wrong type
+struct bad_variant_access: std::logic_error{
+  using std::logic_error::logic_error;
 };
 
-// non_existing_element is thrown when you try to get and element through [] but is does not exist
-template <class Container>
-struct non_existing_element : public std::exception {
-  char const* what() const noexcept override {
-    return "Requested element does not exist and the object is const.";
-  }
+// bad_container_object_access is thrown at runtime when accessing a nin-object container
+// with an object API, or if a requested element does not exist and 
+// cannot be created
+struct bad_container_object_access : std::logic_error{
+  using std::logic_error::logic_error;
+};
+
+// bad_container_array_access is thrown at runtime when accessing a non-array container
+// with an bound checking ("at") array API. No-check API ("operator[]") does not throw
+struct bad_container_array_access : public std::logic_error{
+  using std::logic_error::logic_error;
 };
 
 // Forward declare friends
@@ -594,7 +596,7 @@ class variant {
   enable_if_stack_t<T, T&> get() & {
     assert_has_type<T>();
     if (is<T>()) return *(reinterpret_cast<T*>(&data_[0]));
-    throw bad_type<variant>{};
+    throw bad_variant_access{"Bad variant type in get."};
   }
 
   // get checks the type is correct and returns it
@@ -602,7 +604,7 @@ class variant {
   enable_if_heap_t<T, T&> get() & {
     assert_has_type<T>();
     if (is<T>()) return *(reinterpret_cast<T*>(data_[0]));
-    throw bad_type<variant>{};
+    throw bad_variant_access{"Bad variant type in get."};
   }
 
   // get checks the type is correct and returns it
@@ -610,7 +612,7 @@ class variant {
   enable_if_stack_t<T, T const&> get() const & {
     assert_has_type<T>();
     if (is<T>()) return *(reinterpret_cast<T const*>(&data_[0]));
-    throw bad_type<variant>{};
+    throw bad_variant_access{"Bad variant type in get."};
   }
 
   // get checks the type is correct and returns it
@@ -618,7 +620,7 @@ class variant {
   enable_if_heap_t<T, T const&> get() const & {
     assert_has_type<T>();
     if (is<T>()) return *(reinterpret_cast<T const*>(data_[0]));
-    throw bad_type<variant>{};
+    throw bad_variant_access{"Bad variant type in get."};
   }
 
   // get checks the type is correct and returns it
@@ -626,7 +628,7 @@ class variant {
   enable_if_stack_t<T, T> get() && {
     assert_has_type<T>();
     if (is<T>()) return std::move(*(reinterpret_cast<T*>(&data_[0])));
-    throw bad_type<variant>{};
+    throw bad_variant_access{"Bad variant type in get."};
   }
 
   // get checks the type is correct and returns it
@@ -634,7 +636,7 @@ class variant {
   enable_if_heap_t<T, T> get() && {
     assert_has_type<T>();
     if (is<T>()) return std::move(*(reinterpret_cast<T*>(data_[0])));
-    throw bad_type<variant>{};
+    throw bad_variant_access{"Bad variant type in get."};
   }
 
   // raw returns directly without any check
@@ -742,7 +744,7 @@ inline decltype(auto) raw(variant<Value...>&& value) noexcept {
 }
 
 //
-// base_container is an variant extended with an associative container and a random access container
+// container is an variant extended with an associative container and a random access container
 //
 template <template <class...> class ObjectBase, template <class...> class ArrayBase, class Key,
           class... Value>
@@ -790,28 +792,50 @@ class container
 
   inline array_type get_array() && { return std::move(this->template get<array_type>()); }
 
-  container& operator[](size_t value) & { return this->template get<array_type>()[value]; }
-
-  container const& operator[](size_t value) const & {
+  container& at(size_t value) & { 
+    if (!this->template is<array_type>())
+      throw bad_container_array_access("Bad container access in operator[](size_t), container is not an array.");
     return this->template get<array_type>()[value];
+  }
+
+  container const& at(size_t value) const & {
+    if (!this->template is<array_type>())
+      throw bad_container_array_access("Bad container access in operator[](size_t), container is not an array.");
+    return this->template get<array_type>()[value];
+  }
+
+  // Access without any check. Be careful with this one
+  container& operator[](size_t value) & { 
+    return this->template raw<array_type>()[value];
+  }
+
+  // Access without any check. Be careful with this one
+  container const& operator[](size_t value) const & {
+    return this->template raw<array_type>()[value];
   }
 
   container operator[](size_t value) && { return this->template get<array_type>()[value]; }
 
   template <class T, class Enabler = std::enable_if_t<!std::is_integral<std::decay_t<T>>(), void>>
   container& operator[](T&& value) & {
+    if (!this->template is<object_type>())
+      throw bad_container_object_access("Bad container access in operator[](Key), container is not an object.");
     return this->template get<object_type>()[std::forward<T>(value)];
   }
 
   template <class T, class Enabler = std::enable_if_t<!std::is_integral<std::decay_t<T>>(), void>>
   container const& operator[](T&& value) const & {
+    if (!this->template is<object_type>())
+      throw bad_container_object_access("Bad container access in operator[](Key), container is not an object.");
     auto it = this->template get<object_type>().find(std::forward<T>(value));
     if (it != this->template get<object_type>().end()) { return it->second; }
-    throw non_existing_element<container>{};
+    throw bad_container_object_access("Bad container access in operator[](Key), no element at this key.");
   }
 
   template <class T, class Enabler = std::enable_if_t<!std::is_integral<std::decay_t<T>>(), void>>
   container operator[](T&& value) && {
+    if (!this->template is<object_type>())
+      throw bad_container_object_access("Bad container access in operator[](Key), container is not an object.");
     return std::move(this->template get<object_type>()[std::forward<T>(value)]);
   }
 };
@@ -907,8 +931,8 @@ void apply_visitor(variant<Value...> const& values, Visitor const& visitor,
 //
 // Visitor generated with functions
 //
-// This allows to write complex visitation without defininf an object
-// There is a performance penaly though because of std::functions
+// This allows to write complex visitation without defining an object
+// There is a performance penaly though because of std::function
 //
 template <class... Value>
 struct func_aggregate_visitor;
@@ -976,6 +1000,84 @@ const_func_aggregate_visitor<variant<Value...>> make_visitor(
     std::function<void(Value const&)>... action) {
   return {action...};
 }
+
+//
+// base_converter show the API to be implemented to convert data in a view
+//
+// The base converter does nothing except constructing the default value
+// of the target
+struct base_converter {
+  template <class Target, class Source>
+  Target operator()(Source&&) const & {
+    return {};
+  }
+};
+
+//
+// view is a contant non-owning view of a container
+//
+// The principle is similiar to std::experimental::string_view
+// The goal is to read through a container without generating exceptions if
+// this is possible
+// in case of missing keys or type mismatch
+//
+//
+template <class Container, class Converter = base_converter>
+class view {
+  Container const* container_;
+
+  template <class T,
+            class Enabler = std::enable_if_t<std::is_default_constructible<T>::value, void>>
+  T const& inner_get(T const& default_value = {}) const & {}
+
+  template <class T,
+            class Enabler = std::enable_if_t<!std::is_default_constructible<T>::value, void>>
+  T const& inner_get() const & {
+    if (container_ && container_->template is<T>()) { return container_->template get<T>(); }
+  }
+
+ public:
+  view() noexcept : container_{nullptr} {}
+  view(Container const& container) noexcept : container_{container} {}
+  view(view const&) noexcept = default;
+  view(view&&) noexcept = default;
+  view& operator=(view const&) noexcept = default;
+  view& operator=(view&&) noexcept = default;
+
+  view operator[](size_t value) const & {
+    if (container_ && container_->template is<typename Container::array_type>()) {
+      return view{container_->template get<typename Container::array_type>()[value]};
+    }
+    return {};
+  }
+
+  template <class T, class Enabler = std::enable_if_t<!std::is_integral<std::decay_t<T>>(), void>>
+  view operator[](T&& value) const & {
+    if (container_ && container_->template is<typename Container::object_type>()) {
+      auto value_it =
+          container_->template get<typename Container::object_type>().find(std::forward<T>(value));
+      if (value_it != container_->template get<typename Container::object_type>().end()) {
+        return view{value_it->second};
+      }
+    }
+    return {};
+  }
+
+  template <class T>
+  T const& get() const & {
+    return this->template inner_get<T>();
+  }
+
+  template <class T>
+  T get(T&& default_value) const & {
+    return this->template inner_get<T>();
+  }
+
+  template <class T>
+  T get(T const& default_value) const & {
+    return this->template inner_get<T>();
+  }
+};
 
 }  // namespace json_backbone
 
