@@ -401,7 +401,7 @@ class variant {
  private:
   // Fails to compile if type is not supported
   template <class T>
-  inline void assert_has_type() const {
+  static inline constexpr void assert_has_type() {
     static_assert(target_type_list_t::template has_type<bounded_identity_t<std::decay_t<T>>>(),
                   "Type T not supported by this container.");
   }
@@ -550,6 +550,11 @@ class variant {
   }
 
   inline size_t type_index() const { return type_; }
+
+  template <class T> static constexpr size_t type_index() {
+    assert_has_type<std::decay_t<T>>();
+    return target_type_list_t::template get_index<std::decay_t<T>>();
+  }
 
   // Assignation from a bounded type
   template <class T, class Enabler = std::enable_if_t<
@@ -1004,14 +1009,22 @@ const_func_aggregate_visitor<variant<Value...>> make_visitor(
 //
 // base_converter show the API to be implemented to convert data in a view
 //
-// The base converter does nothing except constructing the default value
-// of the target
+// The default converter only sypports arithmetic conversions.
+// 
 struct base_converter {
   template <class Target, class Source>
-  Target operator()(Source&&) const & {
-    return {};
+  Target operator()(Source&& value) const & {
+    static_assert(std::is_arithmetic<Target>::value && std::is_arithmetic<Source>::value, "The base converter only supports arithmetic conversions.");
+    return static_cast<Target>(std::forward<Source>(value));
   }
 };
+
+
+struct bad_view_access : std::logic_error {
+  using std::logic_error::logic_error;
+};
+
+template <class T> struct view_iterator;
 
 //
 // view is a contant non-owning view of a container
@@ -1028,21 +1041,45 @@ class view {
 
   template <class T,
             class Enabler = std::enable_if_t<std::is_default_constructible<T>::value, void>>
-  T const& inner_get(T const& default_value = {}) const & {}
+  T const& inner_get(T const& default_value = {}) const & {
+    if (container_ && container_->template is<T>())
+      return container_->template raw<T>();
+    return default_value;
+  }
 
   template <class T,
             class Enabler = std::enable_if_t<!std::is_default_constructible<T>::value, void>>
   T const& inner_get() const & {
-    if (container_ && container_->template is<T>()) { return container_->template get<T>(); }
+    if (container_)
+      return container_->template get<T>(); 
+    throw bad_view_access("Access to en empty view in get().");
+  }
+
+  template <class T,
+            class Enabler = std::enable_if_t<!std::is_default_constructible<T>::value, void>>
+  T const& inner_get(T const& default_value, void* shim = nullptr) const & {
+    if (container_ && container_->template is<T>())
+      return container_->template raw<T>();
+    return default_value;
   }
 
  public:
+  using container_type = Container;
+  using converter_type = Converter;
+
   view() noexcept : container_{nullptr} {}
-  view(Container const& container) noexcept : container_{container} {}
+  view(Container const& container) noexcept : container_{&container} {}
   view(view const&) noexcept = default;
   view(view&&) noexcept = default;
   view& operator=(view const&) noexcept = default;
   view& operator=(view&&) noexcept = default;
+
+  inline bool empty() const & {
+    return nullptr == container_;
+  }
+
+  typename Container::key_type const & key() {
+  }
 
   view operator[](size_t value) const & {
     if (container_ && container_->template is<typename Container::array_type>()) {
@@ -1070,14 +1107,56 @@ class view {
 
   template <class T>
   T get(T&& default_value) const & {
-    return this->template inner_get<T>();
+    return this->template inner_get<T>(default_value);
   }
 
   template <class T>
   T get(T const& default_value) const & {
-    return this->template inner_get<T>();
+    return this->template inner_get<T>(default_value);
+  }
+
+  view_iterator<view> begin() const & {
+    if (container_) {
+      switch(container_->type_index()) {
+        case (container_type::template type_index<typename container_type::object_type>()):
+          return {container_->template raw<container_type::object_type>().cbegin() };
+        case (container_type::template type_index<typename container_type::array_object_type>()):
+          return {container_->template raw<container_type::array_type>().cbegin() };
+        default:
+          break;
+      }
+    }
+    return {};
+  }
+
+  view_iterator<view> end() const & {
+    return {};
+  }
+
+  inline view_iterator<view> cbegin() const & {
+    return begin();
+  }
+
+  inline view_iterator<view> cend() const & {
+    return end();
+  }
+
+  template <class T>
+  inline bool is() const noexcept {
+    return container_ ? container_->template is<T>() : false;
+  }
+
+  template <class T, class Enabler = std::enable_if_t<
+                         container_type::target_type_list_t::template has_type<std::decay_t<T>>(), void>>
+  operator T const&() const & {
+    return container_->template get<std::decay_t<T>>();
   }
 };
+
+template <class Container, class Converter = base_converter>
+view<Container, Converter> make_view(Container const& container) {
+  return view<Container, Converter>{container};
+}
 
 }  // namespace json_backbone
 

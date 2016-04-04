@@ -23,6 +23,7 @@ using json_container = container<std::map,        // User's choice of associativ
                                  std::string      // A type an element could take
                                  >;
 
+namespace {
 element_init<json_container> operator""_a(char const* name, size_t length) {
   return json_container::key_type{name, length};
 }
@@ -40,6 +41,7 @@ struct loop_separator {
 std::ostream& operator<<(std::ostream& out, loop_separator& sep) {
   out << (sep ? sep.sep : "");
   return out;
+}
 }
 
 TEST_CASE("Container - access", "[container][access][runtime]") {

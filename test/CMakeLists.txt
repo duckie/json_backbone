@@ -30,6 +30,7 @@ endmacro()
 add_project_test(arithmetics CATCH)
 add_project_test(variant CATCH)
 add_project_test(container CATCH)
+add_project_test(view CATCH)
 add_project_test(static CATCH)
 add_project_test(readme_demos)
 
