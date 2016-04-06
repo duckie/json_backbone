@@ -1166,8 +1166,10 @@ view<Container, Converter> make_view(Container const& container) {
   return view<Container, Converter>{container};
 }
 
+template <class Viewed> class view_iterator;
+template <class View> class view_iterator_base;
 template <class Viewed>
-class view_iterator_base {
+class view_iterator_base<view_iterator<Viewed>> {
  public:
   using container_type = typename Viewed::container_type;
   using object_iterator = typename container_type::object_type::const_iterator;
@@ -1183,33 +1185,47 @@ class view_iterator_base {
       : value_{std::forward<T>(value)} {};
 };
 
-template <class Viewed>
-class view_iterator_increment_impl : virtual public view_iterator_base<Viewed> {
+template <class View>
+class view_iterator_increment_impl : virtual public view_iterator_base<View> {
   // using container_type = typename view_iterator_base<Viewed>::container_type;
-  using object_iterator = typename view_iterator_base<Viewed>::object_iterator;
-  using array_iterator = typename view_iterator_base<Viewed>::array_iterator;
+  using object_iterator = typename view_iterator_base<View>::object_iterator;
+  using array_iterator = typename view_iterator_base<View>::array_iterator;
   // using value_type = typename view_iterator_base<Viewed>::value_type;
   // template <class... ExtraArguments> friend void apply_visitor(typename
   // view_iterator_base<Viewed>::value_type const&, view_iterator_base<Viewed>&, ExtraArguments
   // ...);
   friend class visiting_helpers::applier_maker<void,
-                                               typename view_iterator_base<Viewed>::value_type>;
-
+                                               typename view_iterator_base<View>::value_type>;
   void operator()(std::nullptr_t) {}
-
   void operator()(array_iterator& iterator) { ++iterator; }
-
   void operator()(object_iterator& iterator) { ++iterator; }
 };
 
+//template <class View>
+//class view_iterator_dereference_impl : virtual public view_iterator_base<View> {
+  //// using container_type = typename view_iterator_base<Viewed>::container_type;
+  //using object_iterator = typename view_iterator_base<View>::object_iterator;
+  //using array_iterator = typename view_iterator_base<View>::array_iterator;
+  //// using value_type = typename view_iterator_base<Viewed>::value_type;
+  //// template <class... ExtraArguments> friend void apply_visitor(typename
+  //// view_iterator_base<Viewed>::value_type const&, view_iterator_base<Viewed>&, ExtraArguments
+  //// ...);
+  //friend class visiting_helpers::applier_maker<void,
+                                               //typename view_iterator_base<View>::value_type>;
+//
+  //void operator()(std::nullptr_t) {}
+  //void operator()(array_iterator& iterator) { ++iterator; }
+  //void operator()(object_iterator& iterator) { ++iterator; }
+//};
+
 template <class Viewed>
-class view_iterator : public view_iterator_increment_impl<Viewed> {
+class view_iterator : public view_iterator_increment_impl<view_iterator<Viewed>> {
  public:
   view_iterator() noexcept = default;
   ;
   template <class T>
   view_iterator(T&& value)
-      : view_iterator_base<Viewed>{std::forward<T>(value)} {};
+      : view_iterator_base<view_iterator>{std::forward<T>(value)} {};
   // TODO: support no except here
   view_iterator(view_iterator const&) = default;
   view_iterator(view_iterator&&) = default;
@@ -1217,9 +1233,16 @@ class view_iterator : public view_iterator_increment_impl<Viewed> {
   view_iterator& operator=(view_iterator&&) = default;
 
   view_iterator& operator++() {
-    apply_visitor<void>(this->value_, static_cast<view_iterator_increment_impl<Viewed>&>(*this));
+    apply_visitor<void>(this->value_, static_cast<view_iterator_increment_impl<view_iterator>&>(*this));
     return *this;
   }
+
+  view_iterator operator++(int) {
+    view_iterator current{*this};
+    apply_visitor<void>(this->value_, static_cast<view_iterator_increment_impl<view_iterator>&>(*this));
+    return current;
+  }
+
 };
 
 }  // namespace json_backbone
