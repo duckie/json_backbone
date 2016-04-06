@@ -339,20 +339,20 @@ std::enable_if_t<!store_on_stack<T, MemSize>::value, void> deleter_fp(void** dat
 }  // namespace helpers
 
 // bad_variant_access is thrown at runtime when accessing a container with the wrong type
-struct bad_variant_access: std::logic_error{
+struct bad_variant_access : std::logic_error {
   using std::logic_error::logic_error;
 };
 
 // bad_container_object_access is thrown at runtime when accessing a nin-object container
-// with an object API, or if a requested element does not exist and 
+// with an object API, or if a requested element does not exist and
 // cannot be created
-struct bad_container_object_access : std::logic_error{
+struct bad_container_object_access : std::logic_error {
   using std::logic_error::logic_error;
 };
 
 // bad_container_array_access is thrown at runtime when accessing a non-array container
 // with an bound checking ("at") array API. No-check API ("operator[]") does not throw
-struct bad_container_array_access : public std::logic_error{
+struct bad_container_array_access : public std::logic_error {
   using std::logic_error::logic_error;
 };
 
@@ -551,7 +551,8 @@ class variant {
 
   inline size_t type_index() const { return type_; }
 
-  template <class T> static constexpr size_t type_index() {
+  template <class T>
+  static constexpr size_t type_index() {
     assert_has_type<std::decay_t<T>>();
     return target_type_list_t::template get_index<std::decay_t<T>>();
   }
@@ -574,8 +575,9 @@ class variant {
   template <class T, class Enabler = std::enable_if_t<
                          !(target_type_list_t::template has_type<std::decay_t<T>>() ||
                            std::is_base_of<variant, std::decay_t<T>>::value),
-                         void>>
-  variant& assign(T&& value, void* shim = nullptr) {
+                         void>,
+            class Shim1 = void>
+  variant& assign(T&& value) {
     static_assert(target_type_list_t::template select_constructible<memory_size, T>::index_value <
                       sizeof...(Value),
                   "Assignation not supported by the variant.");
@@ -797,22 +799,22 @@ class container
 
   inline array_type get_array() && { return std::move(this->template get<array_type>()); }
 
-  container& at(size_t value) & { 
+  container& at(size_t value) & {
     if (!this->template is<array_type>())
-      throw bad_container_array_access("Bad container access in operator[](size_t), container is not an array.");
+      throw bad_container_array_access(
+          "Bad container access in operator[](size_t), container is not an array.");
     return this->template get<array_type>()[value];
   }
 
   container const& at(size_t value) const & {
     if (!this->template is<array_type>())
-      throw bad_container_array_access("Bad container access in operator[](size_t), container is not an array.");
+      throw bad_container_array_access(
+          "Bad container access in operator[](size_t), container is not an array.");
     return this->template get<array_type>()[value];
   }
 
   // Access without any check. Be careful with this one
-  container& operator[](size_t value) & { 
-    return this->template raw<array_type>()[value];
-  }
+  container& operator[](size_t value) & { return this->template raw<array_type>()[value]; }
 
   // Access without any check. Be careful with this one
   container const& operator[](size_t value) const & {
@@ -824,23 +826,27 @@ class container
   template <class T, class Enabler = std::enable_if_t<!std::is_integral<std::decay_t<T>>(), void>>
   container& operator[](T&& value) & {
     if (!this->template is<object_type>())
-      throw bad_container_object_access("Bad container access in operator[](Key), container is not an object.");
+      throw bad_container_object_access(
+          "Bad container access in operator[](Key), container is not an object.");
     return this->template get<object_type>()[std::forward<T>(value)];
   }
 
   template <class T, class Enabler = std::enable_if_t<!std::is_integral<std::decay_t<T>>(), void>>
   container const& operator[](T&& value) const & {
     if (!this->template is<object_type>())
-      throw bad_container_object_access("Bad container access in operator[](Key), container is not an object.");
+      throw bad_container_object_access(
+          "Bad container access in operator[](Key), container is not an object.");
     auto it = this->template get<object_type>().find(std::forward<T>(value));
     if (it != this->template get<object_type>().end()) { return it->second; }
-    throw bad_container_object_access("Bad container access in operator[](Key), no element at this key.");
+    throw bad_container_object_access(
+        "Bad container access in operator[](Key), no element at this key.");
   }
 
   template <class T, class Enabler = std::enable_if_t<!std::is_integral<std::decay_t<T>>(), void>>
   container operator[](T&& value) && {
     if (!this->template is<object_type>())
-      throw bad_container_object_access("Bad container access in operator[](Key), container is not an object.");
+      throw bad_container_object_access(
+          "Bad container access in operator[](Key), container is not an object.");
     return std::move(this->template get<object_type>()[std::forward<T>(value)]);
   }
 };
@@ -877,19 +883,20 @@ struct applier_maker;
 template <class Return, class... Value>
 struct applier_maker<Return, variant<Value...>> {
   template <class Visitor, class T, class... ExtraArguments>
-  static Return applier_fp(variant<Value...>& values, Visitor& visitor, ExtraArguments&&... extras) {
+  static Return applier_fp(variant<Value...>& values, Visitor& visitor,
+                           ExtraArguments&&... extras) {
     visitor(values.template raw<T>(), std::forward<ExtraArguments>(extras)...);
   }
 
   template <class Visitor, class T, class... ExtraArguments>
   static Return const_applier_fp(variant<Value...> const& values, Visitor const& visitor,
-                               ExtraArguments&&... extras) {
+                                 ExtraArguments&&... extras) {
     visitor(values.template raw<T>(), std::forward<ExtraArguments>(extras)...);
   }
 };
 // Extend to container
-template <class Return, template <class...> class Object, template <class...> class Array, class Key,
-          class... Value>
+template <class Return, template <class...> class Object, template <class...> class Array,
+          class Key, class... Value>
 struct applier_maker<Return, container<Object, Array, Key, Value...>>
     : public applier_maker<Return, typename container<Object, Array, Key, Value...>::variant_type> {
   using container_type = container<Object, Array, Key, Value...>;
@@ -900,25 +907,27 @@ struct applier_maker<Return, container<Object, Array, Key, Value...>>
 template <class Return, class Visitor, class... Value, class... ExtraArguments>
 Return apply_visitor(variant<Value...>& values, Visitor& visitor, ExtraArguments&&... extras) {
   static std::array<Return (*)(variant<Value...>&, Visitor&, ExtraArguments...), sizeof...(Value)>
-      appliers = {visiting_helpers::applier_maker<Return,variant<Value...>>::template applier_fp<
+      appliers = {visiting_helpers::applier_maker<Return, variant<Value...>>::template applier_fp<
           Visitor&, Value, ExtraArguments...>...};
   return appliers[values.type_index()](values, visitor, std::forward<ExtraArguments>(extras)...);
 };
 
 template <class Return, class Visitor, class... Value, class... ExtraArguments>
-Return apply_visitor(variant<Value...>& values, Visitor const& visitor, ExtraArguments&&... extras) {
+Return apply_visitor(variant<Value...>& values, Visitor const& visitor,
+                     ExtraArguments&&... extras) {
   static std::array<Return (*)(variant<Value...>&, Visitor const&, ExtraArguments...),
                     sizeof...(Value)> appliers = {
-      visiting_helpers::applier_maker<Return,variant<Value...>>::template applier_fp<
+      visiting_helpers::applier_maker<Return, variant<Value...>>::template applier_fp<
           Visitor const&, Value, ExtraArguments...>...};
   return appliers[values.type_index()](values, visitor, std::forward<ExtraArguments>(extras)...);
 };
 
 template <class Return, class Visitor, class... Value, class... ExtraArguments>
-Return apply_visitor(variant<Value...> const& values, Visitor& visitor, ExtraArguments&&... extras) {
+Return apply_visitor(variant<Value...> const& values, Visitor& visitor,
+                     ExtraArguments&&... extras) {
   static std::array<void (*)(variant<Value...> const&, Visitor&, ExtraArguments...),
                     sizeof...(Value)> appliers = {
-      visiting_helpers::applier_maker<Return,variant<Value...>>::template const_applier_fp<
+      visiting_helpers::applier_maker<Return, variant<Value...>>::template const_applier_fp<
           Visitor&, Value, ExtraArguments...>...};
   return appliers[values.type_index()](values, visitor, std::forward<ExtraArguments>(extras)...);
 };
@@ -926,7 +935,7 @@ Return apply_visitor(variant<Value...> const& values, Visitor& visitor, ExtraArg
 template <class Return, class Visitor, class... Value, class... ExtraArguments>
 
 Return apply_visitor(variant<Value...> const& values, Visitor const& visitor,
-                   ExtraArguments&&... extras) {
+                     ExtraArguments&&... extras) {
   static std::array<void (*)(variant<Value...> const&, Visitor const&, ExtraArguments...),
                     sizeof...(Value)> appliers = {
       visiting_helpers::applier_maker<Return, variant<Value...>>::template const_applier_fp<
@@ -954,10 +963,11 @@ struct func_aggregate_visitor<Return, variant<Value...>, ExtraArguments...> {
         std::forward<T>(value), extras...);
   }
 };
-template <class Return, template <class...> class Object, template <class...> class Array, class Key,
-          class... Value, class... ExtraArguments>
+template <class Return, template <class...> class Object, template <class...> class Array,
+          class Key, class... Value, class... ExtraArguments>
 struct func_aggregate_visitor<Return, container<Object, Array, Key, Value...>, ExtraArguments...>
-    : public func_aggregate_visitor<Return, typename container<Object, Array, Key, Value...>::variant_type,
+    : public func_aggregate_visitor<Return,
+                                    typename container<Object, Array, Key, Value...>::variant_type,
                                     ExtraArguments...> {
   using container_type = container<Object, Array, Key, Value...>;
   using func_aggregate_visitor<Return, typename container_type::variant_type,
@@ -980,15 +990,17 @@ struct const_func_aggregate_visitor<Return, variant<Value...>, ExtraArguments...
       : appliers{applier...} {}
   template <class T>
   Return operator()(T&& value, ExtraArguments... extras) const {
-    return std::get<variant_type::target_type_list_t::template get_index<std::decay_t<T>>()>(appliers)(
-        std::forward<T>(value), extras...);
+    return std::get<variant_type::target_type_list_t::template get_index<std::decay_t<T>>()>(
+        appliers)(std::forward<T>(value), extras...);
   }
 };
-template <class Return, template <class...> class Object, template <class...> class Array, class Key,
-          class... Value, class... ExtraArguments>
-struct const_func_aggregate_visitor<Return, container<Object, Array, Key, Value...>, ExtraArguments...>
-    : public const_func_aggregate_visitor<Return,
-          typename container<Object, Array, Key, Value...>::variant_type, ExtraArguments...> {
+template <class Return, template <class...> class Object, template <class...> class Array,
+          class Key, class... Value, class... ExtraArguments>
+struct const_func_aggregate_visitor<Return, container<Object, Array, Key, Value...>,
+                                    ExtraArguments...>
+    : public const_func_aggregate_visitor<
+          Return, typename container<Object, Array, Key, Value...>::variant_type,
+          ExtraArguments...> {
   using container_type = container<Object, Array, Key, Value...>;
   using const_func_aggregate_visitor<Return, typename container_type::variant_type,
                                      ExtraArguments...>::const_func_aggregate_visitor;
@@ -996,7 +1008,8 @@ struct const_func_aggregate_visitor<Return, container<Object, Array, Key, Value.
 
 // Creation helper for func_aggregate_visitor
 template <class Return, class... Value>
-func_aggregate_visitor<Return, variant<Value...>> make_visitor(std::function<Return(Value&)>... action) {
+func_aggregate_visitor<Return, variant<Value...>> make_visitor(
+    std::function<Return(Value&)>... action) {
   return {action...};
 }
 
@@ -1011,21 +1024,22 @@ const_func_aggregate_visitor<Return, variant<Value...>> make_visitor(
 // base_converter show the API to be implemented to convert data in a view
 //
 // The default converter only sypports arithmetic conversions.
-// 
+//
 struct base_converter {
   template <class Target, class Source>
   Target operator()(Source&& value) const & {
-    static_assert(std::is_arithmetic<Target>::value && std::is_arithmetic<Source>::value, "The base converter only supports arithmetic conversions.");
+    static_assert(std::is_arithmetic<Target>::value && std::is_arithmetic<Source>::value,
+                  "The base converter only supports arithmetic conversions.");
     return static_cast<Target>(std::forward<Source>(value));
   }
 };
-
 
 struct bad_view_access : std::logic_error {
   using std::logic_error::logic_error;
 };
 
-template <class T> class view_iterator;
+template <class T>
+class view_iterator;
 
 //
 // view is a contant non-owning view of a container
@@ -1044,24 +1058,22 @@ class view {
   template <class T,
             class Enabler = std::enable_if_t<std::is_default_constructible<T>::value, void>>
   T const& inner_get(T const& default_value = {}) const & {
-    if (container_ && container_->template is<T>())
-      return container_->template raw<T>();
+    if (container_ && container_->template is<T>()) return container_->template raw<T>();
     return default_value;
   }
 
   template <class T,
             class Enabler = std::enable_if_t<!std::is_default_constructible<T>::value, void>>
   T const& inner_get() const & {
-    if (container_)
-      return container_->template get<T>(); 
+    if (container_) return container_->template get<T>();
     throw bad_view_access("Access to en empty view in get().");
   }
 
   template <class T,
-            class Enabler = std::enable_if_t<!std::is_default_constructible<T>::value, void>>
-  T const& inner_get(T const& default_value, void* shim = nullptr) const & {
-    if (container_ && container_->template is<T>())
-      return container_->template raw<T>();
+            class Enabler = std::enable_if_t<!std::is_default_constructible<T>::value, void>,
+            class Shim1 = void>
+  T const& inner_get(T const& default_value) const & {
+    if (container_ && container_->template is<T>()) return container_->template raw<T>();
     return default_value;
   }
 
@@ -1078,13 +1090,9 @@ class view {
   view& operator=(view&&) noexcept = default;
 
   // This is used to ease the use of range-base for loops
-  inline key_type const& key() const & {
-    return *key_;
-  }
+  inline key_type const& key() const & { return *key_; }
 
-  inline bool empty() const & noexcept {
-    return nullptr == container_;
-  }
+  inline bool empty() const& noexcept { return nullptr == container_; }
 
   view operator[](size_t value) const & {
     if (container_ && container_->template is<typename Container::array_type>()) {
@@ -1122,11 +1130,11 @@ class view {
 
   view_iterator<view> begin() const & {
     if (container_) {
-      switch(container_->type_index()) {
+      switch (container_->type_index()) {
         case (container_type::template type_index<typename container_type::object_type>()):
-          return {container_->template raw<typename container_type::object_type>().cbegin() };
+          return {container_->template raw<typename container_type::object_type>().cbegin()};
         case (container_type::template type_index<typename container_type::array_type>()):
-          return {container_->template raw<typename container_type::array_type>().cbegin() };
+          return {container_->template raw<typename container_type::array_type>().cbegin()};
         default:
           break;
       }
@@ -1134,30 +1142,23 @@ class view {
     return {};
   }
 
-  view_iterator<view> end() const & {
-    return {};
-  }
+  view_iterator<view> end() const & { return {}; }
 
-  inline view_iterator<view> cbegin() const & {
-    return begin();
-  }
+  inline view_iterator<view> cbegin() const & { return begin(); }
 
-  inline view_iterator<view> cend() const & {
-    return end();
-  }
+  inline view_iterator<view> cend() const & { return end(); }
 
   template <class T>
   inline bool is() const noexcept {
     return container_ ? container_->template is<T>() : false;
   }
 
-  template <class T, class Enabler = std::enable_if_t<
-                         container_type::target_type_list_t::template has_type<std::decay_t<T>>(), void>>
+  template <class T,
+            class Enabler = std::enable_if_t<
+                container_type::target_type_list_t::template has_type<std::decay_t<T>>(), void>>
   operator T const&() const & {
     return container_->template get<std::decay_t<T>>();
   }
-
-
 };
 
 template <class Container, class Converter = base_converter>
@@ -1165,8 +1166,8 @@ view<Container, Converter> make_view(Container const& container) {
   return view<Container, Converter>{container};
 }
 
-
-template <class Viewed> class view_iterator_base {
+template <class Viewed>
+class view_iterator_base {
  public:
   using container_type = typename Viewed::container_type;
   using object_iterator = typename container_type::object_type::const_iterator;
@@ -1177,46 +1178,49 @@ template <class Viewed> class view_iterator_base {
   value_type value_;
 
   view_iterator_base() noexcept : value_{nullptr} {};
-  template <class T> view_iterator_base(T&& value) : value_{std::forward<T>(value)} {};
+  template <class T>
+  view_iterator_base(T&& value)
+      : value_{std::forward<T>(value)} {};
 };
 
-template <class Viewed> class view_iterator_increment_impl : virtual public view_iterator_base<Viewed> {
-  //using container_type = typename view_iterator_base<Viewed>::container_type;
+template <class Viewed>
+class view_iterator_increment_impl : virtual public view_iterator_base<Viewed> {
+  // using container_type = typename view_iterator_base<Viewed>::container_type;
   using object_iterator = typename view_iterator_base<Viewed>::object_iterator;
   using array_iterator = typename view_iterator_base<Viewed>::array_iterator;
-  //using value_type = typename view_iterator_base<Viewed>::value_type;
-  //template <class... ExtraArguments> friend void apply_visitor(typename view_iterator_base<Viewed>::value_type const&, view_iterator_base<Viewed>&, ExtraArguments ...);
-  friend class visiting_helpers::applier_maker<void, typename view_iterator_base<Viewed>::value_type>;
+  // using value_type = typename view_iterator_base<Viewed>::value_type;
+  // template <class... ExtraArguments> friend void apply_visitor(typename
+  // view_iterator_base<Viewed>::value_type const&, view_iterator_base<Viewed>&, ExtraArguments
+  // ...);
+  friend class visiting_helpers::applier_maker<void,
+                                               typename view_iterator_base<Viewed>::value_type>;
 
-  void operator() (std::nullptr_t) {
-  }
+  void operator()(std::nullptr_t) {}
 
-  void operator() (array_iterator& iterator) {
-    ++iterator;
-  }
+  void operator()(array_iterator& iterator) { ++iterator; }
 
-  void operator() (object_iterator& iterator) {
-    ++iterator;
-  }
-
+  void operator()(object_iterator& iterator) { ++iterator; }
 };
 
-template <class Viewed> class view_iterator : public view_iterator_increment_impl<Viewed> {
+template <class Viewed>
+class view_iterator : public view_iterator_increment_impl<Viewed> {
  public:
-  view_iterator() noexcept = default;;
-  template <class T> view_iterator(T&& value) : view_iterator_base<Viewed>{std::forward<T>(value)} {};
+  view_iterator() noexcept = default;
+  ;
+  template <class T>
+  view_iterator(T&& value)
+      : view_iterator_base<Viewed>{std::forward<T>(value)} {};
   // TODO: support no except here
   view_iterator(view_iterator const&) = default;
   view_iterator(view_iterator&&) = default;
   view_iterator& operator=(view_iterator const&) = default;
   view_iterator& operator=(view_iterator&&) = default;
 
-  view_iterator& operator++ () {
-    apply_visitor<void>(this->value_,static_cast<view_iterator_increment_impl<Viewed>&>(*this));
+  view_iterator& operator++() {
+    apply_visitor<void>(this->value_, static_cast<view_iterator_increment_impl<Viewed>&>(*this));
     return *this;
   }
 };
-
 
 }  // namespace json_backbone
 
