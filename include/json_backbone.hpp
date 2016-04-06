@@ -871,66 +871,67 @@ Container make_array(std::initializer_list<Container> elements) {
 }
 
 namespace visiting_helpers {
-// Applier_amker generates function pointers
-template <class... Value>
+// Applier_maker generates function pointers
+template <class Return, class... Value>
 struct applier_maker;
-template <class... Value>
-struct applier_maker<variant<Value...>> {
+template <class Return, class... Value>
+struct applier_maker<Return, variant<Value...>> {
   template <class Visitor, class T, class... ExtraArguments>
-  static void applier_fp(variant<Value...>& values, Visitor& visitor, ExtraArguments&&... extras) {
+  static Return applier_fp(variant<Value...>& values, Visitor& visitor, ExtraArguments&&... extras) {
     visitor(values.template raw<T>(), std::forward<ExtraArguments>(extras)...);
   }
 
   template <class Visitor, class T, class... ExtraArguments>
-  static void const_applier_fp(variant<Value...> const& values, Visitor const& visitor,
+  static Return const_applier_fp(variant<Value...> const& values, Visitor const& visitor,
                                ExtraArguments&&... extras) {
     visitor(values.template raw<T>(), std::forward<ExtraArguments>(extras)...);
   }
 };
 // Extend to container
-template <template <class...> class Object, template <class...> class Array, class Key,
+template <class Return, template <class...> class Object, template <class...> class Array, class Key,
           class... Value>
-struct applier_maker<container<Object, Array, Key, Value...>>
-    : public applier_maker<typename container<Object, Array, Key, Value...>::variant_type> {
+struct applier_maker<Return, container<Object, Array, Key, Value...>>
+    : public applier_maker<Return, typename container<Object, Array, Key, Value...>::variant_type> {
   using container_type = container<Object, Array, Key, Value...>;
-  using applier_maker<typename container_type::variant_type>::applier_maker;
+  using applier_maker<Return, typename container_type::variant_type>::applier_maker;
 };
 }  // namespace visiting_helpers
 
-template <class Visitor, class... Value, class... ExtraArguments>
-void apply_visitor(variant<Value...>& values, Visitor& visitor, ExtraArguments&&... extras) {
-  static std::array<void (*)(variant<Value...>&, Visitor&, ExtraArguments...), sizeof...(Value)>
-      appliers = {visiting_helpers::applier_maker<variant<Value...>>::template applier_fp<
+template <class Return, class Visitor, class... Value, class... ExtraArguments>
+Return apply_visitor(variant<Value...>& values, Visitor& visitor, ExtraArguments&&... extras) {
+  static std::array<Return (*)(variant<Value...>&, Visitor&, ExtraArguments...), sizeof...(Value)>
+      appliers = {visiting_helpers::applier_maker<Return,variant<Value...>>::template applier_fp<
           Visitor&, Value, ExtraArguments...>...};
-  appliers[values.type_index()](values, visitor, std::forward<ExtraArguments>(extras)...);
+  return appliers[values.type_index()](values, visitor, std::forward<ExtraArguments>(extras)...);
 };
 
-template <class Visitor, class... Value, class... ExtraArguments>
-void apply_visitor(variant<Value...>& values, Visitor const& visitor, ExtraArguments&&... extras) {
-  static std::array<void (*)(variant<Value...>&, Visitor const&, ExtraArguments...),
+template <class Return, class Visitor, class... Value, class... ExtraArguments>
+Return apply_visitor(variant<Value...>& values, Visitor const& visitor, ExtraArguments&&... extras) {
+  static std::array<Return (*)(variant<Value...>&, Visitor const&, ExtraArguments...),
                     sizeof...(Value)> appliers = {
-      visiting_helpers::applier_maker<variant<Value...>>::template applier_fp<
+      visiting_helpers::applier_maker<Return,variant<Value...>>::template applier_fp<
           Visitor const&, Value, ExtraArguments...>...};
-  appliers[values.type_index()](values, visitor, std::forward<ExtraArguments>(extras)...);
+  return appliers[values.type_index()](values, visitor, std::forward<ExtraArguments>(extras)...);
 };
 
-template <class Visitor, class... Value, class... ExtraArguments>
-void apply_visitor(variant<Value...> const& values, Visitor& visitor, ExtraArguments&&... extras) {
+template <class Return, class Visitor, class... Value, class... ExtraArguments>
+Return apply_visitor(variant<Value...> const& values, Visitor& visitor, ExtraArguments&&... extras) {
   static std::array<void (*)(variant<Value...> const&, Visitor&, ExtraArguments...),
                     sizeof...(Value)> appliers = {
-      visiting_helpers::applier_maker<variant<Value...>>::template const_applier_fp<
+      visiting_helpers::applier_maker<Return,variant<Value...>>::template const_applier_fp<
           Visitor&, Value, ExtraArguments...>...};
-  appliers[values.type_index()](values, visitor, std::forward<ExtraArguments>(extras)...);
+  return appliers[values.type_index()](values, visitor, std::forward<ExtraArguments>(extras)...);
 };
 
-template <class Visitor, class... Value, class... ExtraArguments>
-void apply_visitor(variant<Value...> const& values, Visitor const& visitor,
+template <class Return, class Visitor, class... Value, class... ExtraArguments>
+
+Return apply_visitor(variant<Value...> const& values, Visitor const& visitor,
                    ExtraArguments&&... extras) {
   static std::array<void (*)(variant<Value...> const&, Visitor const&, ExtraArguments...),
                     sizeof...(Value)> appliers = {
-      visiting_helpers::applier_maker<variant<Value...>>::template const_applier_fp<
+      visiting_helpers::applier_maker<Return, variant<Value...>>::template const_applier_fp<
           Visitor const&, Value, ExtraArguments...>...};
-  appliers[values.type_index()](values, visitor, std::forward<ExtraArguments>(extras)...);
+  return appliers[values.type_index()](values, visitor, std::forward<ExtraArguments>(extras)...);
 };
 
 //
@@ -939,70 +940,70 @@ void apply_visitor(variant<Value...> const& values, Visitor const& visitor,
 // This allows to write complex visitation without defining an object
 // There is a performance penaly though because of std::function
 //
-template <class... Value>
+template <class Return, class... Value>
 struct func_aggregate_visitor;
-template <class... Value, class... ExtraArguments>
-struct func_aggregate_visitor<variant<Value...>, ExtraArguments...> {
+template <class Return, class... Value, class... ExtraArguments>
+struct func_aggregate_visitor<Return, variant<Value...>, ExtraArguments...> {
   using variant_type = variant<Value...>;
-  std::tuple<std::function<void(Value&, ExtraArguments...)>...> appliers;
-  func_aggregate_visitor(std::function<void(Value&, ExtraArguments...)>... applier)
+  std::tuple<std::function<Return(Value&, ExtraArguments...)>...> appliers;
+  func_aggregate_visitor(std::function<Return(Value&, ExtraArguments...)>... applier)
       : appliers{applier...} {}
   template <class T>
-  void operator()(T&& value, ExtraArguments... extras) const {
+  Return operator()(T&& value, ExtraArguments... extras) const {
     std::get<variant_type::target_type_list_t::template get_index<std::decay_t<T>>()>(appliers)(
         std::forward<T>(value), extras...);
   }
 };
-template <template <class...> class Object, template <class...> class Array, class Key,
+template <class Return, template <class...> class Object, template <class...> class Array, class Key,
           class... Value, class... ExtraArguments>
-struct func_aggregate_visitor<container<Object, Array, Key, Value...>, ExtraArguments...>
-    : public func_aggregate_visitor<typename container<Object, Array, Key, Value...>::variant_type,
+struct func_aggregate_visitor<Return, container<Object, Array, Key, Value...>, ExtraArguments...>
+    : public func_aggregate_visitor<Return, typename container<Object, Array, Key, Value...>::variant_type,
                                     ExtraArguments...> {
   using container_type = container<Object, Array, Key, Value...>;
-  using func_aggregate_visitor<typename container_type::variant_type,
+  using func_aggregate_visitor<Return, typename container_type::variant_type,
                                ExtraArguments...>::func_aggregate_visitor;
 };
 
 //
 // Constant visitor generated with functions
 //
-// This allows to write complex visitation without defininf an object
-// There is a performance penaly though because of std::functions
+// This allows to write complex visitation without defining an object
+// There is a performance penaly though because of std::function
 //
-template <class... Value>
+template <class Return, class... Value>
 struct const_func_aggregate_visitor;
-template <class... Value, class... ExtraArguments>
-struct const_func_aggregate_visitor<variant<Value...>, ExtraArguments...> {
+template <class Return, class... Value, class... ExtraArguments>
+struct const_func_aggregate_visitor<Return, variant<Value...>, ExtraArguments...> {
   using variant_type = variant<Value...>;
-  std::tuple<std::function<void(Value const&, ExtraArguments...)>...> appliers;
-  const_func_aggregate_visitor(std::function<void(Value const&, ExtraArguments...)>... applier)
+  std::tuple<std::function<Return(Value const&, ExtraArguments...)>...> appliers;
+  const_func_aggregate_visitor(std::function<Return(Value const&, ExtraArguments...)>... applier)
       : appliers{applier...} {}
   template <class T>
-  void operator()(T&& value, ExtraArguments... extras) const {
-    std::get<variant_type::target_type_list_t::template get_index<std::decay_t<T>>()>(appliers)(
+  Return operator()(T&& value, ExtraArguments... extras) const {
+    return std::get<variant_type::target_type_list_t::template get_index<std::decay_t<T>>()>(appliers)(
         std::forward<T>(value), extras...);
   }
 };
-template <template <class...> class Object, template <class...> class Array, class Key,
+template <class Return, template <class...> class Object, template <class...> class Array, class Key,
           class... Value, class... ExtraArguments>
-struct const_func_aggregate_visitor<container<Object, Array, Key, Value...>, ExtraArguments...>
-    : public const_func_aggregate_visitor<
+struct const_func_aggregate_visitor<Return, container<Object, Array, Key, Value...>, ExtraArguments...>
+    : public const_func_aggregate_visitor<Return,
           typename container<Object, Array, Key, Value...>::variant_type, ExtraArguments...> {
   using container_type = container<Object, Array, Key, Value...>;
-  using const_func_aggregate_visitor<typename container_type::variant_type,
+  using const_func_aggregate_visitor<Return, typename container_type::variant_type,
                                      ExtraArguments...>::const_func_aggregate_visitor;
 };
 
 // Creation helper for func_aggregate_visitor
-template <class... Value>
-func_aggregate_visitor<variant<Value...>> make_visitor(std::function<void(Value&)>... action) {
+template <class Return, class... Value>
+func_aggregate_visitor<Return, variant<Value...>> make_visitor(std::function<Return(Value&)>... action) {
   return {action...};
 }
 
 // creation helper for const_func_aggregate_visitor
-template <class... Value>
-const_func_aggregate_visitor<variant<Value...>> make_visitor(
-    std::function<void(Value const&)>... action) {
+template <class Return, class... Value>
+const_func_aggregate_visitor<Return, variant<Value...>> make_visitor(
+    std::function<Return(Value const&)>... action) {
   return {action...};
 }
 
@@ -1024,7 +1025,7 @@ struct bad_view_access : std::logic_error {
   using std::logic_error::logic_error;
 };
 
-template <class T> struct view_iterator;
+template <class T> class view_iterator;
 
 //
 // view is a contant non-owning view of a container
@@ -1037,6 +1038,7 @@ template <class T> struct view_iterator;
 //
 template <class Container, class Converter = base_converter>
 class view {
+  typename Container::object_type::key_type const* key_;
   Container const* container_;
 
   template <class T,
@@ -1065,20 +1067,23 @@ class view {
 
  public:
   using container_type = Container;
+  using key_type = typename Container::object_type::key_type;
   using converter_type = Converter;
 
-  view() noexcept : container_{nullptr} {}
-  view(Container const& container) noexcept : container_{&container} {}
+  view() noexcept : key_{nullptr}, container_{nullptr} {}
+  view(Container const& container) noexcept : key_{nullptr}, container_{&container} {}
   view(view const&) noexcept = default;
   view(view&&) noexcept = default;
   view& operator=(view const&) noexcept = default;
   view& operator=(view&&) noexcept = default;
 
-  inline bool empty() const & {
-    return nullptr == container_;
+  // This is used to ease the use of range-base for loops
+  inline key_type const& key() const & {
+    return *key_;
   }
 
-  typename Container::key_type const & key() {
+  inline bool empty() const & noexcept {
+    return nullptr == container_;
   }
 
   view operator[](size_t value) const & {
@@ -1119,9 +1124,9 @@ class view {
     if (container_) {
       switch(container_->type_index()) {
         case (container_type::template type_index<typename container_type::object_type>()):
-          return {container_->template raw<container_type::object_type>().cbegin() };
-        case (container_type::template type_index<typename container_type::array_object_type>()):
-          return {container_->template raw<container_type::array_type>().cbegin() };
+          return {container_->template raw<typename container_type::object_type>().cbegin() };
+        case (container_type::template type_index<typename container_type::array_type>()):
+          return {container_->template raw<typename container_type::array_type>().cbegin() };
         default:
           break;
       }
@@ -1151,12 +1156,67 @@ class view {
   operator T const&() const & {
     return container_->template get<std::decay_t<T>>();
   }
+
+
 };
 
 template <class Container, class Converter = base_converter>
 view<Container, Converter> make_view(Container const& container) {
   return view<Container, Converter>{container};
 }
+
+
+template <class Viewed> class view_iterator_base {
+ public:
+  using container_type = typename Viewed::container_type;
+  using object_iterator = typename container_type::object_type::const_iterator;
+  using array_iterator = typename container_type::array_type::const_iterator;
+  using value_type = variant<std::nullptr_t, array_iterator, object_iterator>;
+
+ protected:
+  value_type value_;
+
+  view_iterator_base() noexcept : value_{nullptr} {};
+  template <class T> view_iterator_base(T&& value) : value_{std::forward<T>(value)} {};
+};
+
+template <class Viewed> class view_iterator_increment_impl : virtual public view_iterator_base<Viewed> {
+  //using container_type = typename view_iterator_base<Viewed>::container_type;
+  using object_iterator = typename view_iterator_base<Viewed>::object_iterator;
+  using array_iterator = typename view_iterator_base<Viewed>::array_iterator;
+  //using value_type = typename view_iterator_base<Viewed>::value_type;
+  //template <class... ExtraArguments> friend void apply_visitor(typename view_iterator_base<Viewed>::value_type const&, view_iterator_base<Viewed>&, ExtraArguments ...);
+  friend class visiting_helpers::applier_maker<void, typename view_iterator_base<Viewed>::value_type>;
+
+  void operator() (std::nullptr_t) {
+  }
+
+  void operator() (array_iterator& iterator) {
+    ++iterator;
+  }
+
+  void operator() (object_iterator& iterator) {
+    ++iterator;
+  }
+
+};
+
+template <class Viewed> class view_iterator : public view_iterator_increment_impl<Viewed> {
+ public:
+  view_iterator() noexcept = default;;
+  template <class T> view_iterator(T&& value) : view_iterator_base<Viewed>{std::forward<T>(value)} {};
+  // TODO: support no except here
+  view_iterator(view_iterator const&) = default;
+  view_iterator(view_iterator&&) = default;
+  view_iterator& operator=(view_iterator const&) = default;
+  view_iterator& operator=(view_iterator&&) = default;
+
+  view_iterator& operator++ () {
+    apply_visitor<void>(this->value_,static_cast<view_iterator_increment_impl<Viewed>&>(*this));
+    return *this;
+  }
+};
+
 
 }  // namespace json_backbone
 

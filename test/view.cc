@@ -61,4 +61,11 @@ TEST_CASE("View - access", "[view][access][runtime]") {
     REQUIRE(v5.is<std::string>());
     REQUIRE(std::string(v5) == "Jesabelle");
   }
+
+  SECTION("iterator over object") {
+    //for(auto value : v) {
+    //}
+    auto it1 = v.begin();
+    ++it1;
+  }
 }

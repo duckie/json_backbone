@@ -25,8 +25,8 @@ element_init<json_container> operator""_a(char const* name, size_t length) {
 
 // Define a visitor helper
 struct recursive_printer
-    : public const_func_aggregate_visitor<json_container, recursive_printer const&, std::ostream&> {
-  using const_func_aggregate_visitor<json_container, recursive_printer const&,
+    : public const_func_aggregate_visitor<void, json_container, recursive_printer const&, std::ostream&> {
+  using const_func_aggregate_visitor<void, json_container, recursive_printer const&,
                                      std::ostream&>::const_func_aggregate_visitor;
 };
 
@@ -64,7 +64,7 @@ void demo1() {
         bool sep = false;
         for (auto& v : arr) {
           out << (sep ? "," : "");
-          apply_visitor(v, self, self, out);
+          apply_visitor<void>(v, self, self, out);
           sep = true;
         }
         out << "]";
@@ -74,7 +74,7 @@ void demo1() {
         bool sep = false;
         for (auto& v : obj) {
           out << (sep ? "," : "") << "\"" << v.first << "\":";
-          apply_visitor(v.second, self, self, out);
+          apply_visitor<void>(v.second, self, self, out);
           sep = true;
         }
         out << "}";
@@ -82,7 +82,7 @@ void demo1() {
 
   // Apply the visitor. "printer" appears two times, once as the actual
   // visitor and once as an extra argument passed to it along with the stream
-  apply_visitor(c, printer, printer, result_stream);
+  apply_visitor<void>(c, printer, printer, result_stream);
   std::cout << result_stream.str() << std::endl;
 }
 

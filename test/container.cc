@@ -87,7 +87,7 @@ struct visitor_test_01 {
     loop_separator sep;
     for (auto& v : value) {
       output << sep << "\"" << v.first << "\":";
-      apply_visitor(v.second, *this);
+      apply_visitor<void>(v.second, *this);
     }
     output << "}";
   }
@@ -97,7 +97,7 @@ struct visitor_test_01 {
     loop_separator sep;
     for (auto& v : value) {
       output << sep;
-      apply_visitor(v, *this);
+      apply_visitor<void>(v, *this);
     }
     output << "]";
   }
@@ -112,10 +112,11 @@ struct visitor_test_01 {
   }
 };
 
+// CRTP used here so no "using" possible
 struct recursive_printer
-    : public const_func_aggregate_visitor<json_container, recursive_printer const&,
+    : public const_func_aggregate_visitor<void, json_container, recursive_printer const&,
                                           std::ostringstream&> {
-  using const_func_aggregate_visitor<json_container, recursive_printer const&,
+  using const_func_aggregate_visitor<void, json_container, recursive_printer const&,
                                      std::ostringstream&>::const_func_aggregate_visitor;
 };
 
@@ -152,7 +153,7 @@ TEST_CASE("Container - creation", "[container][access][runtime]") {
   SECTION("Apply visitor") {
     std::ostringstream result_stream;
     visitor_test_01 visitor{result_stream};
-    apply_visitor(c, visitor);
+    apply_visitor<void>(c, visitor);
     REQUIRE(
         result_stream.str() ==
         R"json({"children":[{"age":6,"name":"Martha"},{"age":8,"name":"Jesabelle"}],"grades":[1,1,"Ole"],"name":"Roger","size":1.92,"subscribed":1})json");
@@ -172,7 +173,7 @@ TEST_CASE("Container - creation", "[container][access][runtime]") {
           loop_separator sep;
           for (auto& v : arr) {
             out << sep;
-            apply_visitor(v, self, self, out);
+            apply_visitor<void>(v, self, self, out);
           }
           out << "]";
         },
@@ -181,12 +182,12 @@ TEST_CASE("Container - creation", "[container][access][runtime]") {
           loop_separator sep;
           for (auto& v : obj) {
             out << sep << "\"" << v.first << "\":";
-            apply_visitor(v.second, self, self, out);
+            apply_visitor<void>(v.second, self, self, out);
           }
           out << "}";
         }};
 
-    apply_visitor(c, printer, printer, result_stream);
+    apply_visitor<void>(c, printer, printer, result_stream);
 
     REQUIRE(
         result_stream.str() ==
