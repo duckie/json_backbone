@@ -63,9 +63,35 @@ TEST_CASE("View - access", "[view][access][runtime]") {
   }
 
   SECTION("iterator over object") {
-    //for(auto value : v) {
-    //}
+
+
+    auto it_end = v.end();
+    REQUIRE(it_end == v.end());
+
     auto it1 = v.begin();
+    REQUIRE(it1 == v.begin());
+
+    for (int i=0; i < 3; ++i) {
+      ++it1;
+      REQUIRE(it1 != v.begin());
+      REQUIRE(it1 != v.end());
+    }
+
     ++it1;
+    REQUIRE(it1 != v.begin());
+    REQUIRE(it1 == v.end());
+
+    //auto it = v.begin();
+    //for(;it != v.end(); ++it) {
+      //std::cout << it->key() << std::endl;
+    //}
+
+
+    for(auto& value : v) {
+      std::cout << value.key() << std::endl;
+    }
+
+    //auto it1 = v.begin();
+    //++it1;
   }
 }

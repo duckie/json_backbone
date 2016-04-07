@@ -851,6 +851,7 @@ class container
   }
 };
 
+// element_init is used to write elegant jsonlike notations
 template <class Container>
 class element_init {
   typename Container::object_type::key_type key_;
@@ -866,11 +867,23 @@ class element_init {
   }
 };
 
+//
+// Make an object out of an initializer list
+//
+// initialize_list is not default supported to avoid conflicts
+// with bounded types that would support them.
+//
 template <class Container, class Key = typename Container::key_type>
 Container make_object(std::initializer_list<std::pair<Key const, Container>>&& elements) {
   return typename Container::object_type{std::move(elements)};
 }
 
+//
+// Make an arrayout of an initializer list
+//
+// initialize_list is not default supported to avoid conflicts
+// with bounded types that would support them.
+//
 template <class Container>
 Container make_array(std::initializer_list<Container> elements) {
   return typename Container::array_type{elements};
@@ -885,13 +898,13 @@ struct applier_maker<Return, variant<Value...>> {
   template <class Visitor, class T, class... ExtraArguments>
   static Return applier_fp(variant<Value...>& values, Visitor& visitor,
                            ExtraArguments&&... extras) {
-    visitor(values.template raw<T>(), std::forward<ExtraArguments>(extras)...);
+    return visitor(values.template raw<T>(), std::forward<ExtraArguments>(extras)...);
   }
 
   template <class Visitor, class T, class... ExtraArguments>
   static Return const_applier_fp(variant<Value...> const& values, Visitor const& visitor,
                                  ExtraArguments&&... extras) {
-    visitor(values.template raw<T>(), std::forward<ExtraArguments>(extras)...);
+    return visitor(values.template raw<T>(), std::forward<ExtraArguments>(extras)...);
   }
 };
 // Extend to container
@@ -904,6 +917,9 @@ struct applier_maker<Return, container<Object, Array, Key, Value...>>
 };
 }  // namespace visiting_helpers
 
+// 
+// Apply visitor : version non const visited, non const visitor
+//
 template <class Return, class Visitor, class... Value, class... ExtraArguments>
 Return apply_visitor(variant<Value...>& values, Visitor& visitor, ExtraArguments&&... extras) {
   static std::array<Return (*)(variant<Value...>&, Visitor&, ExtraArguments...), sizeof...(Value)>
@@ -1080,19 +1096,22 @@ class view {
  public:
   using container_type = Container;
   using key_type = typename Container::object_type::key_type;
+  using object_type = typename Container::object_type;
+  using array_type = typename Container::array_type;
   using converter_type = Converter;
 
   view() noexcept : key_{nullptr}, container_{nullptr} {}
   view(Container const& container) noexcept : key_{nullptr}, container_{&container} {}
+  view(typename Container::object_type::key_type const* key, Container const& container) noexcept : key_{key}, container_{&container} {}
   view(view const&) noexcept = default;
   view(view&&) noexcept = default;
   view& operator=(view const&) noexcept = default;
   view& operator=(view&&) noexcept = default;
 
   // This is used to ease the use of range-base for loops
-  inline key_type const& key() const & { return *key_; }
+  key_type const& key() const & { return *key_; }
 
-  inline bool empty() const& noexcept { return nullptr == container_; }
+  bool empty() const& noexcept { return nullptr == container_; }
 
   view operator[](size_t value) const & {
     if (container_ && container_->template is<typename Container::array_type>()) {
@@ -1128,13 +1147,16 @@ class view {
     return this->template inner_get<T>(default_value);
   }
 
+  inline object_type const& get_object() const & { return this->template get<object_type>(); }
+  inline array_type const& get_array() const & { return this->template get<array_type>(); }
+
   view_iterator<view> begin() const & {
     if (container_) {
       switch (container_->type_index()) {
-        case (container_type::template type_index<typename container_type::object_type>()):
-          return {container_->template raw<typename container_type::object_type>().cbegin()};
-        case (container_type::template type_index<typename container_type::array_type>()):
-          return {container_->template raw<typename container_type::array_type>().cbegin()};
+        case (container_type::template type_index<object_type>()):
+          return {*this, container_->template raw<object_type>().cbegin()};
+        case (container_type::template type_index<array_type>()):
+          return {*this, container_->template raw<array_type>().cbegin()};
         default:
           break;
       }
@@ -1142,7 +1164,20 @@ class view {
     return {};
   }
 
-  view_iterator<view> end() const & { return {}; }
+  view_iterator<view> end() const & { 
+    if (container_) {
+      switch (container_->type_index()) {
+        case (container_type::template type_index<object_type>()):
+          return {*this, container_->template raw<object_type>().cend()};
+        case (container_type::template type_index<array_type>()):
+          return {*this, container_->template raw<array_type>().cend()};
+        default:
+          break;
+      }
+    }
+    return {};
+  }
+    
 
   inline view_iterator<view> cbegin() const & { return begin(); }
 
@@ -1166,66 +1201,141 @@ view<Container, Converter> make_view(Container const& container) {
   return view<Container, Converter>{container};
 }
 
+// Forward declaration of the iterator
 template <class Viewed> class view_iterator;
+
+//
+// view_iterator_base contains the  iterator data
+//
+// Member functions will be implemented in view_iterator
+//
+//            view_iterator_base
+//              ^          ^
+//              |          |
+//              |          +------------------+
+//              |                             |
+// view_iterator_increment_impl          other_impl...
+//              ^                             ^
+//              |                             |
+//              +-----------+-----------------+
+//                          |
+//                      view_iterator
+//
+// The idea is to be able to implement several visitors on the same object
+//
 template <class View> class view_iterator_base;
-template <class Viewed>
-class view_iterator_base<view_iterator<Viewed>> {
+template <class Container, class Converter>
+class view_iterator_base<view_iterator<view<Container,Converter>>> {
  public:
-  using container_type = typename Viewed::container_type;
+  using container_type = Container;
+  using view_type = view<Container>;
   using object_iterator = typename container_type::object_type::const_iterator;
   using array_iterator = typename container_type::array_type::const_iterator;
   using value_type = variant<std::nullptr_t, array_iterator, object_iterator>;
+  using converter_type = Converter;
 
  protected:
+  // This is the "parent" view holding the iterated collection
+  view_type const* parent_view_;
+  // This is the current iterator
   value_type value_;
+  // This is a view built from each element at incrementation
+  view_type current_view_;
 
-  view_iterator_base() noexcept : value_{nullptr} {};
-  template <class T>
-  view_iterator_base(T&& value)
-      : value_{std::forward<T>(value)} {};
+  view_iterator_base() noexcept : parent_view_{nullptr}, value_{nullptr} {};
+
+  view_iterator_base(view<container_type> const& parent, std::nullptr_t)
+      : parent_view_{&parent}, value_{nullptr} {};
+
+  view_iterator_base(view<container_type> const& parent, object_iterator&& value)
+      : parent_view_{&parent}, value_{std::move(value)} {
+    if (value != this->parent_view_->get_object().end())
+      this->current_view_ = view_type(&value->first, value->second);
+    else
+      this->current_view_ = view_type();
+  };
+  
+  view_iterator_base(view<container_type> const& parent, object_iterator const& value)
+      : parent_view_{&parent}, value_{value} {
+    if (value != this->parent_view_->get_object().end())
+      this->current_view_ = view_type(&value->first, value->second);
+    else
+      this->current_view_ = view_type();
+  };
+
+  view_iterator_base(view<container_type> const& parent, array_iterator&& value)
+      : parent_view_{&parent}, value_{std::move(value)} {
+    if (value != this->parent_view_->get_array().end())
+      this->current_view_ = view_type(*value);
+    else
+      this->current_view_ = view_type();
+  };
+  
+  view_iterator_base(view<container_type> const& parent, array_iterator const& value)
+      : parent_view_{&parent}, value_{value} {
+    if (value != this->parent_view_->get_array().end())
+      this->current_view_ = view_type(*value);
+    else
+      this->current_view_ = view_type();
+  };
 };
 
-template <class View>
-class view_iterator_increment_impl : virtual public view_iterator_base<View> {
-  // using container_type = typename view_iterator_base<Viewed>::container_type;
-  using object_iterator = typename view_iterator_base<View>::object_iterator;
-  using array_iterator = typename view_iterator_base<View>::array_iterator;
-  // using value_type = typename view_iterator_base<Viewed>::value_type;
-  // template <class... ExtraArguments> friend void apply_visitor(typename
-  // view_iterator_base<Viewed>::value_type const&, view_iterator_base<Viewed>&, ExtraArguments
-  // ...);
-  friend class visiting_helpers::applier_maker<void,
-                                               typename view_iterator_base<View>::value_type>;
-  void operator()(std::nullptr_t) {}
-  void operator()(array_iterator& iterator) { ++iterator; }
-  void operator()(object_iterator& iterator) { ++iterator; }
-};
-
-//template <class View>
-//class view_iterator_dereference_impl : virtual public view_iterator_base<View> {
-  //// using container_type = typename view_iterator_base<Viewed>::container_type;
-  //using object_iterator = typename view_iterator_base<View>::object_iterator;
-  //using array_iterator = typename view_iterator_base<View>::array_iterator;
-  //// using value_type = typename view_iterator_base<Viewed>::value_type;
-  //// template <class... ExtraArguments> friend void apply_visitor(typename
-  //// view_iterator_base<Viewed>::value_type const&, view_iterator_base<Viewed>&, ExtraArguments
-  //// ...);
-  //friend class visiting_helpers::applier_maker<void,
-                                               //typename view_iterator_base<View>::value_type>;
+// 
+// view_iterator_increment_impl is a visitor to increment
 //
-  //void operator()(std::nullptr_t) {}
-  //void operator()(array_iterator& iterator) { ++iterator; }
-  //void operator()(object_iterator& iterator) { ++iterator; }
-//};
+template <class Iterator>
+class view_iterator_increment_impl : virtual public view_iterator_base<Iterator> {
+  using object_iterator = typename view_iterator_base<Iterator>::object_iterator;
+  using array_iterator = typename view_iterator_base<Iterator>::array_iterator;
+  friend class visiting_helpers::applier_maker<void,
+                                               typename view_iterator_base<Iterator>::value_type>;
+  void operator()(std::nullptr_t) {}
+  void operator()(array_iterator& iterator) {
+    using view_type = view<typename Iterator::container_type, typename Iterator::converter_type>;
+    ++iterator; 
+    if (iterator != this->parent_view_->get_array().end())
+      this->current_view_ = view_type(*iterator);
+    else
+      this->current_view_ = view_type();
+  }
+  void operator()(object_iterator& iterator) { 
+    using view_type = view<typename Iterator::container_type, typename Iterator::converter_type>;
+    ++iterator;
+    if (iterator != this->parent_view_->get_object().end())
+      this->current_view_ = view_type(&iterator->first, iterator->second);
+    else
+      this->current_view_ = view_type();
+  }
+};
+
+template <class Iterator>
+class view_iterator_compare_impl : virtual public view_iterator_base<Iterator> {
+  using object_iterator = typename view_iterator_base<Iterator>::object_iterator;
+  using array_iterator = typename view_iterator_base<Iterator>::array_iterator;
+  friend class visiting_helpers::applier_maker<bool,
+                                               typename view_iterator_base<Iterator>::value_type>;
+
+  bool operator()(std::nullptr_t, Iterator const& other) {
+    return 
+      other.value_.template is<std::nullptr_t>();
+  }
+
+  bool operator()(array_iterator& iterator, Iterator const& other) {
+    return other.value_.template is<array_iterator>() && iterator == other.value_.template raw<array_iterator>();
+  }
+
+  bool operator()(object_iterator& iterator, Iterator const& other) { 
+    return other.value_.template is<object_iterator>() && iterator == other.value_.template raw<object_iterator>();
+  }
+};
 
 template <class Viewed>
-class view_iterator : public view_iterator_increment_impl<view_iterator<Viewed>> {
+class view_iterator : public view_iterator_increment_impl<view_iterator<Viewed>>, public view_iterator_compare_impl<view_iterator<Viewed>> {
  public:
   view_iterator() noexcept = default;
-  ;
   template <class T>
-  view_iterator(T&& value)
-      : view_iterator_base<view_iterator>{std::forward<T>(value)} {};
+  view_iterator(typename view_iterator_base<view_iterator>::view_type const& parent, T&& value)
+      : view_iterator_base<view_iterator>{parent, std::forward<T>(value)} {};
   // TODO: support no except here
   view_iterator(view_iterator const&) = default;
   view_iterator(view_iterator&&) = default;
@@ -1243,6 +1353,16 @@ class view_iterator : public view_iterator_increment_impl<view_iterator<Viewed>>
     return current;
   }
 
+  Viewed const& operator*() const { return this->current_view_; }
+  Viewed const* operator->() const { return &this->current_view_; }
+
+  bool operator==(view_iterator const& other) {
+    return apply_visitor<bool>(this->value_, static_cast<view_iterator_compare_impl<view_iterator>&>(*this), other);
+  }
+
+  bool operator!=(view_iterator const& other) {
+    return !(*this == other);
+  }
 };
 
 }  // namespace json_backbone
