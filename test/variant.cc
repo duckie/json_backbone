@@ -221,9 +221,11 @@ TEST_CASE("Variant - Visit", "[variant][visitor]") {
 
   static func_aggregate_visitor<bool, variant<int,std::string>> aggregate{[](auto) { return false; },[](auto&) { return true; }};
   static const_func_aggregate_visitor<bool, variant<int,std::string>> caggregate{[](auto) { return false; },[](auto const&) { return true; }};
+  static funcptr_aggregate_visitor<bool, variant<int,std::string>> paggregate{[](auto) { return false; },[](auto&) { return true; }};
+  static const_funcptr_aggregate_visitor<bool, variant<int,std::string>> pcaggregate{[](auto) { return false; },[](auto&) { return true; }};
 
   REQUIRE(!apply_visitor<bool>(t1, aggregate));
   REQUIRE(apply_visitor<bool>(t2, aggregate));
-  REQUIRE(!apply_visitor<bool>(t1, caggregate));
-  REQUIRE(apply_visitor<bool>(t2, caggregate));
+  REQUIRE(!apply_visitor<bool>(t1, paggregate));
+  REQUIRE(apply_visitor<bool>(t2, pcaggregate));
 }

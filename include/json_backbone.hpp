@@ -980,7 +980,6 @@ struct func_aggregate_visitor_impl<Return, Variant, std::tuple<FuncSignatures...
   using variant_type = Variant;
   std::tuple<FuncSignatures...> appliers;
 
-  //
   func_aggregate_visitor_impl(FuncSignatures... applier) : appliers{applier...} {}
 
   template <class T>
@@ -990,6 +989,7 @@ struct func_aggregate_visitor_impl<Return, Variant, std::tuple<FuncSignatures...
   }
 };
 
+// Func aggregate visitor is an aggregate visitor implemented with std::function
 template <class...>
 struct func_aggregate_visitor;
 template <class Return, class... Value, class... ExtraArguments>
@@ -1001,7 +1001,19 @@ struct func_aggregate_visitor<Return, variant<Value...>, ExtraArguments...>
                                     std::tuple<std::function<Return(Value&, ExtraArguments...)>...>,
                                     ExtraArguments...>::func_aggregate_visitor_impl;
 };
+// Specialization for containers
+template <class Return, template <class...> class Object, template <class...> class Array,
+          class Key, class... Value, class... ExtraArguments>
+struct func_aggregate_visitor<Return, container<Object, Array, Key, Value...>, ExtraArguments...>
+    : public func_aggregate_visitor<Return,
+                                    typename container<Object, Array, Key, Value...>::variant_type,
+                                    ExtraArguments...> {
+  using func_aggregate_visitor<Return,
+                               typename container<Object, Array, Key, Value...>::variant_type,
+                               ExtraArguments...>::func_aggregate_visitor;
+};
 
+// Const func aggregate visitor is an aggregate visitor implemented with std::function
 template <class...>
 struct const_func_aggregate_visitor;
 template <class Return, class... Value, class... ExtraArguments>
@@ -1015,18 +1027,7 @@ struct const_func_aggregate_visitor<Return, variant<Value...>, ExtraArguments...
       std::tuple<std::function<Return(Value const&, ExtraArguments...)>...>,
       ExtraArguments...>::func_aggregate_visitor_impl;
 };
-
-template <class Return, template <class...> class Object, template <class...> class Array,
-          class Key, class... Value, class... ExtraArguments>
-struct func_aggregate_visitor<Return, container<Object, Array, Key, Value...>, ExtraArguments...>
-    : public func_aggregate_visitor<Return,
-                                    typename container<Object, Array, Key, Value...>::variant_type,
-                                    ExtraArguments...> {
-  using func_aggregate_visitor<Return,
-                               typename container<Object, Array, Key, Value...>::variant_type,
-                               ExtraArguments...>::func_aggregate_visitor;
-};
-
+// Specialization for containers
 template <class Return, template <class...> class Object, template <class...> class Array,
           class Key, class... Value, class... ExtraArguments>
 struct const_func_aggregate_visitor<Return, container<Object, Array, Key, Value...>,
@@ -1037,6 +1038,57 @@ struct const_func_aggregate_visitor<Return, container<Object, Array, Key, Value.
   using const_func_aggregate_visitor<Return,
                                      typename container<Object, Array, Key, Value...>::variant_type,
                                      ExtraArguments...>::const_func_aggregate_visitor;
+};
+
+// Func aggregate visitor is an aggregate visitor implemented with function pointers
+template <class...>
+struct funcptr_aggregate_visitor;
+template <class Return, class... Value, class... ExtraArguments>
+struct funcptr_aggregate_visitor<Return, variant<Value...>, ExtraArguments...>
+    : func_aggregate_visitor_impl<Return, variant<Value...>,
+                                  std::tuple<identity_t<Return (*)(Value&, ExtraArguments...)>...>,
+                                  ExtraArguments...> {
+  using func_aggregate_visitor_impl<
+      Return, variant<Value...>, std::tuple<identity_t<Return (*)(Value&, ExtraArguments...)>...>,
+      ExtraArguments...>::func_aggregate_visitor_impl;
+};
+// Specialization for containers
+template <class Return, template <class...> class Object, template <class...> class Array,
+          class Key, class... Value, class... ExtraArguments>
+struct funcptr_aggregate_visitor<Return, container<Object, Array, Key, Value...>, ExtraArguments...>
+    : public funcptr_aggregate_visitor<
+          Return, typename container<Object, Array, Key, Value...>::variant_type,
+          ExtraArguments...> {
+  using funcptr_aggregate_visitor<Return,
+                                  typename container<Object, Array, Key, Value...>::variant_type,
+                                  ExtraArguments...>::funcptr_aggregate_visitor;
+};
+
+// Const func aggregate visitor is an aggregate visitor implemented with function pointers
+template <class...>
+struct const_funcptr_aggregate_visitor;
+template <class Return, class... Value, class... ExtraArguments>
+struct const_funcptr_aggregate_visitor<Return, variant<Value...>, ExtraArguments...>
+    : func_aggregate_visitor_impl<
+          Return, variant<Value...>,
+          std::tuple<identity_t<Return (*)(Value const&, ExtraArguments...)>...>,
+          ExtraArguments...> {
+  using func_aggregate_visitor_impl<
+      Return, variant<Value...>,
+      std::tuple<identity_t<Return (*)(Value const&, ExtraArguments...)>...>,
+      ExtraArguments...>::func_aggregate_visitor_impl;
+};
+// Specialization for containers
+template <class Return, template <class...> class Object, template <class...> class Array,
+          class Key, class... Value, class... ExtraArguments>
+struct const_funcptr_aggregate_visitor<Return, container<Object, Array, Key, Value...>,
+                                       ExtraArguments...>
+    : public const_funcptr_aggregate_visitor<
+          Return, typename container<Object, Array, Key, Value...>::variant_type,
+          ExtraArguments...> {
+  using const_funcptr_aggregate_visitor<
+      Return, typename container<Object, Array, Key, Value...>::variant_type,
+      ExtraArguments...>::const_funcptr_aggregate_visitor;
 };
 
 // Creation helper for func_aggregate_visitor
@@ -1220,32 +1272,11 @@ view<Container, Converter> make_view(Container const& container) {
 }
 
 // Forward declaration of the iterator
-template <class Viewed>
+template <class View>
 class view_iterator;
 
-//
-// view_iterator_base contains the  iterator data
-//
-// Member functions will be implemented in view_iterator
-//
-//            view_iterator_base
-//              ^          ^
-//              |          |
-//              |          +------------------+
-//              |                             |
-// view_iterator_increment_impl          other_impl...
-//              ^                             ^
-//              |                             |
-//              +-----------+-----------------+
-//                          |
-//                      view_iterator
-//
-// The idea is to be able to implement several visitors on the same object
-//
-template <class View>
-class view_iterator_base;
 template <class Container, class Converter>
-class view_iterator_base<view_iterator<view<Container, Converter>>> {
+class view_iterator<view<Container, Converter>> {
  public:
   using container_type = Container;
   using view_type = view<Container>;
@@ -1253,8 +1284,9 @@ class view_iterator_base<view_iterator<view<Container, Converter>>> {
   using array_iterator = typename container_type::array_type::const_iterator;
   using value_type = variant<std::nullptr_t, array_iterator, object_iterator>;
   using converter_type = Converter;
+  friend class visiting_helpers::applier_maker<bool, value_type>;
 
- protected:
+ private:
   // This is the "parent" view holding the iterated collection
   view_type const* parent_view_;
   // This is the current iterator
@@ -1262,12 +1294,13 @@ class view_iterator_base<view_iterator<view<Container, Converter>>> {
   // This is a view built from each element at incrementation
   view_type current_view_;
 
-  view_iterator_base() noexcept : parent_view_{nullptr}, value_{nullptr} {};
+ public:
+  view_iterator() noexcept : parent_view_{nullptr}, value_{nullptr} {};
 
-  view_iterator_base(view<container_type> const& parent, std::nullptr_t)
+  view_iterator(view<container_type> const& parent, std::nullptr_t)
       : parent_view_{&parent}, value_{nullptr} {};
 
-  view_iterator_base(view<container_type> const& parent, object_iterator&& value)
+  view_iterator(view<container_type> const& parent, object_iterator&& value)
       : parent_view_{&parent}, value_{std::move(value)} {
     if (value != this->parent_view_->get_object().end())
       this->current_view_ = view_type(&value->first, value->second);
@@ -1275,7 +1308,7 @@ class view_iterator_base<view_iterator<view<Container, Converter>>> {
       this->current_view_ = view_type();
   };
 
-  view_iterator_base(view<container_type> const& parent, object_iterator const& value)
+  view_iterator(view<container_type> const& parent, object_iterator const& value)
       : parent_view_{&parent}, value_{value} {
     if (value != this->parent_view_->get_object().end())
       this->current_view_ = view_type(&value->first, value->second);
@@ -1283,7 +1316,7 @@ class view_iterator_base<view_iterator<view<Container, Converter>>> {
       this->current_view_ = view_type();
   };
 
-  view_iterator_base(view<container_type> const& parent, array_iterator&& value)
+  view_iterator(view<container_type> const& parent, array_iterator&& value)
       : parent_view_{&parent}, value_{std::move(value)} {
     if (value != this->parent_view_->get_array().end())
       this->current_view_ = view_type(*value);
@@ -1291,73 +1324,14 @@ class view_iterator_base<view_iterator<view<Container, Converter>>> {
       this->current_view_ = view_type();
   };
 
-  view_iterator_base(view<container_type> const& parent, array_iterator const& value)
+  view_iterator(view<container_type> const& parent, array_iterator const& value)
       : parent_view_{&parent}, value_{value} {
     if (value != this->parent_view_->get_array().end())
       this->current_view_ = view_type(*value);
     else
       this->current_view_ = view_type();
   };
-};
 
-//
-// view_iterator_increment_impl is a visitor to increment
-//
-template <class Iterator>
-class view_iterator_increment_impl : virtual public view_iterator_base<Iterator> {
-  using object_iterator = typename view_iterator_base<Iterator>::object_iterator;
-  using array_iterator = typename view_iterator_base<Iterator>::array_iterator;
-  friend class visiting_helpers::applier_maker<void,
-                                               typename view_iterator_base<Iterator>::value_type>;
-  void operator()(std::nullptr_t) {}
-  void operator()(array_iterator& iterator) {
-    using view_type = view<typename Iterator::container_type, typename Iterator::converter_type>;
-    ++iterator;
-    if (iterator != this->parent_view_->get_array().end())
-      this->current_view_ = view_type(*iterator);
-    else
-      this->current_view_ = view_type();
-  }
-  void operator()(object_iterator& iterator) {
-    using view_type = view<typename Iterator::container_type, typename Iterator::converter_type>;
-    ++iterator;
-    if (iterator != this->parent_view_->get_object().end())
-      this->current_view_ = view_type(&iterator->first, iterator->second);
-    else
-      this->current_view_ = view_type();
-  }
-};
-
-template <class Iterator>
-class view_iterator_compare_impl : virtual public view_iterator_base<Iterator> {
-  using object_iterator = typename view_iterator_base<Iterator>::object_iterator;
-  using array_iterator = typename view_iterator_base<Iterator>::array_iterator;
-  friend class visiting_helpers::applier_maker<bool,
-                                               typename view_iterator_base<Iterator>::value_type>;
-
-  bool operator()(std::nullptr_t, Iterator const& other) {
-    return other.value_.template is<std::nullptr_t>();
-  }
-
-  bool operator()(array_iterator& iterator, Iterator const& other) {
-    return other.value_.template is<array_iterator>() &&
-           iterator == other.value_.template raw<array_iterator>();
-  }
-
-  bool operator()(object_iterator& iterator, Iterator const& other) {
-    return other.value_.template is<object_iterator>() &&
-           iterator == other.value_.template raw<object_iterator>();
-  }
-};
-
-template <class Viewed>
-class view_iterator : public view_iterator_increment_impl<view_iterator<Viewed>>,
-                      public view_iterator_compare_impl<view_iterator<Viewed>> {
- public:
-  view_iterator() noexcept = default;
-  template <class T>
-  view_iterator(typename view_iterator_base<view_iterator>::view_type const& parent, T&& value)
-      : view_iterator_base<view_iterator>{parent, std::forward<T>(value)} {};
   // TODO: support no except here
   view_iterator(view_iterator const&) = default;
   view_iterator(view_iterator&&) = default;
@@ -1365,24 +1339,52 @@ class view_iterator : public view_iterator_increment_impl<view_iterator<Viewed>>
   view_iterator& operator=(view_iterator&&) = default;
 
   view_iterator& operator++() {
-    apply_visitor<void>(this->value_,
-                        static_cast<view_iterator_increment_impl<view_iterator>&>(*this));
+    static funcptr_aggregate_visitor<void, value_type, view_iterator&> const increment_visitor{
+        +[](std::nullptr_t&, view_iterator&) {},
+        +[](array_iterator& iterator, view_iterator& self) {
+          using view_type = view<container_type, converter_type>;
+          ++iterator;
+          if (iterator != self.parent_view_->get_array().end())
+            self.current_view_ = view_type(*iterator);
+          else
+            self.current_view_ = view_type();
+        },
+        +[](object_iterator& iterator, view_iterator& self) {
+          using view_type = view<container_type, converter_type>;
+          ++iterator;
+          if (iterator != self.parent_view_->get_object().end())
+            self.current_view_ = view_type(&iterator->first, iterator->second);
+          else
+            self.current_view_ = view_type();
+        }};
+    apply_visitor<void>(this->value_, increment_visitor, *this);
     return *this;
   }
 
   view_iterator operator++(int) {
     view_iterator current{*this};
-    apply_visitor<void>(this->value_,
-                        static_cast<view_iterator_increment_impl<view_iterator>&>(*this));
+    ++(*this);
     return current;
   }
 
-  Viewed const& operator*() const { return this->current_view_; }
-  Viewed const* operator->() const { return &this->current_view_; }
+  view_type const& operator*() const { return this->current_view_; }
+  view_type const* operator->() const { return &this->current_view_; }
 
-  bool operator==(view_iterator const& other) {
-    return apply_visitor<bool>(
-        this->value_, static_cast<view_iterator_compare_impl<view_iterator>&>(*this), other);
+  bool operator==(view_iterator const& compared) {
+    static const_funcptr_aggregate_visitor<bool, value_type, view_iterator const&> const
+        compare_visitor{+[](std::nullptr_t const&, view_iterator const& other) {
+                          return other.value_.template is<std::nullptr_t>();
+                        },
+                        +[](array_iterator const& iterator, view_iterator const& other) {
+                          return other.value_.template is<array_iterator>() &&
+                                 iterator == other.value_.template raw<array_iterator>();
+                        },
+                        +[](object_iterator const& iterator, view_iterator const& other) {
+                          return other.value_.template is<object_iterator>() &&
+                                 iterator == other.value_.template raw<object_iterator>();
+                        }};
+
+    return apply_visitor<bool>(this->value_, compare_visitor, compared);
   }
 
   bool operator!=(view_iterator const& other) { return !(*this == other); }
