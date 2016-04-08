@@ -159,11 +159,23 @@ TEST_CASE("Container - creation", "[container][access][runtime]") {
         R"json({"children":[{"age":6,"name":"Martha"},{"age":8,"name":"Jesabelle"}],"grades":[1,1,"Ole"],"name":"Roger","size":1.92,"subscribed":1})json");
   }
 
-  SECTION("Apply aggregate visitor") {
+  SECTION("Apply aggregate visitor 2") {
+    const_func_aggregate_visitor<int, json_container> aggregate {
+      [](std::nullptr_t const& val) { return 0; },
+      [](bool val) { return 1; },
+      [](int val) { return 2; },
+      [](double val) { return 3; },
+      [](auto const& str) { return 4; },
+      [](auto const& arr) { return 5; },
+      [](auto const& obj) { return 6; }
+    };
+  }
+
+  SECTION("Apply aggregate visitor 2") {
     std::ostringstream result_stream;
     // Instantiate only once
     static recursive_printer const printer{
-        [](std::nullptr_t val, auto&, auto& out) { out << "null"; },
+        [](std::nullptr_t const& val, auto&, auto& out) { out << "null"; },
         [](bool val, auto&, auto& out) { out << (val ? "true" : "false"); },
         [](int val, auto&, auto& out) { out << val; },
         [](double val, auto&, auto& out) { out << val; },

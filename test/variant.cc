@@ -212,3 +212,18 @@ TEST_CASE("Variant - Automatic recursion", "[variant][construct][runtime][recurs
   REQUIRE(get<int>(exp1) == 1);
   REQUIRE(get<int>(exp2) == 2);
 }
+
+
+
+TEST_CASE("Variant - Visit", "[variant][visitor]") {
+  variant<int,std::string> t1 {1};
+  variant<int,std::string> t2 {"Roger"};
+
+  static func_aggregate_visitor<bool, variant<int,std::string>> aggregate{[](auto) { return false; },[](auto&) { return true; }};
+  static const_func_aggregate_visitor<bool, variant<int,std::string>> caggregate{[](auto) { return false; },[](auto const&) { return true; }};
+
+  REQUIRE(!apply_visitor<bool>(t1, aggregate));
+  REQUIRE(apply_visitor<bool>(t2, aggregate));
+  REQUIRE(!apply_visitor<bool>(t1, caggregate));
+  REQUIRE(apply_visitor<bool>(t2, caggregate));
+}

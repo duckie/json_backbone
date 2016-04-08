@@ -52,38 +52,41 @@ void demo1() {
 
   // Dump to json
   std::ostringstream result_stream;
+  //auto test_l1 = [] (auto x, auto y) { x - y; };
+  //auto test_f1 = static_cast<void(*)(int,int)>(test_l1);
+  //auto test_f2 = static_cast<void(*)(size_t,size_t)>(test_l1);
   // Instantiate statically to avoid multiple creationc cost
-  static recursive_printer const printer{
-      [](std::nullptr_t val, auto&, auto& out) { out << "null"; },
-      [](bool val, auto&, auto& out) { out << (val ? "true" : "false"); },
-      [](int val, auto&, auto& out) { out << val; },
-      [](double val, auto&, auto& out) { out << val; },
-      [](auto const& str, auto&, auto& out) { out << '"' << str << '"'; },
-      [](auto const& arr, auto& self, auto& out) {
-        out << "[";
-        bool sep = false;
-        for (auto& v : arr) {
-          out << (sep ? "," : "");
-          apply_visitor<void>(v, self, self, out);
-          sep = true;
-        }
-        out << "]";
-      },
-      [](auto const& obj, auto& self, auto& out) {
-        out << "{";
-        bool sep = false;
-        for (auto& v : obj) {
-          out << (sep ? "," : "") << "\"" << v.first << "\":";
-          apply_visitor<void>(v.second, self, self, out);
-          sep = true;
-        }
-        out << "}";
-      }};
-
-  // Apply the visitor. "printer" appears two times, once as the actual
-  // visitor and once as an extra argument passed to it along with the stream
-  apply_visitor<void>(c, printer, printer, result_stream);
-  std::cout << result_stream.str() << std::endl;
+  //static recursive_printer const printer{
+      //[](std::nullptr_t val, auto&, auto& out) { out << "null"; },
+      //[](bool val, auto&, auto& out) { out << (val ? "true" : "false"); },
+      //[](int val, auto&, auto& out) { out << val; },
+      //[](double val, auto&, auto& out) { out << val; },
+      //[](auto const& str, auto&, auto& out) { out << '"' << str << '"'; },
+      //[](auto const& arr, auto& self, auto& out) {
+        //out << "[";
+        //bool sep = false;
+        //for (auto& v : arr) {
+          //out << (sep ? "," : "");
+          //apply_visitor<void>(v, self, self, out);
+          //sep = true;
+        //}
+        //out << "]";
+      //},
+      //[](auto const& obj, auto& self, auto& out) {
+        //out << "{";
+        //bool sep = false;
+        //for (auto& v : obj) {
+          //out << (sep ? "," : "") << "\"" << v.first << "\":";
+          //apply_visitor<void>(v.second, self, self, out);
+          //sep = true;
+        //}
+        //out << "}";
+      //}};
+//
+  //// Apply the visitor. "printer" appears two times, once as the actual
+  //// visitor and once as an extra argument passed to it along with the stream
+  //apply_visitor<void>(c, printer, printer, result_stream);
+  //std::cout << result_stream.str() << std::endl;
 }
 
 struct BigType {
