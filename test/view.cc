@@ -7,7 +7,6 @@
 #include <vector>
 #include <map>
 #include <type_traits>
-//#include <json_backbone/externalize.hpp>
 
 // using json_container = json_bac
 using namespace json_backbone;
@@ -27,6 +26,11 @@ namespace {
 element_init<json_container> operator""_a(char const* name, size_t length) {
   return json_container::key_type{name, length};
 }
+}
+
+TEST_CASE("View - converter", "[view][converter]") {
+  REQUIRE(base_converter::convert<int>(1.0) == 1);
+  REQUIRE(base_converter::convert<std::string>(1.0) == "");
 }
 
 TEST_CASE("View - access", "[view][access][runtime]") {
@@ -62,16 +66,16 @@ TEST_CASE("View - access", "[view][access][runtime]") {
     REQUIRE(std::string(v5) == "Jesabelle");
   }
 
+  SECTION("conversion"){};
+
   SECTION("iterator over object") {
-
-
     auto it_end = v.end();
     REQUIRE(it_end == v.end());
 
     auto it1 = v.begin();
     REQUIRE(it1 == v.begin());
 
-    for (int i=0; i < 3; ++i) {
+    for (int i = 0; i < 3; ++i) {
       ++it1;
       REQUIRE(it1 != v.begin());
       REQUIRE(it1 != v.end());
@@ -81,17 +85,8 @@ TEST_CASE("View - access", "[view][access][runtime]") {
     REQUIRE(it1 != v.begin());
     REQUIRE(it1 == v.end());
 
-    //auto it = v.begin();
-    //for(;it != v.end(); ++it) {
-      //std::cout << it->key() << std::endl;
-    //}
-
-
-    for(auto& value : v) {
-      std::cout << value.key() << std::endl;
+    for (auto& value : v) {
+      // std::cout << value.key() << std::endl;
     }
-
-    //auto it1 = v.begin();
-    //++it1;
   }
 }

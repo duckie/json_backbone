@@ -233,13 +233,14 @@ struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>...
 
   //
   // Returns a type chosen for construction following those rules
-  // - If there is a single argument either bool or nullptr_t, select the last
-  //   type of the list constructible with it.
-  // - If there is a single argument which is integral, select the first
-  //   integral type of the list constructible with it
-  // - If it fails, get the first type constructible in the list
   //
   // All types must be complete at time of initialization.
+	// If there is a single argument and it is equal to one of the bounded types, this type is selected
+	// If there is a single argument and it is a reference (either l-value or r-value) to an integral type, the first integral type of the list wide enough and with the same signature is used to store the value.
+	// If there is a single argument and it is a reference (either l-value or r-value) to an integral type, the first integral type of the list wide enough and with any signature is used to store the value.
+	// If there is a single argument and it is a reference (either l-value or r-value) to an arithmetic type, the first arityhmetic but not integral type of the list wide enough is used to store the value.
+	// If there is a single argument and it is a pointer or an array , the first non-integral type supporting construction over this pointer is used to store the value.
+	// If none of those rules applies, the first type encountered supporting the signature is used to store the value.
   //
   // Constructibility covers convertibility, so is used for the sake
   // of implicit conversion too
@@ -395,7 +396,7 @@ class variant {
   void* data_[memory_size / sizeof(void*)] = {};
 
  public:
-  // Original list of types kepit to know wether a type is rerusive or not
+  // Original list of types kept to know wether a type is recursive or not
   using type_list_t =
       type_list_traits::type_list<std::make_index_sequence<sizeof...(Value)>, Value...>;
   // List of implemented types used to find constructors
@@ -434,7 +435,7 @@ class variant {
   void clear() {
     static std::array<void (*)(void**), sizeof...(Value)> deleters = {
         helpers::deleter_fp<Value, bounded_identity_t<Value>, memory_size>...};
-    if (type_ < sizeof...(Value))  // Should only be the case in some ctors
+    if (type_ < sizeof...(Value))  // Should always be the case 
       deleters[type_](&data_[0]);
   }
 
@@ -515,8 +516,6 @@ class variant {
     using target_type =
         typename target_type_list_t::template select_constructible<memory_size, Arg, Args...>::type;
     assert_has_type<target_type>();
-    // allocate<target_type>  (
-    // std::forward<Arg>(arg), std::forward<Args>(args)...);
     create(std::forward<Arg>(arg), std::forward<Args>(args)...);
   }
 
@@ -758,7 +757,7 @@ inline decltype(auto) raw(variant<Value...>&& value) noexcept {
 }
 
 //
-// container is an variant extended with an associative container and a random access container
+// container is a variant extended with an associative container and a random access container
 //
 template <template <class...> class ObjectBase, template <class...> class ArrayBase, class Key,
           class... Value>
@@ -970,7 +969,6 @@ Return apply_visitor(variant<Value...> const& values, Visitor const& visitor,
 // Visitor generated with functions
 //
 // This allows to write complex visitation without defining an object
-// There is a performance penaly though because of std::function
 //
 template <class Return, class Variant, class FuncTuple, class... ExtraArguments>
 struct func_aggregate_visitor_impl;
@@ -989,7 +987,11 @@ struct func_aggregate_visitor_impl<Return, Variant, std::tuple<FuncSignatures...
   }
 };
 
+//
 // Func aggregate visitor is an aggregate visitor implemented with std::function
+//
+// There is a performance penaly though because of std::function
+//
 template <class...>
 struct func_aggregate_visitor;
 template <class Return, class... Value, class... ExtraArguments>
@@ -1013,7 +1015,9 @@ struct func_aggregate_visitor<Return, container<Object, Array, Key, Value...>, E
                                ExtraArguments...>::func_aggregate_visitor;
 };
 
+// 
 // Const func aggregate visitor is an aggregate visitor implemented with std::function
+//
 template <class...>
 struct const_func_aggregate_visitor;
 template <class Return, class... Value, class... ExtraArguments>
@@ -1040,7 +1044,12 @@ struct const_func_aggregate_visitor<Return, container<Object, Array, Key, Value.
                                      ExtraArguments...>::const_func_aggregate_visitor;
 };
 
+//
 // Func aggregate visitor is an aggregate visitor implemented with function pointers
+//
+// No penalty of std::function here, but casts from generic lambdas returning void
+// wont work
+//
 template <class...>
 struct funcptr_aggregate_visitor;
 template <class Return, class... Value, class... ExtraArguments>
@@ -1111,11 +1120,14 @@ struct const_funcptr_aggregate_visitor<Return, container<Object, Array, Key, Val
 // The default converter only sypports arithmetic conversions.
 //
 struct base_converter {
-  template <class Target, class Source>
-  Target operator()(Source&& value) const & {
-    static_assert(std::is_arithmetic<Target>::value && std::is_arithmetic<Source>::value,
-                  "The base converter only supports arithmetic conversions.");
+  template <class Target, class Source, class Enable = std::enable_if_t<std::is_arithmetic<Source>::value && std::is_arithmetic<Target>::value,void>>
+  static Target convert(Source&& value) {
     return static_cast<Target>(std::forward<Source>(value));
+  }
+
+  template <class Target, class Source, class Enable = std::enable_if_t<!std::is_arithmetic<Source>::value || !std::is_arithmetic<Target>::value,void>, class Shim1=void>
+  static Target convert(Source&& value) {
+    return {};
   }
 };
 
