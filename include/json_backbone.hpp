@@ -890,7 +890,7 @@ class element_init {
 //
 template <class Container, class Key = typename Container::key_type>
 Container make_object(std::initializer_list<std::pair<Key const, Container>>&& elements) {
-  return typename Container::object_type{std::move(elements)};
+  return Container {typename Container::object_type{std::move(elements)}};
 }
 
 //
@@ -901,7 +901,7 @@ Container make_object(std::initializer_list<std::pair<Key const, Container>>&& e
 //
 template <class Container>
 Container make_array(std::initializer_list<Container> elements) {
-  return typename Container::array_type{elements};
+  return Container {typename Container::array_type{elements}};
 }
 
 namespace visiting_helpers {
@@ -932,46 +932,24 @@ struct applier_maker<Return, container<Object, Array, Key, Value...>>
 };
 }  // namespace visiting_helpers
 
-//
-// Apply visitor : version non const visited, non const visitor
-//
 template <class Return, class Visitor, class... Value, class... ExtraArguments>
-Return apply_visitor(variant<Value...>& values, Visitor& visitor, ExtraArguments&&... extras) {
-  static std::array<Return (*)(variant<Value...>&, Visitor&, ExtraArguments...), sizeof...(Value)>
+Return apply_visitor(variant<Value...>& values, Visitor&& visitor, ExtraArguments&&... extras) {
+  static std::array<Return (*)(variant<Value...>&, Visitor, ExtraArguments...), sizeof...(Value)>
       appliers = {visiting_helpers::applier_maker<Return, variant<Value...>>::template applier_fp<
           Visitor&, Value, ExtraArguments...>...};
-  return appliers[values.type_index()](values, visitor, std::forward<ExtraArguments>(extras)...);
+  return appliers[values.type_index()](values, std::forward<Visitor>(visitor),
+                                       std::forward<ExtraArguments>(extras)...);
 };
 
 template <class Return, class Visitor, class... Value, class... ExtraArguments>
-Return apply_visitor(variant<Value...>& values, Visitor const& visitor,
+Return apply_visitor(variant<Value...> const& values, Visitor&& visitor,
                      ExtraArguments&&... extras) {
-  static std::array<Return (*)(variant<Value...>&, Visitor const&, ExtraArguments...),
-                    sizeof...(Value)> appliers = {
-      visiting_helpers::applier_maker<Return, variant<Value...>>::template applier_fp<
-          Visitor const&, Value, ExtraArguments...>...};
-  return appliers[values.type_index()](values, visitor, std::forward<ExtraArguments>(extras)...);
-};
-
-template <class Return, class Visitor, class... Value, class... ExtraArguments>
-Return apply_visitor(variant<Value...> const& values, Visitor& visitor,
-                     ExtraArguments&&... extras) {
-  static std::array<Return (*)(variant<Value...> const&, Visitor&, ExtraArguments...),
+  static std::array<Return (*)(variant<Value...> const&, Visitor, ExtraArguments...),
                     sizeof...(Value)> appliers = {
       visiting_helpers::applier_maker<Return, variant<Value...>>::template const_applier_fp<
           Visitor&, Value, ExtraArguments...>...};
-  return appliers[values.type_index()](values, visitor, std::forward<ExtraArguments>(extras)...);
-};
-
-template <class Return, class Visitor, class... Value, class... ExtraArguments>
-
-Return apply_visitor(variant<Value...> const& values, Visitor const& visitor,
-                     ExtraArguments&&... extras) {
-  static std::array<Return (*)(variant<Value...> const&, Visitor const&, ExtraArguments...),
-                    sizeof...(Value)> appliers = {
-      visiting_helpers::applier_maker<Return, variant<Value...>>::template const_applier_fp<
-          Visitor const&, Value, ExtraArguments...>...};
-  return appliers[values.type_index()](values, visitor, std::forward<ExtraArguments>(extras)...);
+  return appliers[values.type_index()](values, std::forward<Visitor>(visitor),
+                                       std::forward<ExtraArguments>(extras)...);
 };
 
 //
@@ -1134,10 +1112,13 @@ template <class Return, class Converter, class Variant>
 struct converter_maker;
 template <class Return, class Converter, class... Value>
 struct converter_maker<Return, Converter, variant<Value...>> {
+  template <class Source>
+  static Return converter_fp(Source const& value) {
+    return Converter::template convert<Return>(value);
+  }
+
   static const_funcptr_aggregate_visitor<Return, variant<Value...>> make_converter() {
-    return {+[](Value const& value) -> Return {
-      return Converter::template convert<Return>(value);
-    }...};
+    return {converter_fp<Value>...};
   };
 };
 
@@ -1293,7 +1274,7 @@ class view {
   template <class T,
             class Enabler = std::enable_if_t<
                 container_type::target_type_list_t::template has_type<std::decay_t<T>>(), void>>
-  operator T const&() const & {
+  operator T() const & {
     return container_->template get<std::decay_t<T>>();
   }
 };
