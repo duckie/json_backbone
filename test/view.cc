@@ -66,7 +66,13 @@ TEST_CASE("View - access", "[view][access][runtime]") {
     REQUIRE(std::string(v5) == "Jesabelle");
   }
 
-  SECTION("conversion"){};
+  SECTION("conversion"){
+    REQUIRE(static_cast<int>(1.92) == 1);
+    REQUIRE(v["size"].get<double>() == 1.92);
+    REQUIRE(v["size"].as<double>() == 1.92);
+    REQUIRE(v["size"].as<int>() == 1);
+    REQUIRE(v["size"].as<std::string>() == "");
+  };
 
   SECTION("iterator over object") {
     auto it_end = v.end();

@@ -235,12 +235,21 @@ struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>...
   // Returns a type chosen for construction following those rules
   //
   // All types must be complete at time of initialization.
-	// If there is a single argument and it is equal to one of the bounded types, this type is selected
-	// If there is a single argument and it is a reference (either l-value or r-value) to an integral type, the first integral type of the list wide enough and with the same signature is used to store the value.
-	// If there is a single argument and it is a reference (either l-value or r-value) to an integral type, the first integral type of the list wide enough and with any signature is used to store the value.
-	// If there is a single argument and it is a reference (either l-value or r-value) to an arithmetic type, the first arityhmetic but not integral type of the list wide enough is used to store the value.
-	// If there is a single argument and it is a pointer or an array , the first non-integral type supporting construction over this pointer is used to store the value.
-	// If none of those rules applies, the first type encountered supporting the signature is used to store the value.
+  // If there is a single argument and it is equal to one of the bounded types, this type is
+  // selected
+  // If there is a single argument and it is a reference (either l-value or r-value) to an integral
+  // type, the first integral type of the list wide enough and with the same signature is used to
+  // store the value.
+  // If there is a single argument and it is a reference (either l-value or r-value) to an integral
+  // type, the first integral type of the list wide enough and with any signature is used to store
+  // the value.
+  // If there is a single argument and it is a reference (either l-value or r-value) to an
+  // arithmetic type, the first arityhmetic but not integral type of the list wide enough is used to
+  // store the value.
+  // If there is a single argument and it is a pointer or an array , the first non-integral type
+  // supporting construction over this pointer is used to store the value.
+  // If none of those rules applies, the first type encountered supporting the signature is used to
+  // store the value.
   //
   // Constructibility covers convertibility, so is used for the sake
   // of implicit conversion too
@@ -435,7 +444,7 @@ class variant {
   void clear() {
     static std::array<void (*)(void**), sizeof...(Value)> deleters = {
         helpers::deleter_fp<Value, bounded_identity_t<Value>, memory_size>...};
-    if (type_ < sizeof...(Value))  // Should always be the case 
+    if (type_ < sizeof...(Value))  // Should always be the case
       deleters[type_](&data_[0]);
   }
 
@@ -947,7 +956,7 @@ Return apply_visitor(variant<Value...>& values, Visitor const& visitor,
 template <class Return, class Visitor, class... Value, class... ExtraArguments>
 Return apply_visitor(variant<Value...> const& values, Visitor& visitor,
                      ExtraArguments&&... extras) {
-  static std::array<void (*)(variant<Value...> const&, Visitor&, ExtraArguments...),
+  static std::array<Return (*)(variant<Value...> const&, Visitor&, ExtraArguments...),
                     sizeof...(Value)> appliers = {
       visiting_helpers::applier_maker<Return, variant<Value...>>::template const_applier_fp<
           Visitor&, Value, ExtraArguments...>...};
@@ -958,7 +967,7 @@ template <class Return, class Visitor, class... Value, class... ExtraArguments>
 
 Return apply_visitor(variant<Value...> const& values, Visitor const& visitor,
                      ExtraArguments&&... extras) {
-  static std::array<void (*)(variant<Value...> const&, Visitor const&, ExtraArguments...),
+  static std::array<Return (*)(variant<Value...> const&, Visitor const&, ExtraArguments...),
                     sizeof...(Value)> appliers = {
       visiting_helpers::applier_maker<Return, variant<Value...>>::template const_applier_fp<
           Visitor const&, Value, ExtraArguments...>...};
@@ -1015,7 +1024,7 @@ struct func_aggregate_visitor<Return, container<Object, Array, Key, Value...>, E
                                ExtraArguments...>::func_aggregate_visitor;
 };
 
-// 
+//
 // Const func aggregate visitor is an aggregate visitor implemented with std::function
 //
 template <class...>
@@ -1100,35 +1109,36 @@ struct const_funcptr_aggregate_visitor<Return, container<Object, Array, Key, Val
       ExtraArguments...>::const_funcptr_aggregate_visitor;
 };
 
-// Creation helper for func_aggregate_visitor
-// template <class Return, class... Value>
-// func_aggregate_visitor<Return, variant<Value...>> make_visitor(
-// std::function<Return(Value&)>... action) {
-// return {action...};
-//}
-//
-//// creation helper for const_func_aggregate_visitor
-// template <class Return, class... Value>
-// const_func_aggregate_visitor<Return, variant<Value...>> make_visitor(
-// std::function<Return(Value const&)>... action) {
-// return {action...};
-//}
-
 //
 // base_converter show the API to be implemented to convert data in a view
 //
 // The default converter only sypports arithmetic conversions.
 //
 struct base_converter {
-  template <class Target, class Source, class Enable = std::enable_if_t<std::is_arithmetic<Source>::value && std::is_arithmetic<Target>::value,void>>
+  template <class Target, class Source,
+            class Enable = std::enable_if_t<std::is_convertible<Source, Target>::value, void>>
   static Target convert(Source&& value) {
+    // Static cast is used to swallow warnings with arithmetic types
     return static_cast<Target>(std::forward<Source>(value));
   }
 
-  template <class Target, class Source, class Enable = std::enable_if_t<!std::is_arithmetic<Source>::value || !std::is_arithmetic<Target>::value,void>, class Shim1=void>
+  template <class Target, class Source,
+            class Enable = std::enable_if_t<!std::is_convertible<Source, Target>::value, void>,
+            class Shim1 = void>
   static Target convert(Source&& value) {
     return {};
   }
+};
+
+template <class Return, class Converter, class Variant>
+struct converter_maker;
+template <class Return, class Converter, class... Value>
+struct converter_maker<Return, Converter, variant<Value...>> {
+  static const_funcptr_aggregate_visitor<Return, variant<Value...>> make_converter() {
+    return {+[](Value const& value) -> Return {
+      return Converter::template convert<Return>(value);
+    }...};
+  };
 };
 
 struct bad_view_access : std::logic_error {
@@ -1217,17 +1227,27 @@ class view {
 
   template <class T>
   T const& get() const & {
-    return this->template inner_get<T>();
+    if (container_) return container_->template get<T>();
+    throw bad_view_access("Access to en empty view in get().");
   }
 
   template <class T>
   T get(T&& default_value) const & {
-    return this->template inner_get<T>(default_value);
+    if (container_ && container_->template is<std::decay_t<T>>())
+      return container_->template raw<std::decay_t<T>>();
+    else
+      return std::forward<T>(default_value);
   }
 
   template <class T>
-  T get(T const& default_value) const & {
-    return this->template inner_get<T>(default_value);
+  T as() const & {
+    static_assert(std::is_default_constructible<T>::value,
+                  "view::as shall be used with default constructible types only");
+    static auto conversion_visitor =
+        converter_maker<T, Converter, typename Container::variant_type>::make_converter();
+    if (container_) return apply_visitor<T>(*container_, conversion_visitor);
+
+    return {};
   }
 
   inline object_type const& get_object() const & { return this->template get<object_type>(); }
