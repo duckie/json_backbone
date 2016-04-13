@@ -1,4 +1,4 @@
-#include <iostream>
+#include <sstream>
 #include <json_backbone.hpp>
 #include <catch.hpp>
 #include <chrono>
@@ -85,8 +85,37 @@ TEST_CASE("View - access", "[view][access][runtime]") {
     REQUIRE(it1 != v.begin());
     REQUIRE(it1 == v.end());
 
+    std::ostringstream output;
     for (auto& value : v) {
-      // std::cout << value.key() << std::endl;
+      output << value.key();
     }
+    REQUIRE(output.str() == "childrennamesizesubscribed");
+  }
+
+  SECTION("iterator over array") {
+    auto v2 = v["children"];
+    REQUIRE(!v2.empty());
+
+    auto it_end = v2.end();
+    REQUIRE(it_end == v2.end());
+
+    auto it1 = v2.begin();
+    REQUIRE(it1 == v2.begin());
+
+    for (int i = 0; i < 1; ++i) {
+      ++it1;
+      REQUIRE(it1 != v2.begin());
+      REQUIRE(it1 != v2.end());
+    }
+
+    ++it1;
+    REQUIRE(it1 != v2.begin());
+    REQUIRE(it1 == v2.end());
+
+    std::ostringstream output;
+    for (auto& value : v2) {
+      output << value.get<std::string>();
+    }
+    REQUIRE(output.str() == "MarthaJesabelle");
   }
 }
