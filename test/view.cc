@@ -1,8 +1,6 @@
-#include <sstream>
 #include <json_backbone.hpp>
 #include <catch.hpp>
 #include <chrono>
-#include <sstream>
 #include <list>
 #include <vector>
 #include <map>
@@ -59,7 +57,7 @@ TEST_CASE("View - access", "[view][access][runtime]") {
     REQUIRE(std::string(v1) == "Roger");
     REQUIRE(double(v2) == 1.92);
     REQUIRE((v3 ? true : false));  // Odd but needed for GCC to compile here
-    REQUIRE(v4.get<json_container::array_type>().size());
+    REQUIRE(v4.get<json_container::array_type>().size() != 0);
 
     auto v5 = v4[1];
     REQUIRE(v5.is<std::string>());
@@ -103,8 +101,10 @@ TEST_CASE("View - access", "[view][access][runtime]") {
     REQUIRE(!v2.empty());
 
     auto it_end = v2.end();
+    bool result = (it_end == v2.end());
+    
     REQUIRE(it_end == v2.end());
-
+        
     auto it1 = v2.begin();
     REQUIRE(it1 == v2.begin());
 

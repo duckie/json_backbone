@@ -5,6 +5,7 @@
 #include <functional>
 #include <exception>
 #include <limits>
+#include <array>
 #include <initializer_list>
 
 namespace json_backbone {
@@ -39,10 +40,6 @@ template <class T>
 struct is_recursive : std::integral_constant<bool, !is_complete<T>::value> {};
 template <class T>
 struct is_recursive<recursive_wrapper<T>> : std::true_type {};
-
-// template <class T> identity {
-// using type = T;
-//};
 
 template <class T>
 using identity_t = T;
@@ -222,7 +219,8 @@ struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>...
   //
   template <std::size_t Index>
   struct type_at {
-    using type = typename decltype(get_type_at<Index>(std::declval<type_list>()))::type;
+    using type_impl = decltype(get_type_at<Index>(std::declval<type_list>()));
+    using type = typename type_impl::type;
   };
 
   // Returns true if type T is in the list
@@ -303,7 +301,8 @@ struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>...
                               : (index_first_ptrwise_value < sizeof...(Types))
                                     ? index_first_ptrwise_value
                                     : index_first_value;
-    using type = typename decltype(get_type_at<index_value>(std::declval<type_list>()))::type;
+    using type_impl = decltype(get_type_at<index_value>(std::declval<type_list>()));
+    using type = typename type_impl::type;
   };
 };
 
@@ -314,13 +313,16 @@ struct type_list<std::index_sequence<Is...>, Types...> : type_info<Types, Is>...
 //
 template <class... Types>
 struct bounded_type_traits {
-  template <class T, bool IsRecursive = is_recursive<T>::value>
-  struct is_default_constructible;
+  template <class T, bool IsRecursive>
+  struct is_default_constructible_impl;
   template <class T>
-  struct is_default_constructible<T, true> : std::false_type {};
+  struct is_default_constructible_impl<T, true> : std::false_type {};
   template <class T>
-  struct is_default_constructible<T, false>
+  struct is_default_constructible_impl<T, false>
       : std::integral_constant<bool, std::is_default_constructible<bounded_identity_t<T>>::value> {
+  };
+
+  template <class T> struct is_default_constructible : is_default_constructible_impl<T, is_recursive<T>::value> {
   };
 
   //
@@ -388,8 +390,8 @@ template <class... Value>
 class variant {
   // Helpers for auto-detection of recrusive types. Broken on Clang
   static constexpr bool test_complete = arithmetics::all_equals<bool, sizeof...(Value)>(
-      {(is_complete<Value>::value || true)...}, true);
-  friend class completeness_test<variant>;
+    {(is_complete<Value>::value || true)...}, true);
+  friend struct completeness_test<variant>;
 
   // Compute minimum size required by types. Default 8
   static constexpr std::size_t min_memory_size =
@@ -578,7 +580,7 @@ class variant {
   variant& assign(T&& value) {
     assert_has_type<std::decay_t<T>>();
     if (type_ == target_type_list_t::template get_index<std::decay_t<T>>()) {
-      this->template raw<T>() = std::forward<T>(value);
+      raw<T>() = std::forward<T>(value);
     } else {
       clear();
       create<T>(std::forward<T>(value));
@@ -671,7 +673,7 @@ class variant {
   // raw returns directly without any check
   template <class T>
       inline enable_if_heap_t<T, T&> raw() & noexcept {
-    assert_has_type<T>();
+        assert_has_type<T>();
     return *(reinterpret_cast<T*>(data_[0]));
   }
 
@@ -699,7 +701,7 @@ class variant {
   // raw returns directly without any check
   template <class T>
       inline enable_if_heap_t<T, T> raw() && noexcept {
-    assert_has_type<T>();
+        assert_has_type<T>();
     return std::move(*(reinterpret_cast<T*>(data_[0])));
   }
 
@@ -878,7 +880,7 @@ class element_init {
   element_init(typename Container::object_type::key_type&& key) : key_{std::move(key)} {}
   template <class T>
   typename Container::object_type::value_type operator=(T&& value) && {
-    return {std::move(key_), std::move(value)};
+    return {std::move(key_), std::forward<T>(value)};
   }
 };
 
@@ -1297,7 +1299,7 @@ class view_iterator<view<Container, Converter>> {
   using array_iterator = typename container_type::array_type::const_iterator;
   using value_type = variant<std::nullptr_t, array_iterator, object_iterator>;
   using converter_type = Converter;
-  friend class visiting_helpers::applier_maker<bool, value_type>;
+  friend struct visiting_helpers::applier_maker<bool, value_type>;
 
  private:
   // This is the "parent" view holding the iterated collection
@@ -1353,8 +1355,8 @@ class view_iterator<view<Container, Converter>> {
 
   view_iterator& operator++() {
     static funcptr_aggregate_visitor<void, value_type, view_iterator&> const increment_visitor{
-        +[](std::nullptr_t&, view_iterator&) {},
-        +[](array_iterator& iterator, view_iterator& self) {
+        [](std::nullptr_t&, view_iterator&) {},
+        [](array_iterator& iterator, view_iterator& self) {
           using view_type = view<container_type, converter_type>;
           ++iterator;
           if (iterator != self.parent_view_->get_array().end())
@@ -1362,7 +1364,7 @@ class view_iterator<view<Container, Converter>> {
           else
             self.current_view_ = view_type();
         },
-        +[](object_iterator& iterator, view_iterator& self) {
+        [](object_iterator& iterator, view_iterator& self) {
           using view_type = view<container_type, converter_type>;
           ++iterator;
           if (iterator != self.parent_view_->get_object().end())
@@ -1383,21 +1385,23 @@ class view_iterator<view<Container, Converter>> {
   view_type const& operator*() const { return this->current_view_; }
   view_type const* operator->() const { return &this->current_view_; }
 
-  bool operator==(view_iterator const& compared) {
+  bool operator==(view_iterator const& compared) const & {
     static const_funcptr_aggregate_visitor<bool, value_type, view_iterator const&> const
-        compare_visitor{+[](std::nullptr_t const&, view_iterator const& other) {
+        compare_visitor {[](std::nullptr_t const&, view_iterator const& other) {
                           return other.value_.template is<std::nullptr_t>();
                         },
-                        +[](array_iterator const& iterator, view_iterator const& other) {
-                          return other.value_.template is<array_iterator>() &&
-                                 iterator == other.value_.template raw<array_iterator>();
+                        [](array_iterator const& iterator, view_iterator const& other) {
+                          bool a = (other.value_.template is<array_iterator>());
+                          bool b = (iterator == other.value_.template raw<array_iterator>());
+                          return (a && b);
                         },
-                        +[](object_iterator const& iterator, view_iterator const& other) {
-                          return other.value_.template is<object_iterator>() &&
-                                 iterator == other.value_.template raw<object_iterator>();
-                        }};
+                        [](object_iterator const& iterator, view_iterator const& other) {
+                          bool a = (other.value_.template is<object_iterator>());
+                          bool b = (iterator == other.value_.template raw<object_iterator>());
+                          return (a && b);
+                        } };
 
-    return apply_visitor<bool>(this->value_, compare_visitor, compared);
+    return apply_visitor<bool, decltype(compare_visitor)&>(this->value_, compare_visitor, compared);
   }
 
   bool operator!=(view_iterator const& other) { return !(*this == other); }

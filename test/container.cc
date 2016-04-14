@@ -7,9 +7,7 @@
 #include <vector>
 #include <map>
 #include <type_traits>
-//#include <json_backbone/externalize.hpp>
 
-// using json_container = json_bac
 using namespace json_backbone;
 
 // Declare a container specifically tailored for JSON data
@@ -69,7 +67,7 @@ TEST_CASE("Container - access", "[container][access][runtime]") {
     REQUIRE(std::string(c1) == "Roger");
     REQUIRE(double(c2) == 1.92);
     REQUIRE((c3 ? true : false));  // Odd but needed for GCC to compile here
-    REQUIRE(c4.get<json_container::array_type>().size());
+    REQUIRE(c4.get<json_container::array_type>().size() != 0);
 
     auto& c5 = c4[1];
     REQUIRE(c5.is<std::string>());
