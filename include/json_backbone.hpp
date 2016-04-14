@@ -889,8 +889,8 @@ class element_init {
 // with bounded types that would support them.
 //
 template <class Container, class Key = typename Container::key_type>
-Container make_object(std::initializer_list<std::pair<Key const, Container>>&& elements) {
-  return Container {typename Container::object_type{std::move(elements)}};
+Container make_object(std::initializer_list<std::pair<Key const, Container>> elements) {
+  return elements;
 }
 
 //
@@ -901,7 +901,7 @@ Container make_object(std::initializer_list<std::pair<Key const, Container>>&& e
 //
 template <class Container>
 Container make_array(std::initializer_list<Container> elements) {
-  return Container {typename Container::array_type{elements}};
+  return elements;
 }
 
 namespace visiting_helpers {
