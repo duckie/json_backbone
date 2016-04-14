@@ -10,6 +10,11 @@ Json backbone
 
 `json_backbone` can be used to built JSON support, BSON support or any other reduced or extended versions of those. `json_backbone` is shipped as a single header without any library to build. The implementation do not use RTTI nor any pre-processor trick.
 
+`json_backbone` is known to compile on:
+* GCC 5.3.0
+* Clang 3.7.1
+* MSVC 2015 Update 2 (00322-20000-00000-AA744)
+
 A quick example :
 
 ```c++
