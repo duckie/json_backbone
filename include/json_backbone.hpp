@@ -322,8 +322,8 @@ struct bounded_type_traits {
       : std::integral_constant<bool, std::is_default_constructible<bounded_identity_t<T>>::value> {
   };
 
-  template <class T> struct is_default_constructible : is_default_constructible_impl<T, is_recursive<T>::value> {
-  };
+  template <class T>
+  struct is_default_constructible : is_default_constructible_impl<T, is_recursive<T>::value> {};
 
   //
   // Returns a type chosen for default construction
@@ -390,7 +390,7 @@ template <class... Value>
 class variant {
   // Helpers for auto-detection of recrusive types. Broken on Clang
   static constexpr bool test_complete = arithmetics::all_equals<bool, sizeof...(Value)>(
-    {(is_complete<Value>::value || true)...}, true);
+      {(is_complete<Value>::value || true)...}, true);
   friend struct completeness_test<variant>;
 
   // Compute minimum size required by types. Default 8
@@ -673,7 +673,7 @@ class variant {
   // raw returns directly without any check
   template <class T>
       inline enable_if_heap_t<T, T&> raw() & noexcept {
-        assert_has_type<T>();
+    assert_has_type<T>();
     return *(reinterpret_cast<T*>(data_[0]));
   }
 
@@ -701,7 +701,7 @@ class variant {
   // raw returns directly without any check
   template <class T>
       inline enable_if_heap_t<T, T> raw() && noexcept {
-        assert_has_type<T>();
+    assert_has_type<T>();
     return std::move(*(reinterpret_cast<T*>(data_[0])));
   }
 
@@ -1387,7 +1387,7 @@ class view_iterator<view<Container, Converter>> {
 
   bool operator==(view_iterator const& compared) const & {
     static const_funcptr_aggregate_visitor<bool, value_type, view_iterator const&> const
-        compare_visitor {[](std::nullptr_t const&, view_iterator const& other) {
+        compare_visitor{[](std::nullptr_t const&, view_iterator const& other) {
                           return other.value_.template is<std::nullptr_t>();
                         },
                         [](array_iterator const& iterator, view_iterator const& other) {
@@ -1399,7 +1399,7 @@ class view_iterator<view<Container, Converter>> {
                           bool a = (other.value_.template is<object_iterator>());
                           bool b = (iterator == other.value_.template raw<object_iterator>());
                           return (a && b);
-                        } };
+                        }};
 
     return apply_visitor<bool, decltype(compare_visitor)&>(this->value_, compare_visitor, compared);
   }
