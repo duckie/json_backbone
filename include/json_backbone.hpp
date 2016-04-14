@@ -663,42 +663,42 @@ class variant {
     throw bad_variant_access{"Bad variant type in get."};
   }
 
-  // raw returns directly without any check
+  // raw returns directly without any runtime check
   template <class T>
       inline enable_if_stack_t<T, T&> raw() & noexcept {
     assert_has_type<T>();
     return *(reinterpret_cast<T*>(&data_[0]));
   }
 
-  // raw returns directly without any check
+  // raw returns directly without any runtime check
   template <class T>
       inline enable_if_heap_t<T, T&> raw() & noexcept {
     assert_has_type<T>();
     return *(reinterpret_cast<T*>(data_[0]));
   }
 
-  // raw returns directly without any check
+  // raw returns directly without any runtime check
   template <class T>
   inline enable_if_stack_t<T, T const&> raw() const& noexcept {
     assert_has_type<T>();
     return *(reinterpret_cast<T const*>(&data_[0]));
   }
 
-  // raw returns directly without any check
+  // raw returns directly without any runtime check
   template <class T>
   inline enable_if_heap_t<T, T const&> raw() const& noexcept {
     assert_has_type<T>();
     return *(reinterpret_cast<T const*>(data_[0]));
   }
 
-  // raw returns directly without any check
+  // raw returns directly without any runtime check
   template <class T>
       inline enable_if_stack_t<T, T> raw() && noexcept {
     assert_has_type<T>();
     return std::move(*(reinterpret_cast<T*>(&data_[0])));
   }
 
-  // raw returns directly without any check
+  // raw returns directly without any runtime check
   template <class T>
       inline enable_if_heap_t<T, T> raw() && noexcept {
     assert_has_type<T>();
@@ -896,7 +896,7 @@ Container make_object(std::initializer_list<std::pair<Key const, Container>> ele
 }
 
 //
-// Make an arrayout of an initializer list
+// Make an array out of an initializer list
 //
 // initialize_list is not default supported to avoid conflicts
 // with bounded types that would support them.
@@ -907,7 +907,7 @@ Container make_array(std::initializer_list<Container> elements) {
 }
 
 namespace visiting_helpers {
-// Applier_maker generates function pointers
+// applier_maker generates function pointers
 template <class Return, class... Value>
 struct applier_maker;
 template <class Return, class... Value>
@@ -1391,15 +1391,15 @@ class view_iterator<view<Container, Converter>> {
                           return other.value_.template is<std::nullptr_t>();
                         },
                         [](array_iterator const& iterator, view_iterator const& other) {
+                          // MSVC messes hard if the condition is not broken like this
                           bool a = (other.value_.template is<array_iterator>());
-                          bool b = (iterator == other.value_.template raw<array_iterator>());
-                          return (a && b);
+                          return (a && (iterator == other.value_.template raw<array_iterator>()));
                         },
                         [](object_iterator const& iterator, view_iterator const& other) {
+                          // MSVC messes hard if the condition is not broken like this
                           bool a = (other.value_.template is<object_iterator>());
-                          bool b = (iterator == other.value_.template raw<object_iterator>());
-                          return (a && b);
-                        }};
+                          return (a && (iterator == other.value_.template raw<object_iterator>()));
+                        } };
 
     return apply_visitor<bool, decltype(compare_visitor)&>(this->value_, compare_visitor, compared);
   }
