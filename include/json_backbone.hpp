@@ -13,11 +13,11 @@ namespace json_backbone {
 // is_complete detects if type is complete at first instantiation
 //
 // "at first instantiation" is utterly important so that ODR would not be violated
-// Unfortunetaley, clang behaves badly with it and produces completeley
-// erroneous code. Thus we rely on recursive_wrappper.
+// Unfortunetaly, clang behaves badly with it and produces completely
+// erroneous code. Thus we rely on recursive_wrapper.
 //
-// This is not broken in Clang but Clang does not behave is this is
-// instantiated for within the type
+// This is not completely broken in Clang but Clang does not behave if this is
+// instantiated from within the type
 //
 template <typename T>
 struct is_complete {
@@ -33,7 +33,7 @@ struct is_complete {
   static constexpr bool value = g<int>(0);
 };
 
-// Recrusive helper - any incomplete type is considered recursive (broken on clang)
+// Recursive helper - any incomplete type is considered recursive (broken on Clang)
 template <class T>
 struct recursive_wrapper;
 template <class T>
@@ -72,7 +72,7 @@ struct is_small_type_impl<T, true> : std::false_type {};
 //
 // This is the minimum size to be allocated in a container to hold
 // this type wether it is a small type or not. Big types needs to
-// be pointed to whiole small ones are directly stored
+// be pointed to while small ones are directly stored
 //
 template <class T, bool IsRecursive = is_recursive<T>::value>
 struct memory_footprint;
@@ -89,11 +89,10 @@ struct store_on_stack : std::integral_constant<bool, (is_small_type_impl<T>::val
                                                       memory_footprint<T>::value <= MemSize)> {};
 
 //
-// arithmetics provides compiles times arithmetics over arrays
+// arithmetics provides compile time arithmetics over arrays
 //
 namespace arithmetics {
 
-// max_value computes the higher value of an array at compile time
 template <class I, std::size_t N>
 I constexpr max_value(std::array<I, N> const& values,
                       I current_value = std::numeric_limits<I>::lowest(),
@@ -149,7 +148,7 @@ template <class Type, std::size_t Index>
 struct type_info {};
 
 //
-// type_list offers compile time services on a type_list
+// type_list offers compile time services on a type list
 //
 // type_list is implemented with function overloads rather than than recursive
 // templates to speed up compilation.
