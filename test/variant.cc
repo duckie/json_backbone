@@ -8,6 +8,7 @@
 
 using namespace json_backbone;
 
+namespace {
 using json_container = container<std::map, std::vector, std::string, std::nullptr_t, bool,
                                  unsigned int, int, double, std::string>;
 
@@ -20,6 +21,17 @@ using is_the_constructible_t =
     std::is_same<typename json_container::target_type_list_t::select_constructible<
                      json_container::memory_size, Args...>::type,
                  Type>;
+}
+
+// Resolve CATCH SFINAE trait ambiguity (error on Clang, GCC is fine)
+namespace Catch {
+namespace Detail {
+template <>
+struct IsStreamInsertable<json_container> {
+  enum { value = false };
+};
+}
+}
 
 TEST_CASE("Variant - Construction", "[variant][construct][runtime]") {
   json_container c1;
@@ -78,14 +90,14 @@ TEST_CASE("Variant - Construction", "[variant][construct][runtime]") {
   }
 
   SECTION("Conversion") {
-     std::string& s2_1 = c2;
-     REQUIRE(s2_1 == "Roger");
-    
-     std::string const& s2_2 = c2;
-     REQUIRE(s2_2 == "Roger");
-    
-     std::string s2_3 = std::move(c2);
-     REQUIRE(s2_3 == "Roger");
+    std::string& s2_1 = static_cast<std::string&>(c2);
+    REQUIRE(s2_1 == "Roger");
+
+    std::string const& s2_2 = static_cast<std::string const&>(c2);
+    REQUIRE(s2_2 == "Roger");
+
+    std::string s2_3 = std::move(static_cast<std::string>(c2));
+    REQUIRE(s2_3 == "Roger");
   }
 
   SECTION("Assign values") {
@@ -165,19 +177,30 @@ TEST_CASE("Variant - Construction", "[variant][construct][runtime]") {
   }
 
   SECTION("Comparison - equals") {
-    //REQUIRE(c2 != c3);
-    //REQUIRE(c2 == c2);
+    REQUIRE(c2 != c3);
+    REQUIRE(c2 == c2);
 
-    json_container c2_2 {"Roger"};
+    json_container c2_2{"Roger"};
     REQUIRE(c2 == c2_2);
 
-    json_container c4_2 {1};
+    json_container c4_2{1};
     REQUIRE(c4 == c4_2);
     c4_2 = 2;
-    //REQUIRE(c4 != c4_2);
+    REQUIRE(c4 != c4_2);
 
-    //bool test = (c4 == 1);
-    //REQUIRE(c4 == 1);
+    REQUIRE(c4 == 1);
+    REQUIRE(1 == c4);
+    REQUIRE(c4 != 1u);  // == 1 as a signed int, not uint
+    REQUIRE(c4 != 2);
+    REQUIRE(2 != c4);
+  }
+
+  SECTION("Comparison - less") {
+    REQUIRE(c3 < c2);
+    REQUIRE(!(c2 < c3));
+
+    json_container c2_2{"Marcel"};
+    REQUIRE(c2_2 < c2);
   }
 }
 
@@ -210,7 +233,7 @@ struct binary_op;
 
 using expression =
     variant<int, recursive_wrapper<binary_op<add>>, recursive_wrapper<binary_op<sub>>>;
-//static_assert(completeness_test<expression>::value, "To use with clang for auto detection");
+// static_assert(completeness_test<expression>::value, "To use with clang for auto detection");
 
 template <typename OpTag>
 struct binary_op {
@@ -229,16 +252,18 @@ TEST_CASE("Variant - Automatic recursion", "[variant][construct][runtime][recurs
   REQUIRE(get<int>(exp2) == 2);
 }
 
-
-
 TEST_CASE("Variant - Visit", "[variant][visitor]") {
-  variant<int,std::string> t1 {1};
-  variant<int,std::string> t2 {"Roger"};
+  variant<int, std::string> t1{1};
+  variant<int, std::string> t2{"Roger"};
 
-  static func_aggregate_visitor<bool, variant<int,std::string>> aggregate{[](auto) { return false; },[](auto&) { return true; }};
-  static const_func_aggregate_visitor<bool, variant<int,std::string>> caggregate{[](auto) { return false; },[](auto const&) { return true; }};
-  static funcptr_aggregate_visitor<bool, variant<int,std::string>> paggregate{[](auto) { return false; },[](auto&) { return true; }};
-  static const_funcptr_aggregate_visitor<bool, variant<int,std::string>> pcaggregate{[](auto) { return false; },[](auto&) { return true; }};
+  static func_aggregate_visitor<bool, variant<int, std::string>> aggregate{
+      [](auto) { return false; }, [](auto&) { return true; }};
+  static const_func_aggregate_visitor<bool, variant<int, std::string>> caggregate{
+      [](auto) { return false; }, [](auto const&) { return true; }};
+  static funcptr_aggregate_visitor<bool, variant<int, std::string>> paggregate{
+      [](auto) { return false; }, [](auto&) { return true; }};
+  static const_funcptr_aggregate_visitor<bool, variant<int, std::string>> pcaggregate{
+      [](auto) { return false; }, [](auto&) { return true; }};
 
   REQUIRE(!apply_visitor<bool>(t1, aggregate));
   REQUIRE(apply_visitor<bool>(t2, aggregate));

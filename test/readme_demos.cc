@@ -125,7 +125,7 @@ void demo3() {
   auto s3 = v4.raw<std::string>();          // Access the data directly without any check
   auto s4 = raw<std::string>(v4);           // Equivalent to previous call
 
-  std::string& s5 = v4;  // Makes use of conversion operators, throws if bad type
+  std::string& s5 = static_cast<std::string&>(v4);  // Makes use of conversion operators, throws if bad type
 
   bool is_string = v4.is<std::string>();  // Check actual type
 }

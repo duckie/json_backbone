@@ -579,10 +579,10 @@ class variant {
   variant& assign(T&& value) {
     assert_has_type<std::decay_t<T>>();
     if (type_ == target_type_list_t::template get_index<std::decay_t<T>>()) {
-      raw<T>() = std::forward<T>(value);
+      raw<std::decay_t<T>>() = std::forward<T>(value);
     } else {
       clear();
-      create<T>(std::forward<T>(value));
+      this->create(std::forward<T>(value));
     }
     return *this;
   }
@@ -707,19 +707,19 @@ class variant {
   // Conversion operator
   template <class T, class Enabler = std::enable_if_t<
                          target_type_list_t::template has_type<std::decay_t<T>>(), void>>
-  operator T&() & {
+  explicit operator T&() & {
     return this->get<std::decay_t<T>>();
   }
 
   template <class T, class Enabler = std::enable_if_t<
                          target_type_list_t::template has_type<std::decay_t<T>>(), void>>
-  operator T const&() const & {
+  explicit operator T const&() const & {
     return this->get<std::decay_t<T>>();
   }
 
   template <class T, class Enabler = std::enable_if_t<
                          target_type_list_t::template has_type<std::decay_t<T>>(), void>>
-  operator T() && {
+  explicit operator T() && {
     return std::move(this->get<std::decay_t<T>>());
   }
 };
@@ -789,6 +789,10 @@ class container
 
   container(container&& value) : variant_type(std::move(value)) {}
 
+  template <class Arg, class... Args>
+  container(Arg&& arg, Args&&... args)
+      : variant_type(std::forward<Arg>(arg), std::forward<Args>(args)...) {}
+
   container& operator=(container const& value) {
     variant_type::operator=(value);
     return *this;
@@ -799,9 +803,11 @@ class container
     return *this;
   }
 
-  template <class Arg, class... Args>
-  container(Arg&& arg, Args&&... args)
-      : variant_type(std::forward<Arg>(arg), std::forward<Args>(args)...) {}
+  template <class Arg>
+  container& operator=(Arg&& value) {
+    variant_type::operator=(std::forward<Arg>(value));
+    return *this;
+  }
 
   inline object_type& get_object() & { return this->template get<object_type>(); }
 
@@ -889,9 +895,34 @@ bool operator==(variant<Value...> const& lhs, variant<Value...> const& rhs) {
   return false;
 }
 
+template <class T, class... Value>
+std::enable_if_t<!std::is_base_of<variant<Value...>, T>::value, bool> operator==(
+    variant<Value...> const& lhs, T const& rhs) {
+  if (lhs.template is<T>()) { return lhs.template raw<T>() == rhs; }
+  return false;
+}
+
+template <class T, class... Value>
+inline std::enable_if_t<!std::is_base_of<variant<Value...>, T>::value, bool> operator==(
+    T const& lhs, variant<Value...> const& rhs) {
+  return rhs == lhs;
+}
+
 template <class... Value>
 inline bool operator!=(variant<Value...> const& lhs, variant<Value...> const& rhs) {
   return !(lhs == rhs);
+}
+
+template <class T, class... Value>
+inline std::enable_if_t<!std::is_base_of<variant<Value...>, T>::value, bool> operator!=(
+    variant<Value...> const& lhs, T const& rhs) {
+  return !(lhs == rhs);
+}
+
+template <class T, class... Value>
+inline std::enable_if_t<!std::is_base_of<variant<Value...>, T>::value, bool> operator!=(
+    T const& lhs, variant<Value...> const& rhs) {
+  return !(rhs == lhs);
 }
 
 template <class... Value>
@@ -904,25 +935,25 @@ bool operator<(variant<Value...> const& lhs, variant<Value...> const& rhs) {
   return lhs.type_index() < rhs.type_index();
 }
 
-template <template <class> class Object, template <class> class Array, class Key, class... Value>
-inline bool operator==(container<Object, Array, Key, Value...> const& lhs,
-                container<Object, Array, Key, Value...> const& rhs) {
-  using variant_type = typename container<Object, Array, Key, Value...>::variant_type;
-  return static_cast<variant_type const &>(lhs) == static_cast<variant_type const &>(rhs);
-}
-
-template <template <class> class Object, template <class> class Array, class Key, class... Value>
-inline bool operator!=(container<Object, Array, Key, Value...> const& lhs,
-                container<Object, Array, Key, Value...> const& rhs) {
-  return !(lhs == rhs);
-}
-
-template <template <class> class Object, template <class> class Array, class Key, class... Value>
-inline bool operator<(container<Object, Array, Key, Value...> const& lhs,
-                container<Object, Array, Key, Value...> const& rhs) {
-  using variant_type = typename container<Object, Array, Key, Value...>::variant_type;
-  return static_cast<variant_type const &>(lhs) < static_cast<variant_type const &>(rhs);
-}
+// template <template <class> class Object, template <class> class Array, class Key, class... Value>
+// inline bool operator==(container<Object, Array, Key, Value...> const& lhs,
+// container<Object, Array, Key, Value...> const& rhs) {
+// using variant_type = typename container<Object, Array, Key, Value...>::variant_type;
+// return static_cast<variant_type const &>(lhs) == static_cast<variant_type const &>(rhs);
+//}
+//
+// template <template <class> class Object, template <class> class Array, class Key, class... Value>
+// inline bool operator!=(container<Object, Array, Key, Value...> const& lhs,
+// container<Object, Array, Key, Value...> const& rhs) {
+// return !(lhs == rhs);
+//}
+//
+// template <template <class> class Object, template <class> class Array, class Key, class... Value>
+// inline bool operator<(container<Object, Array, Key, Value...> const& lhs,
+// container<Object, Array, Key, Value...> const& rhs) {
+// using variant_type = typename container<Object, Array, Key, Value...>::variant_type;
+// return static_cast<variant_type const &>(lhs) < static_cast<variant_type const &>(rhs);
+//}
 
 // element_init is used to write elegant jsonlike notations
 template <class Container>
