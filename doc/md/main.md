@@ -143,7 +143,7 @@ Other ways of investigating the actual type will be covered in the visiting part
 
 Data can be visited with a callable implementing one overload for each bounded type. An example:
 
-```
+```c++
 struct Visitor {
   void operator()(int v) const {
     std::cout << v << "\n";
@@ -167,7 +167,7 @@ int main(void) {
 
 Visitors can take additional parameters and return a value :
 
-```
+```c++
 struct Visitor {
   int operator()(int v,int start) const {
     return v + start;
@@ -190,7 +190,7 @@ int main(void) {
 
 Visitors can have a state.
 
-```
+```c++
 struct Visitor {
   int sum = 0;
   void operator()(int v) {
@@ -211,7 +211,7 @@ int main(void) {
 
 Visitors can be defined close to where they are used by aggregating functions.
 
-```
+```c++
 using variant_t = variant<int,std::string>;
 variant_t t1{1};
 variant_t t2{"Roger"};
