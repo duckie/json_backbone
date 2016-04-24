@@ -867,6 +867,63 @@ class container
   }
 };
 
+namespace helpers {
+template <class Variant, class T>
+bool equals(Variant const& lhs, Variant const& rhs) {
+  return lhs.template raw<T>() == rhs.template raw<T>();
+}
+
+template <class Variant, class T>
+bool less(Variant const& lhs, Variant const& rhs) {
+  return lhs.template raw<T>() < rhs.template raw<T>();
+}
+};
+
+template <class... Value>
+bool operator==(variant<Value...> const& lhs, variant<Value...> const& rhs) {
+  if (lhs.type_index() == rhs.type_index()) {
+    static std::array<bool (*)(variant<Value...> const&, variant<Value...> const&),
+                      sizeof...(Value)> appliers = {helpers::equals<variant<Value...>, Value>...};
+    return appliers[lhs.type_index()](lhs, rhs);
+  }
+  return false;
+}
+
+template <class... Value>
+inline bool operator!=(variant<Value...> const& lhs, variant<Value...> const& rhs) {
+  return !(lhs == rhs);
+}
+
+template <class... Value>
+bool operator<(variant<Value...> const& lhs, variant<Value...> const& rhs) {
+  if (lhs.type_index() == rhs.type_index()) {
+    static std::array<bool (*)(variant<Value...> const&, variant<Value...> const&),
+                      sizeof...(Value)> appliers = {helpers::less<variant<Value...>, Value>...};
+    return appliers[lhs.type_index()](lhs, rhs);
+  }
+  return lhs.type_index() < rhs.type_index();
+}
+
+template <template <class> class Object, template <class> class Array, class Key, class... Value>
+inline bool operator==(container<Object, Array, Key, Value...> const& lhs,
+                container<Object, Array, Key, Value...> const& rhs) {
+  using variant_type = typename container<Object, Array, Key, Value...>::variant_type;
+  return static_cast<variant_type const &>(lhs) == static_cast<variant_type const &>(rhs);
+}
+
+template <template <class> class Object, template <class> class Array, class Key, class... Value>
+inline bool operator!=(container<Object, Array, Key, Value...> const& lhs,
+                container<Object, Array, Key, Value...> const& rhs) {
+  return !(lhs == rhs);
+}
+
+template <template <class> class Object, template <class> class Array, class Key, class... Value>
+inline bool operator<(container<Object, Array, Key, Value...> const& lhs,
+                container<Object, Array, Key, Value...> const& rhs) {
+  using variant_type = typename container<Object, Array, Key, Value...>::variant_type;
+  return static_cast<variant_type const &>(lhs) < static_cast<variant_type const &>(rhs);
+}
+
 // element_init is used to write elegant jsonlike notations
 template <class Container>
 class element_init {
@@ -912,8 +969,7 @@ struct applier_maker;
 template <class Return, class... Value>
 struct applier_maker<Return, variant<Value...>> {
   template <class Visitor, class T, class... ExtraArguments>
-  static Return applier_fp(variant<Value...>& values, Visitor visitor,
-                           ExtraArguments... extras) {
+  static Return applier_fp(variant<Value...>& values, Visitor visitor, ExtraArguments... extras) {
     return visitor(values.template raw<T>(), std::forward<ExtraArguments>(extras)...);
   }
 
@@ -935,8 +991,10 @@ struct applier_maker<Return, container<Object, Array, Key, Value...>>
 
 template <class Return, class Visitor, class... Value, class... ExtraArguments>
 Return apply_visitor(variant<Value...>& values, Visitor&& visitor, ExtraArguments&&... extras) {
-  static std::array<Return (*)(variant<Value...>&, std::add_lvalue_reference_t<Visitor>, ExtraArguments...), sizeof...(Value)>
-      appliers = {visiting_helpers::applier_maker<Return, variant<Value...>>::template applier_fp<
+  static std::array<Return (*)(variant<Value...>&, std::add_lvalue_reference_t<Visitor>,
+                               ExtraArguments...),
+                    sizeof...(Value)> appliers = {
+      visiting_helpers::applier_maker<Return, variant<Value...>>::template applier_fp<
           std::add_lvalue_reference_t<Visitor>, Value, ExtraArguments...>...};
   return appliers[values.type_index()](values, std::forward<Visitor>(visitor),
                                        std::forward<ExtraArguments>(extras)...);
@@ -945,7 +1003,8 @@ Return apply_visitor(variant<Value...>& values, Visitor&& visitor, ExtraArgument
 template <class Return, class Visitor, class... Value, class... ExtraArguments>
 Return apply_visitor(variant<Value...> const& values, Visitor&& visitor,
                      ExtraArguments&&... extras) {
-  static std::array<Return (*)(variant<Value...> const&, std::add_lvalue_reference_t<Visitor>, ExtraArguments...),
+  static std::array<Return (*)(variant<Value...> const&, std::add_lvalue_reference_t<Visitor>,
+                               ExtraArguments...),
                     sizeof...(Value)> appliers = {
       visiting_helpers::applier_maker<Return, variant<Value...>>::template const_applier_fp<
           std::add_lvalue_reference_t<Visitor>, Value, ExtraArguments...>...};
@@ -1398,7 +1457,7 @@ class view_iterator<view<Container, Converter>> {
                           // MSVC messes hard if the condition is not broken like this
                           bool a = (other.value_.template is<object_iterator>());
                           return (a && (iterator == other.value_.template raw<object_iterator>()));
-                        } };
+                        }};
 
     return apply_visitor<bool, decltype(compare_visitor)&>(this->value_, compare_visitor, compared);
   }

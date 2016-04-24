@@ -163,6 +163,22 @@ TEST_CASE("Variant - Construction", "[variant][construct][runtime]") {
     c2 = d1;
     REQUIRE(c2.get<double>() == 2.0);
   }
+
+  SECTION("Comparison - equals") {
+    //REQUIRE(c2 != c3);
+    //REQUIRE(c2 == c2);
+
+    json_container c2_2 {"Roger"};
+    REQUIRE(c2 == c2_2);
+
+    json_container c4_2 {1};
+    REQUIRE(c4 == c4_2);
+    c4_2 = 2;
+    //REQUIRE(c4 != c4_2);
+
+    //bool test = (c4 == 1);
+    //REQUIRE(c4 == 1);
+  }
 }
 
 TEST_CASE("Variant - Construction from bounded types ctors other than copy and move",
