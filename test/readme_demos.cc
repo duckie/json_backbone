@@ -130,8 +130,47 @@ void demo3() {
   bool is_string = v4.is<std::string>();  // Check actual type
 }
 
+struct Visitor {
+  void operator()(int v) {
+    std::cout << v << "\n";
+  }
+
+  void operator()(std::string const& v) {
+    std::cout << v << "\n";
+  }
+};
+
+void demo4() {
+  using variant_t = variant<int, std::string>;
+  variant_t t1{1};
+  variant_t t2{"Roger"};
+  Visitor v;
+  apply_visitor<void>(t1, v);
+  apply_visitor<void>(t2, v);
+}
+
+struct Visitor2 {
+  int operator()(int v,int start) {
+    return v;
+  }
+
+  int operator()(std::string const& v, int start) {
+    return v.size();
+  }
+};
+
+void demo5() {
+  using variant_t = variant<int,std::string>;
+  variant_t t1{1};
+  variant_t t2{"Roger"};
+  Visitor2 v;
+  apply_visitor<int>(t1, v, (int)0);
+  apply_visitor<int>(t2, v, (int)0);
+}
+
 int main(void) {
   demo1();
   demo2();
   demo3();
+  demo4();
 }

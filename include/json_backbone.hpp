@@ -912,14 +912,14 @@ struct applier_maker;
 template <class Return, class... Value>
 struct applier_maker<Return, variant<Value...>> {
   template <class Visitor, class T, class... ExtraArguments>
-  static Return applier_fp(variant<Value...>& values, Visitor& visitor,
-                           ExtraArguments&&... extras) {
+  static Return applier_fp(variant<Value...>& values, Visitor visitor,
+                           ExtraArguments... extras) {
     return visitor(values.template raw<T>(), std::forward<ExtraArguments>(extras)...);
   }
 
   template <class Visitor, class T, class... ExtraArguments>
-  static Return const_applier_fp(variant<Value...> const& values, Visitor const& visitor,
-                                 ExtraArguments&&... extras) {
+  static Return const_applier_fp(variant<Value...> const& values, Visitor visitor,
+                                 ExtraArguments... extras) {
     return visitor(values.template raw<T>(), std::forward<ExtraArguments>(extras)...);
   }
 };
@@ -935,9 +935,9 @@ struct applier_maker<Return, container<Object, Array, Key, Value...>>
 
 template <class Return, class Visitor, class... Value, class... ExtraArguments>
 Return apply_visitor(variant<Value...>& values, Visitor&& visitor, ExtraArguments&&... extras) {
-  static std::array<Return (*)(variant<Value...>&, Visitor, ExtraArguments...), sizeof...(Value)>
+  static std::array<Return (*)(variant<Value...>&, std::add_lvalue_reference_t<Visitor>, ExtraArguments...), sizeof...(Value)>
       appliers = {visiting_helpers::applier_maker<Return, variant<Value...>>::template applier_fp<
-          Visitor&, Value, ExtraArguments...>...};
+          std::add_lvalue_reference_t<Visitor>, Value, ExtraArguments...>...};
   return appliers[values.type_index()](values, std::forward<Visitor>(visitor),
                                        std::forward<ExtraArguments>(extras)...);
 };
@@ -945,10 +945,10 @@ Return apply_visitor(variant<Value...>& values, Visitor&& visitor, ExtraArgument
 template <class Return, class Visitor, class... Value, class... ExtraArguments>
 Return apply_visitor(variant<Value...> const& values, Visitor&& visitor,
                      ExtraArguments&&... extras) {
-  static std::array<Return (*)(variant<Value...> const&, Visitor, ExtraArguments...),
+  static std::array<Return (*)(variant<Value...> const&, std::add_lvalue_reference_t<Visitor>, ExtraArguments...),
                     sizeof...(Value)> appliers = {
       visiting_helpers::applier_maker<Return, variant<Value...>>::template const_applier_fp<
-          Visitor&, Value, ExtraArguments...>...};
+          std::add_lvalue_reference_t<Visitor>, Value, ExtraArguments...>...};
   return appliers[values.type_index()](values, std::forward<Visitor>(visitor),
                                        std::forward<ExtraArguments>(extras)...);
 };
