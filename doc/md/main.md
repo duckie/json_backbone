@@ -30,15 +30,13 @@ The `variant`:
 * is *CopyConstructible* and *MoveConstructible*.
 * is *Assignable* from every *Assignable* bounded types and every type convertible to a bounded type.
 * is *MoveAssignable* from every *MoveAssignable* bounded types and every type convertible to a bounded type.
-* is not *EqualityComparable*.
-* is not *LessThanComparable*.
+* is *EqualityComparable* if all bounded types are *EqualityComparable*.
+* is *LessThanComparable* if all bounded types are *LessThanComparable*.
 * is not *OutputStreamable*
 * is not *Hashable*
 * is explicitely convertible to any of its bounded types.
 * is implicitly convertible from any of its bounded types.
 * supports any constructor supported by one of its bounded types.
-* can be compared to another variant or a bounded type if all bounded types can be compared.
-* can be ordered if all bounded types can be ordered.
 
 Rules to select assignable types and valid constructors will be detailed in a dedicated section.
 
