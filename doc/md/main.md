@@ -139,3 +139,92 @@ bool is_string = v4.is<std::string>();  // Check actual type
 
 Other ways of investigating the actual type will be covered in the visiting part.
 
+### Visiting
+
+Data can be visited with a callable implementing one overload for each bounded type. An example:
+
+```
+struct Visitor {
+  void operator()(int v) const {
+    std::cout << v << "\n";
+  }
+
+  void operator()(std::string const& v) const {
+    std::cout << v << "\n";
+  }
+};
+
+int main(void) {
+  using variant_t = variant<int, std::string>;
+  variant_t t1{1};
+  variant_t t2{"Roger"};
+  Visitor v;
+  apply_visitor<void>(t1, v);
+  apply_visitor<void>(t2, v);
+  return 0;
+}
+```
+
+Visitors can take additional parameters and return a value :
+
+```
+struct Visitor {
+  int operator()(int v,int start) const {
+    return v + start;
+  }
+
+  int operator()(std::string const& v, int start) const {
+    return v.size() + start;
+  }
+};
+
+int main(void) {
+  using variant_t = variant<int,std::string>;
+  variant_t t1{1};
+  variant_t t2{"Roger"};
+  Visitor v;
+  std::cout << apply_visitor<int>(t1, v, 0) << "\n";
+  std::cout << apply_visitor<int>(t2, v, 1) << "\n";
+}
+```
+
+Visitors can have a state.
+
+```
+struct Visitor {
+  int sum = 0;
+  void operator()(int v) {
+    sum += v;
+  }
+};
+
+int main(void) {
+  using variant_t = variant<int>;
+  variant_t t1{1};
+  variant_t t2{2};
+  Visitor v;
+  apply_visitor<void>(t1, v);
+  apply_visitor<void>(t2, v);
+  std::cout << v.sum << "\n";
+}
+```
+
+Visitors can be defined close to where they are used by aggregating functions.
+
+```
+using variant_t = variant<int,std::string>;
+variant_t t1{1};
+variant_t t2{"Roger"};
+static const_funcptr_aggregate_visitor<bool, variant_t> is_string {
+  [](auto) { return false; },
+  [](auto) { return true; }
+};
+std::cout << apply_visitor<bool>(t1, is_string) << "\n";
+std::cout << apply_visitor<bool>(t2, is_string) << "\n";
+```
+
+`const_func_aggregate_visitor` can be used instead of `const_funcptr_aggregate_visitor` if you want to resolve to a `std::function` callable rather than a function pointer. Beware of the performance cost. Non-const versions `func_aggregate_visitor` and `funcptr_aggregate_visitor` are also available.
+
+*Tip*: Resolving generic lambdas to function pointers will only work if said lambdas and function pointers do not return `void`.
+
+*Tip*: Prefixing a lambda with the `+` symbol to force casting to a function pointer is not supported in MSVC.

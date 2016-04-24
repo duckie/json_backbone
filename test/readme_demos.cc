@@ -131,11 +131,11 @@ void demo3() {
 }
 
 struct Visitor {
-  void operator()(int v) {
+  void operator()(int v) const {
     std::cout << v << "\n";
   }
 
-  void operator()(std::string const& v) {
+  void operator()(std::string const& v) const {
     std::cout << v << "\n";
   }
 };
@@ -150,12 +150,12 @@ void demo4() {
 }
 
 struct Visitor2 {
-  int operator()(int v,int start) {
-    return v;
+  int operator()(int v,int start) const {
+    return v + start;
   }
 
-  int operator()(std::string const& v, int start) {
-    return v.size();
+  int operator()(std::string const& v, int start) const {
+    return v.size() + start;
   }
 };
 
@@ -164,8 +164,37 @@ void demo5() {
   variant_t t1{1};
   variant_t t2{"Roger"};
   Visitor2 v;
-  apply_visitor<int>(t1, v, (int)0);
-  apply_visitor<int>(t2, v, (int)0);
+  std::cout << apply_visitor<int>(t1, v, 0) << "\n";
+  std::cout << apply_visitor<int>(t2, v, 1) << "\n";
+}
+
+struct Visitor3 {
+  int sum = 0;
+  void operator()(int v) {
+    sum += v;
+  }
+};
+
+void demo6() {
+  using variant_t = variant<int>;
+  variant_t t1{1};
+  variant_t t2{2};
+  Visitor3 v;
+  apply_visitor<void>(t1, v);
+  apply_visitor<void>(t2, v);
+  std::cout << v.sum << "\n";
+}
+
+void demo7() {
+  using variant_t = variant<int,std::string>;
+  variant_t t1{1};
+  variant_t t2{"Roger"};
+  static const_funcptr_aggregate_visitor<bool, variant_t> is_string {
+    [](auto) { return false; },
+    [](auto) { return true; }
+  };
+  std::cout << apply_visitor<bool>(t1, is_string) << "\n";
+  std::cout << apply_visitor<bool>(t2, is_string) << "\n";
 }
 
 int main(void) {
@@ -173,4 +202,7 @@ int main(void) {
   demo2();
   demo3();
   demo4();
+  demo5();
+  demo6();
+  demo7();
 }
