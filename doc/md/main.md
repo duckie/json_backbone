@@ -34,8 +34,11 @@ The `variant`:
 * is not *LessThanComparable*.
 * is not *OutputStreamable*
 * is not *Hashable*
-* is implicitely convertible to any of its bounded types.
+* is explicitely convertible to any of its bounded types.
+* is implicitly convertible from any of its bounded types.
 * supports any constructor supported by one of its bounded types.
+* can be compared to another variant or a bounded type if all bounded types can be compared.
+* can be ordered if all bounded types can be ordered.
 
 Rules to select assignable types and valid constructors will be detailed in a dedicated section.
 
@@ -132,7 +135,7 @@ auto s2 = get<std::string>(v4);           // Equivalent to previous call
 auto s3 = v4.raw<std::string>();          // Access the data directly without any check
 auto s4 = raw<std::string>(v4);           // Equivalent to previous call
 
-std::string& s5 = v4;  // Makes use of conversion operators, throws if bad type
+std::string& s5 = static_cast<std::string&>(v4);
 
 bool is_string = v4.is<std::string>();  // Check actual type
 ```
