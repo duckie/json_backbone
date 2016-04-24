@@ -50,6 +50,11 @@ void demo1() {
   c["firstname"] = nullptr;               // Creates a null element
   c["firstname"] = "Marcel";              // This element becomes a string
 
+  view<json_container> v{c};
+  for(auto const& value : v) {
+    std::cout << " as int if convertible is " << v.as<int>() << "\n";
+  }
+
   // Dump to json
   std::ostringstream result_stream;
   //auto test_l1 = [] (auto x, auto y) { x - y; };
