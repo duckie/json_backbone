@@ -61,6 +61,16 @@ int main(void) {
   auto s1 = get<std::string>(c["name"]);  // is a string
   c["firstname"] = nullptr;               // Creates a null element
   c["firstname"] = "Marcel";              // This element becomes a string
+
+  auto v = make_view(c);
+  for (auto& value : v) {
+    std::cout << value.key() << " as int if convertible is " << value.as<int>() << "\n";
+  }
+
+  for (auto& value : v["children"]) {
+    std::cout << value["name"].as<std::string>() << " is " << value["age"].as<int>() << "\n";
+  }
+
   return 0;
 }
 ```

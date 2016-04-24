@@ -29,6 +29,7 @@ element_init<json_container> operator""_a(char const* name, size_t length) {
 TEST_CASE("View - converter", "[view][converter]") {
   REQUIRE(base_converter::convert<int>(1.0) == 1);
   REQUIRE(base_converter::convert<std::string>(1.0) == "");
+  REQUIRE(base_converter::convert<int>(std::string("1")) == 0);
 }
 
 TEST_CASE("View - access", "[view][access][runtime]") {
@@ -64,7 +65,7 @@ TEST_CASE("View - access", "[view][access][runtime]") {
     REQUIRE(std::string(v5) == "Jesabelle");
   }
 
-  SECTION("conversion"){
+  SECTION("conversion") {
     REQUIRE(static_cast<int>(1.92) == 1);
     REQUIRE(v["size"].get<double>() == 1.92);
     REQUIRE(v["size"].as<double>() == 1.92);
@@ -90,9 +91,7 @@ TEST_CASE("View - access", "[view][access][runtime]") {
     REQUIRE(it1 == v.end());
 
     std::ostringstream output;
-    for (auto& value : v) {
-      output << value.key();
-    }
+    for (auto& value : v) { output << value.key(); }
     REQUIRE(output.str() == "childrennamesizesubscribed");
   }
 
@@ -102,9 +101,9 @@ TEST_CASE("View - access", "[view][access][runtime]") {
 
     auto it_end = v2.end();
     bool result = (it_end == v2.end());
-    
+
     REQUIRE(it_end == v2.end());
-        
+
     auto it1 = v2.begin();
     REQUIRE(it1 == v2.begin());
 
@@ -119,9 +118,7 @@ TEST_CASE("View - access", "[view][access][runtime]") {
     REQUIRE(it1 == v2.end());
 
     std::ostringstream output;
-    for (auto& value : v2) {
-      output << value.get<std::string>();
-    }
+    for (auto& value : v2) { output << value.get<std::string>(); }
     REQUIRE(output.str() == "MarthaJesabelle");
   }
 }

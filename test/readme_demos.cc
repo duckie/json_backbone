@@ -25,7 +25,8 @@ element_init<json_container> operator""_a(char const* name, size_t length) {
 
 // Define a visitor helper
 struct recursive_printer
-    : public const_func_aggregate_visitor<void, json_container, recursive_printer const&, std::ostream&> {
+    : public const_func_aggregate_visitor<void, json_container, recursive_printer const&,
+                                          std::ostream&> {
   using const_func_aggregate_visitor<void, json_container, recursive_printer const&,
                                      std::ostream&>::const_func_aggregate_visitor;
 };
@@ -50,17 +51,19 @@ void demo1() {
   c["firstname"] = nullptr;               // Creates a null element
   c["firstname"] = "Marcel";              // This element becomes a string
 
-  view<json_container> v{c};
-  for(auto const& value : v) {
-    std::cout << " as int if convertible is " << v.as<int>() << "\n";
+  auto v = make_view(c);
+  for (auto& value : v) {
+    std::cout << value.key() << " as int if convertible is " << value.as<int>() << "\n";
+  }
+
+  for (auto& value : v["children"]) {
+    std::cout << value["name"].as<std::string>() << " is " << value["age"].as<int>() << "\n";
   }
 
   // Dump to json
   std::ostringstream result_stream;
-  //auto test_l1 = [] (auto x, auto y) { x - y; };
-  //auto test_f1 = static_cast<void(*)(int,int)>(test_l1);
-  //auto test_f2 = static_cast<void(*)(size_t,size_t)>(test_l1);
-   //Instantiate statically to avoid multiple creationc cost
+
+  // Instantiate statically to avoid multiple creationc cost
   static recursive_printer const printer{
       [](std::nullptr_t const& val, auto&, auto& out) { out << "null"; },
       [](bool val, auto&, auto& out) { out << (val ? "true" : "false"); },
@@ -130,19 +133,16 @@ void demo3() {
   auto s3 = v4.raw<std::string>();          // Access the data directly without any check
   auto s4 = raw<std::string>(v4);           // Equivalent to previous call
 
-  std::string& s5 = static_cast<std::string&>(v4);  // Makes use of conversion operators, throws if bad type
+  std::string& s5 =
+      static_cast<std::string&>(v4);  // Makes use of conversion operators, throws if bad type
 
   bool is_string = v4.is<std::string>();  // Check actual type
 }
 
 struct Visitor {
-  void operator()(int v) const {
-    std::cout << v << "\n";
-  }
+  void operator()(int v) const { std::cout << v << "\n"; }
 
-  void operator()(std::string const& v) const {
-    std::cout << v << "\n";
-  }
+  void operator()(std::string const& v) const { std::cout << v << "\n"; }
 };
 
 void demo4() {
@@ -155,17 +155,13 @@ void demo4() {
 }
 
 struct Visitor2 {
-  int operator()(int v,int start) const {
-    return v + start;
-  }
+  int operator()(int v, int start) const { return v + start; }
 
-  int operator()(std::string const& v, int start) const {
-    return v.size() + start;
-  }
+  int operator()(std::string const& v, int start) const { return v.size() + start; }
 };
 
 void demo5() {
-  using variant_t = variant<int,std::string>;
+  using variant_t = variant<int, std::string>;
   variant_t t1{1};
   variant_t t2{"Roger"};
   Visitor2 v;
@@ -175,9 +171,7 @@ void demo5() {
 
 struct Visitor3 {
   int sum = 0;
-  void operator()(int v) {
-    sum += v;
-  }
+  void operator()(int v) { sum += v; }
 };
 
 void demo6() {
@@ -191,13 +185,11 @@ void demo6() {
 }
 
 void demo7() {
-  using variant_t = variant<int,std::string>;
+  using variant_t = variant<int, std::string>;
   variant_t t1{1};
   variant_t t2{"Roger"};
-  static const_funcptr_aggregate_visitor<bool, variant_t> is_string {
-    [](auto) { return false; },
-    [](auto) { return true; }
-  };
+  static const_funcptr_aggregate_visitor<bool, variant_t> is_string{[](auto) { return false; },
+                                                                    [](auto) { return true; }};
   std::cout << apply_visitor<bool>(t1, is_string) << "\n";
   std::cout << apply_visitor<bool>(t2, is_string) << "\n";
 }

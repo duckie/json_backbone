@@ -1187,7 +1187,6 @@ struct base_converter {
   template <class Target, class Source,
             class Enable = std::enable_if_t<std::is_convertible<Source, Target>::value, void>>
   static Target convert(Source&& value) {
-    // Static cast is used to swallow warnings with arithmetic types
     return static_cast<Target>(std::forward<Source>(value));
   }
 
