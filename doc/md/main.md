@@ -229,3 +229,33 @@ std::cout << apply_visitor<bool>(t2, is_string) << "\n";
 *Tip*: Resolving generic lambdas to function pointers will only work if said lambdas and function pointers do not return `void`.
 
 *Tip*: Prefixing a lambda with the `+` symbol to force casting to a function pointer is not supported in MSVC.
+
+### Recursive variant
+
+As in `boost::variant`, you can define recursive variants.
+
+```c++
+namespace {
+struct add;
+struct sub;
+template <typename OpTag>
+struct binary_op;
+
+using expression =
+    variant<int, recursive_wrapper<binary_op<add>>, recursive_wrapper<binary_op<sub>>>;
+
+template <typename OpTag>
+struct binary_op {
+  expression left;
+  expression right;
+
+  binary_op(const expression& lhs, const expression& rhs) : left(lhs), right(rhs) {}
+};
+}
+```
+
+## `json_backbone::container`
+
+
+A `container` is a recursive `variant` aggregating an *Associative* container of (pointers to) itself, a *RandomAccess* container of (pointers to) itself, and any set of other bounded types. It is meant to ease representing data structure similar to `json`. Along with integrated
+
