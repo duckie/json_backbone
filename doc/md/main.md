@@ -229,3 +229,185 @@ std::cout << apply_visitor<bool>(t2, is_string) << "\n";
 *Tip*: Resolving generic lambdas to function pointers will only work if said lambdas and function pointers do not return `void`.
 
 *Tip*: Prefixing a lambda with the `+` symbol to force casting to a function pointer is not supported in MSVC.
+
+### Recursive variant
+
+As in `boost::variant`, you can define recursive variants.
+
+```c++
+namespace {
+struct add;
+struct sub;
+template <typename OpTag>
+struct binary_op;
+
+using expression =
+    variant<int, recursive_wrapper<binary_op<add>>, recursive_wrapper<binary_op<sub>>>;
+
+template <typename OpTag>
+struct binary_op {
+  expression left;
+  expression right;
+
+  binary_op(const expression& lhs, const expression& rhs) : left(lhs), right(rhs) {}
+};
+}
+```
+
+## `json_backbone::container`
+
+A `container` is a recursive `variant` aggregating an *Associative* container of (pointers to) itself, a *RandomAccess* container of (pointers to) itself, and any set of other bounded types. It is meant to ease representing data structure similar to `json`. Along with the same API than the variant, the container offers `operator[]` and `at` for the *RandomAccess* container, and also the *Associative* container provided that the key type is not integral.
+
+```c++
+// Declare a container
+using json_container = container<std::map,        // User's choice of associative container
+                                 std::vector,     // User's choice of random access container
+                                 std::string,     // key_type for the associative container
+                                 std::nullptr_t,  // A type an element could take
+                                 bool,            // A type an element could take
+                                 int,             // A type an element could take
+                                 double,          // A type an element could take
+                                 std::string      // A type an element could take
+                                 >;
+int main() {
+  // Creates a container initialized with an empty object
+  json_container c{json_container::object_type{}};
+
+  // Assign values from bounded types
+  c["host"] = "thepizzabay.eat";
+  c["port"] = 666;
+}
+```
+
+### JSON like notation
+
+A container can be initialized with a recursive syntax close to JSON. To do so, you shall define a user defined string literal returning a special object. Here is an example:
+
+```c++
+element_init<json_container> operator""_a(char const* name, size_t length) {
+  return json_container::key_type{name, length};
+}
+```
+
+The `element_init` template class is specifically designed to do so, but `json_backbone` let you make the choices about the extension you would like to use. Use `make_array` and `make_object` functions to finish it:
+
+
+```c++
+auto c = make_object({"name"_a = "Roger",     //
+                      "size"_a = 1.92,        //
+                      "subscribed"_a = true,  //
+                      "children"_a = make_array({make_object({
+                                                     "name"_a = "Martha",  //
+                                                     "age"_a = 6           //
+                                                 }),
+                                                 make_object({
+                                                     "name"_a = "Jesabelle",  //
+                                                     "age"_a = 8              //
+                                                 })}),
+                      "grades"_a = make_array<json_container>({1, true, "Ole"})});
+
+```
+
+You may notice that the last call to `make_array` is explicitely specialized. Previous calls to either `make_array` or `make_object` took lists containing instances of `element_init<json_container>` as arguments, thus could resolve the type. This last call is only initialized with bounded types, so must be explicitely targeted to the desired container.
+
+### Modifying bounded collections
+
+Container provides `get_object` to reference the *Associative* inner container and `get_array` to reference the inner *RandomAccess* container. If you want to modify them, with another API than the `at` member function or the `[]`, you must rely on the implementation of said containers. Modification rationales change from a container type to another, and `container` tries to stay agnostic on this regard.
+
+## `json_backbone::view`
+
+The view is a facility to browse a container content. Any view is readonly. Views provide services to iterate over container elements and convert bounded types to other. Views have the same API than containers (but only `const` versions), and additional for iteration and conversion. Views are small and cheap to create and copy.
+
+```c++
+json_container c{json_container::object_type{}};
+auto v = make_view(c);
+auto host = v["host"].get<std::string>();
+auto port = v["port"].get<int>();
+```
+
+## Loose behavior
+
+Views are designed not to raise exceptions when the container does not contain what is expected. A view can be empty.
+
+```c++
+auto whatnot = v["host"]["protocol"]["wut"];
+assert(whatnot.empty());
+```
+
+## Conversion
+
+When trying to get data from a view that does not contain the expected type, the converter is used. The default converter behaves as follows : if the view is not empty and the contained bounded type is convertible to the requested type (that is, if `std::is_convertible<ContainedType, RequestedType>::value` is `true`), then the contained type is statically casted to the requested type. Otherwise, the default value of the requested type is returned.
+
+```
+auto port = v["port"].get<size_t>(); // Convertible, returns static_cast<size_t>(v["port"].get<int>());
+auto inthost = v["host"].get<int>(); // Not convertible, returns 0
+```
+
+The default converter can be replaced by one of your own, for instance, if you want to support conversion from string to integer types and the other way around.
+
+## Iteration
+
+Views provide an easy way to iterate over containers whatever they contain.
+
+```c++
+for(auto element : v) {
+  std::cout << element.key() << " == ";
+
+  if (element.is<int>())
+    std::cout << element.get<int>();
+
+  if (element.is<std::string>())
+    std::cout << element.get<std::string>();
+
+  std::cout << "\n";
+}
+```
+
+If the view is neither an object or an array, the loop will silently go over zero iteration. If the view contains an array, a call to `view<>::key()` will raise an exception. In any case, `element` in the previous example is a view itself.
+
+## Visiting
+
+To write more advanced browsing patterns, like dumping to JSON for instance, you can use a visitor:
+
+```c++
+struct json_serializer {
+  std::ostringstream& output;
+
+  json_serializer(std::ostringstream& o) : output(o) {}
+
+  void operator()(json_container::object_type const& value) {
+    output << "{";
+    loop_separator sep;
+    for (auto& v : value) {
+      output << sep << "\"" << v.first << "\":";
+      apply_visitor<void>(v.second, *this);
+    }
+    output << "}";
+  }
+
+  void operator()(json_container::array_type const& value) {
+    output << "[";
+    loop_separator sep;
+    for (auto& v : value) {
+      output << sep;
+      apply_visitor<void>(v, *this);
+    }
+    output << "]";
+  }
+
+  void operator()(std::string const& value) { output << '"' << value << '"'; }
+
+  void operator()(std::nullptr_t const&) { output << "null"; }
+
+  template <class T>
+  void operator()(T const& value) {
+    output << value;
+  }
+};
+
+int main() {
+  std::ostringstream result_stream;
+  json_serializer visitor{result_stream};
+  apply_visitor<void>(c, visitor);
+}
+```
