@@ -33,13 +33,8 @@ add_project_test(container CATCH)
 add_project_test(static CATCH)
 add_project_test(readme_demos)
 
-#add_nc_test(unit_tests_boost_spirit GT $<TARGET_OBJECTS:json_backbone_boost>)
-#add_nc_test(perf_json_serialize $<TARGET_OBJECTS:json_backbone_boost>)
-#add_nc_test(container_default GT)
 if (${RAPIDJSON_FOUND})
   include_directories(${RAPIDJSON_INCLUDE_DIRS})
-  #add_nc_test(container_rapidjson GT)
-  #add_nc_test(perf_json_parse $<TARGET_OBJECTS:json_backbone_boost>)
 endif()
 
 # Bundle all tests in one executable. No problem witch catch tags
