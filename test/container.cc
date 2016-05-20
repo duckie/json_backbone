@@ -7,9 +7,7 @@
 #include <vector>
 #include <map>
 #include <type_traits>
-//#include <json_backbone/externalize.hpp>
 
-// using json_container = json_bac
 using namespace json_backbone;
 
 // Declare a container specifically tailored for JSON data
@@ -23,6 +21,7 @@ using json_container = container<std::map,        // User's choice of associativ
                                  std::string      // A type an element could take
                                  >;
 
+namespace {
 element_init<json_container> operator""_a(char const* name, size_t length) {
   return json_container::key_type{name, length};
 }
@@ -40,6 +39,7 @@ struct loop_separator {
 std::ostream& operator<<(std::ostream& out, loop_separator& sep) {
   out << (sep ? sep.sep : "");
   return out;
+}
 }
 
 TEST_CASE("Container - access", "[container][access][runtime]") {
@@ -67,7 +67,7 @@ TEST_CASE("Container - access", "[container][access][runtime]") {
     REQUIRE(std::string(c1) == "Roger");
     REQUIRE(double(c2) == 1.92);
     REQUIRE((c3 ? true : false));  // Odd but needed for GCC to compile here
-    REQUIRE(c4.get<json_container::array_type>().size());
+    REQUIRE(c4.get<json_container::array_type>().size() != 0);
 
     auto& c5 = c4[1];
     REQUIRE(c5.is<std::string>());
@@ -85,7 +85,7 @@ struct visitor_test_01 {
     loop_separator sep;
     for (auto& v : value) {
       output << sep << "\"" << v.first << "\":";
-      apply_visitor(v.second, *this);
+      apply_visitor<void>(v.second, *this);
     }
     output << "}";
   }
@@ -95,7 +95,7 @@ struct visitor_test_01 {
     loop_separator sep;
     for (auto& v : value) {
       output << sep;
-      apply_visitor(v, *this);
+      apply_visitor<void>(v, *this);
     }
     output << "]";
   }
@@ -110,10 +110,11 @@ struct visitor_test_01 {
   }
 };
 
+// CRTP used here so no "using" possible
 struct recursive_printer
-    : public const_func_aggregate_visitor<json_container, recursive_printer const&,
+    : public const_func_aggregate_visitor<void, json_container, recursive_printer const&,
                                           std::ostringstream&> {
-  using const_func_aggregate_visitor<json_container, recursive_printer const&,
+  using const_func_aggregate_visitor<void, json_container, recursive_printer const&,
                                      std::ostringstream&>::const_func_aggregate_visitor;
 };
 
@@ -150,17 +151,29 @@ TEST_CASE("Container - creation", "[container][access][runtime]") {
   SECTION("Apply visitor") {
     std::ostringstream result_stream;
     visitor_test_01 visitor{result_stream};
-    apply_visitor(c, visitor);
+    apply_visitor<void>(c, visitor);
     REQUIRE(
         result_stream.str() ==
         R"json({"children":[{"age":6,"name":"Martha"},{"age":8,"name":"Jesabelle"}],"grades":[1,1,"Ole"],"name":"Roger","size":1.92,"subscribed":1})json");
   }
 
-  SECTION("Apply aggregate visitor") {
+  SECTION("Apply aggregate visitor 2") {
+    const_func_aggregate_visitor<int, json_container> aggregate {
+      [](std::nullptr_t const& val) { return 0; },
+      [](bool val) { return 1; },
+      [](int val) { return 2; },
+      [](double val) { return 3; },
+      [](auto const& str) { return 4; },
+      [](auto const& arr) { return 5; },
+      [](auto const& obj) { return 6; }
+    };
+  }
+
+  SECTION("Apply aggregate visitor 2") {
     std::ostringstream result_stream;
     // Instantiate only once
     static recursive_printer const printer{
-        [](std::nullptr_t val, auto&, auto& out) { out << "null"; },
+        [](std::nullptr_t const& val, auto&, auto& out) { out << "null"; },
         [](bool val, auto&, auto& out) { out << (val ? "true" : "false"); },
         [](int val, auto&, auto& out) { out << val; },
         [](double val, auto&, auto& out) { out << val; },
@@ -170,7 +183,7 @@ TEST_CASE("Container - creation", "[container][access][runtime]") {
           loop_separator sep;
           for (auto& v : arr) {
             out << sep;
-            apply_visitor(v, self, self, out);
+            apply_visitor<void>(v, self, self, out);
           }
           out << "]";
         },
@@ -179,12 +192,12 @@ TEST_CASE("Container - creation", "[container][access][runtime]") {
           loop_separator sep;
           for (auto& v : obj) {
             out << sep << "\"" << v.first << "\":";
-            apply_visitor(v.second, self, self, out);
+            apply_visitor<void>(v.second, self, self, out);
           }
           out << "}";
         }};
 
-    apply_visitor(c, printer, printer, result_stream);
+    apply_visitor<void>(c, printer, printer, result_stream);
 
     REQUIRE(
         result_stream.str() ==

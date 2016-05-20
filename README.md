@@ -8,7 +8,12 @@ Json backbone
 * An helper to create recursive variants through a *Associative* container and a *RandomAccess* container.
 * A view interface to loosely visit a structure without exceptions.
 
-`json_backbone` can be used to built JSON support, BSON support or any other reduced or extended versions of those. `json_backbone` is shipped as a single header without any library to build. The implementation do not use RTTI, virtuality, nor any pre-processor trick.
+`json_backbone` can be used to built JSON support, BSON support or any other reduced or extended versions of those. `json_backbone` is shipped as a single header without any library to build. The implementation do not use RTTI nor any pre-processor trick.
+
+`json_backbone` is known to compile on:
+* GCC 5.3.0
+* Clang 3.7.1
+* MSVC 2015 Update 2 (00322-20000-00000-AA744)
 
 A quick example :
 
@@ -56,6 +61,16 @@ int main(void) {
   auto s1 = get<std::string>(c["name"]);  // is a string
   c["firstname"] = nullptr;               // Creates a null element
   c["firstname"] = "Marcel";              // This element becomes a string
+
+  auto v = make_view(c);
+  for (auto& value : v) {
+    std::cout << value.key() << " as int if convertible is " << value.as<int>() << "\n";
+  }
+
+  for (auto& value : v["children"]) {
+    std::cout << value["name"].as<std::string>() << " is " << value["age"].as<int>() << "\n";
+  }
+
   return 0;
 }
 ```

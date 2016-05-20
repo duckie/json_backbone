@@ -30,11 +30,12 @@ The `variant`:
 * is *CopyConstructible* and *MoveConstructible*.
 * is *Assignable* from every *Assignable* bounded types and every type convertible to a bounded type.
 * is *MoveAssignable* from every *MoveAssignable* bounded types and every type convertible to a bounded type.
-* is not *EqualityComparable*.
-* is not *LessThanComparable*.
+* is *EqualityComparable* if all bounded types are *EqualityComparable*.
+* is *LessThanComparable* if all bounded types are *LessThanComparable*.
 * is not *OutputStreamable*
 * is not *Hashable*
-* is implicitely convertible to any of its bounded types.
+* is explicitely convertible to any of its bounded types.
+* is implicitly convertible from any of its bounded types.
 * supports any constructor supported by one of its bounded types.
 
 Rules to select assignable types and valid constructors will be detailed in a dedicated section.
@@ -132,10 +133,99 @@ auto s2 = get<std::string>(v4);           // Equivalent to previous call
 auto s3 = v4.raw<std::string>();          // Access the data directly without any check
 auto s4 = raw<std::string>(v4);           // Equivalent to previous call
 
-std::string& s5 = v4;  // Makes use of conversion operators, throws if bad type
+std::string& s5 = static_cast<std::string&>(v4);
 
 bool is_string = v4.is<std::string>();  // Check actual type
 ```
 
 Other ways of investigating the actual type will be covered in the visiting part.
 
+### Visiting
+
+Data can be visited with a callable implementing one overload for each bounded type. An example:
+
+```c++
+struct Visitor {
+  void operator()(int v) const {
+    std::cout << v << "\n";
+  }
+
+  void operator()(std::string const& v) const {
+    std::cout << v << "\n";
+  }
+};
+
+int main(void) {
+  using variant_t = variant<int, std::string>;
+  variant_t t1{1};
+  variant_t t2{"Roger"};
+  Visitor v;
+  apply_visitor<void>(t1, v);
+  apply_visitor<void>(t2, v);
+  return 0;
+}
+```
+
+Visitors can take additional parameters and return a value :
+
+```c++
+struct Visitor {
+  int operator()(int v,int start) const {
+    return v + start;
+  }
+
+  int operator()(std::string const& v, int start) const {
+    return v.size() + start;
+  }
+};
+
+int main(void) {
+  using variant_t = variant<int,std::string>;
+  variant_t t1{1};
+  variant_t t2{"Roger"};
+  Visitor v;
+  std::cout << apply_visitor<int>(t1, v, 0) << "\n";
+  std::cout << apply_visitor<int>(t2, v, 1) << "\n";
+}
+```
+
+Visitors can have a state.
+
+```c++
+struct Visitor {
+  int sum = 0;
+  void operator()(int v) {
+    sum += v;
+  }
+};
+
+int main(void) {
+  using variant_t = variant<int>;
+  variant_t t1{1};
+  variant_t t2{2};
+  Visitor v;
+  apply_visitor<void>(t1, v);
+  apply_visitor<void>(t2, v);
+  std::cout << v.sum << "\n";
+}
+```
+
+Visitors can be defined close to where they are used by aggregating functions.
+
+```c++
+using variant_t = variant<int,std::string>;
+variant_t t1{1};
+variant_t t2{"Roger"};
+static const_funcptr_aggregate_visitor<bool, variant_t> is_string {
+  [](auto) { return false; },
+  [](auto) { return true; }
+};
+std::cout << apply_visitor<bool>(t1, is_string) << "\n";
+std::cout << apply_visitor<bool>(t2, is_string) << "\n";
+```
+
+`const_func_aggregate_visitor` can be used instead of `const_funcptr_aggregate_visitor` if you want to resolve to a `std::function` callable rather than a function pointer. Beware of the performance cost. Non-const versions `func_aggregate_visitor` and `funcptr_aggregate_visitor` are also available.
+
+*Tip*: Resolving generic lambdas to function pointers will only work if said lambdas and function pointers do not return `void`.
+
+*Tip*: Prefixing a lambda with the `+` symbol to force casting to a function pointer is not supported in MSVC.
