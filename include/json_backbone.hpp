@@ -1006,6 +1006,7 @@ const_func_aggregate_visitor<variant<Value...>> make_visitor(
 //
 // The base converter does nothing except constructing the default value
 // of the target
+//
 struct base_converter {
   template <class Target, class Source>
   Target operator()(Source&&) const & {
@@ -1016,11 +1017,9 @@ struct base_converter {
 //
 // view is a contant non-owning view of a container
 //
-// The principle is similiar to std::experimental::string_view
+// The principle is similar to std::experimental::string_view
 // The goal is to read through a container without generating exceptions if
-// this is possible
-// in case of missing keys or type mismatch
-//
+// this is possible in case of missing keys or type mismatch
 //
 template <class Container, class Converter = base_converter>
 class view {
