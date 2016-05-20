@@ -1,9 +1,10 @@
 #include <iostream>
 #include <json_backbone.hpp>
-#include <vector>
 #include <map>
-#include <string>
 #include <sstream>
+#include <string>
+#include <vector>
+#include <cassert>
 
 using namespace json_backbone;
 
@@ -194,6 +195,31 @@ void demo7() {
   std::cout << apply_visitor<bool>(t2, is_string) << "\n";
 }
 
+void doc_demo1() {
+  json_container c{json_container::object_type{}};
+  c["host"] = "thepizzabay.eat";
+  c["port"] = 666;
+
+  auto v = make_view(c);
+  auto host = v["host"].get<std::string>();
+  auto port = v["port"].get<int>();
+
+  auto whatnot = v["host"]["protocol"]["wut"];
+  assert(whatnot.empty());
+
+  for(auto element : v) {
+    std::cout << element.key() << " == ";
+
+    if (element.is<int>())
+      std::cout << element.get<int>();
+
+    if (element.is<std::string>())
+      std::cout << element.get<std::string>();
+
+    std::cout << "\n";
+  }
+}
+
 int main(void) {
   demo1();
   demo2();
@@ -202,4 +228,5 @@ int main(void) {
   demo5();
   demo6();
   demo7();
+  doc_demo1();
 }
