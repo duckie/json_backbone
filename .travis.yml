@@ -156,7 +156,6 @@ before_script:
 script:
   - make -j2
   - ctest -V
-  - ./bin/runcppproject
 
 after_success:
   - |
