@@ -1,33 +1,51 @@
-cmake_minimum_required(VERSION 2.8)
+# C++ Project template
+#
+# Proudly bootstrapped by git@github.com:duckie/cpp_project_template.git
+#
+
+# Version guard
+cmake_minimum_required (VERSION 3.2)
+
+# Cmake modules
+include(CheckCXXSourceCompiles)
 include(CheckCXXCompilerFlag)
+list(APPEND CMAKE_MODULE_PATH "${CMAKE_CURRENT_LIST_DIR}/cmake")
+include(ProjectGlobalMacros)
+include(ProjectTestFunctions)
 
-project(CppNestedContainer)
+# Project configuration
+project (json_backbone)
 enable_testing()
+set(CMAKE_VERBOSE_MAKEFILE OFF)
 
-include_directories(
-  ${PROJECT_SOURCE_DIR}/include/
-  ${PROJECT_SOURCE_DIR}/src/
-  ${PROJECT_SOURCE_DIR}/test/
-  ${PROJECT_BINARY_DIR}/include/
-  ${PROJECT_BINARY_DIR}/src/
-  ${PROJECT_BINARY_DIR}/test/
-)
-
-# Referencing local modules
-set(CMAKE_MODULE_PATH ${PROJECT_SOURCE_DIR}/test/cmake)
-
-# C++14 is a requirement here
-if (NOT MSVC)
-  check_cxx_compiler_flag(-std=c++1y HAVE_STD_CPP14_FLAG)
-  if (HAVE_STD_CPP14_FLAG)
-    set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -std=c++1y")
-  else()
-    message(FATAL_ERROR "Your compiler must support at least C++14 to compile ${PROJECT_NAME}.")
-  endif()
+# Check for C++11/14 support
+project_check_cpp_version()
+if (NOT CPP14_SUPPORT)
+  message(FATAL_ERROR "C++14 support is required.")
 endif()
 
-if ("${CMAKE_CXX_COMPILER_ID}" STREQUAL "Clang")
-  set(CMAKE_CXX_FLAGS "${CMAKE_CXX_FLAGS} -fcolor-diagnostics")
-endif()
+# Trace compilation for tools (ex: YouCompleteMe)
+set(CMAKE_EXPORT_COMPILE_COMMANDS 1)
+configure_file(${PROJECT_SOURCE_DIR}/cmake/BuildConfig.json.in ${PROJECT_SOURCE_DIR}/BuildConfig.json)
+
+# Tooling - some must be declared before adding other subdirectories
+project_enable_coverage_build()
+project_enable_sanitizer_build()
+project_enable_clang_format()
+project_enable_documentation()
+
+# Generate configuration
+
+
+### MANUAL_INCLUDE_DIRS is useful to force ides to find some includes (useless for compilation) ###
+### To be used by editing the cache manually
+include_directories(${MANUAL_INCLUDE_DIRS})
+include_directories(include)
+
+project_add_3rdparty(catch)
+
+# By default we put binaries into this directory
+set(CMAKE_RUNTIME_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/bin)
+set(CMAKE_LIBRARY_OUTPUT_DIRECTORY ${PROJECT_BINARY_DIR}/lib)
 
 add_subdirectory(test)
