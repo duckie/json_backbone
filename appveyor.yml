@@ -12,7 +12,7 @@ os: Visual Studio 2015
 init:
 
 # clone directory
-clone_folder: c:\projects\cppproject
+clone_folder: c:\projects\json_backbone
 
 platform: x64
 
@@ -33,7 +33,7 @@ build_script:
   - cmake -LA -G "Visual Studio 14 Win64"
     -DCMAKE_BUILD_TYPE=%config%
     ..
-  - msbuild cppproject.sln /p:Configuration=%config% /toolsversion:14.0 /p:Platform=x64 /p:PlatformToolset=v140
+  - msbuild json_backbone.sln /p:Configuration=%config% /toolsversion:14.0 /p:Platform=x64 /p:PlatformToolset=v140
   #- cmake .. -LA -G "NMake Makefiles"
     #-DCMAKE_BUILD_TYPE=%config%
   #- nmake
