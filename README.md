@@ -1,6 +1,11 @@
 Json backbone
 ==================
 
+[![Travis CI Build Status](https://api.travis-ci.org/duckie/json_backbone.svg?branch=master)](https://travis-ci.org/duckie/json_backbone)
+[![Appveyor Build status](https://ci.appveyor.com/api/projects/status/8giggolig0ur8wdu?svg=true)](https://ci.appveyor.com/project/duckie/json-backbone)
+[![codecov.io](http://codecov.io/github/duckie/json_backbone/coverage.svg?branch=master)](http://codecov.io/github/duckie/json_backbone?branch=master)
+[![Documentation Status](https://readthedocs.org/projects/json-backbone/badge/?version=latest)](http://json-backbone.readthedocs.io/en/latest/?badge=latest)
+
 `json_backbone` is a C++14 container to hold dynamically structured data. `json_backbone` is easy to use, generic and type safe.
 
 `json_backbone` is made of three main parts:
