@@ -1,4 +1,8 @@
-build
-*~
+**.pyc
+**.pyo
 *.swp
-
+*~
+/build/
+/docs/doxygen/build/
+/docs/sphinx/build/
+BuildConfig.json
