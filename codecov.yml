@@ -1,6 +1,13 @@
 coverage:
   ignore:
     - "3rdparty/**/*"
+  parsers:
+    gcov:
+      branch_detection:
+        macro: no
+        loop: yes
+        conditional: no
+        method: no
 codecov:
   ci:
     - "!circleci.com"
