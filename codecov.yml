@@ -5,7 +5,7 @@ coverage:
     gcov:
       branch_detection:
         macro: no
-        loop: yes
+        loop: no
         conditional: no
         method: no
 codecov:
