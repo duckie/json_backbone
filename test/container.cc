@@ -49,7 +49,7 @@ TEST_CASE("Container - access", "[container][access][runtime]") {
                                    {"subscribed", true},  //
                                    {
                                        "children",                                        //
-                                       json_container::array_type{"Martha", "Jesabelle"}  //
+                                       json_container::array_type{"Martha", "Jesabelle", nullptr}  //
                                    }}}};
 
   SECTION("operators []") {
@@ -130,7 +130,8 @@ TEST_CASE("Container - creation", "[container][access][runtime]") {
                                                        "name"_a = "Jesabelle",  //
                                                        "age"_a = 8              //
                                                    })}),
-                        "grades"_a = make_array<json_container>({1, true, "Ole"})});
+                        "grades"_a = make_array<json_container>({1, true, "Ole"}),
+                        "null"_a = nullptr });
 
   SECTION("operators []") {
     c["children"][1]["name"] = "Jesabel";
@@ -146,6 +147,17 @@ TEST_CASE("Container - creation", "[container][access][runtime]") {
     REQUIRE(c["children"].get_array()[1]["name"].get<std::string>() == "Jesabel");
     REQUIRE(c["children"].get_array()[1]["age"].get<int>() == 8);
     REQUIRE(c["children"].get_array()[1]["size"].get<double>() == 1.28);
+
+    // at
+    REQUIRE(c["children"].at(1)["name"].get<std::string>() == "Jesabel");
+    REQUIRE(c["children"].at(1)["age"].get<int>() == 8);
+    REQUIRE(c["children"].at(1)["size"].get<double>() == 1.28);
+
+    // const version
+    json_container const& c2 = c;
+    REQUIRE(c2["children"].at(1)["name"].get<std::string>() == "Jesabel");
+    REQUIRE(c2["children"].at(1)["age"].get<int>() == 8);
+    REQUIRE(c2["children"].at(1)["size"].get<double>() == 1.28);
   }
 
   SECTION("Apply visitor") {
@@ -154,19 +166,7 @@ TEST_CASE("Container - creation", "[container][access][runtime]") {
     apply_visitor<void>(c, visitor);
     REQUIRE(
         result_stream.str() ==
-        R"json({"children":[{"age":6,"name":"Martha"},{"age":8,"name":"Jesabelle"}],"grades":[1,1,"Ole"],"name":"Roger","size":1.92,"subscribed":1})json");
-  }
-
-  SECTION("Apply aggregate visitor 2") {
-    const_func_aggregate_visitor<int, json_container> aggregate {
-      [](std::nullptr_t const& val) { return 0; },
-      [](bool val) { return 1; },
-      [](int val) { return 2; },
-      [](double val) { return 3; },
-      [](auto const& str) { return 4; },
-      [](auto const& arr) { return 5; },
-      [](auto const& obj) { return 6; }
-    };
+        R"json({"children":[{"age":6,"name":"Martha"},{"age":8,"name":"Jesabelle"}],"grades":[1,1,"Ole"],"name":"Roger","null":null,"size":1.92,"subscribed":1})json");
   }
 
   SECTION("Apply aggregate visitor 2") {
@@ -201,6 +201,28 @@ TEST_CASE("Container - creation", "[container][access][runtime]") {
 
     REQUIRE(
         result_stream.str() ==
-        R"json({"children":[{"age":6,"name":"Martha"},{"age":8,"name":"Jesabelle"}],"grades":[1,true,"Ole"],"name":"Roger","size":1.92,"subscribed":true})json");
+        R"json({"children":[{"age":6,"name":"Martha"},{"age":8,"name":"Jesabelle"}],"grades":[1,true,"Ole"],"name":"Roger","null":null,"size":1.92,"subscribed":true})json");
+  }
+
+  SECTION("Bas accesses") {
+      json_container c2{1};
+      REQUIRE_THROWS_AS(c2["test"], bad_container_object_access);
+      REQUIRE_THROWS_AS(c2.at(0), bad_container_array_access);
+     
+      // Same with const
+      json_container const& c3 = c2;
+      REQUIRE_THROWS_AS(c3["test"], bad_container_object_access);
+      REQUIRE_THROWS_AS(c3.at(0), bad_container_array_access);
+
+      // For non exisiting key
+      json_container const& c4 = c;
+      REQUIRE_THROWS_AS(c4["test"], bad_container_object_access);
+  }
+
+  SECTION("Copy from reference") {
+      json_container const& cref  = c;
+      json_container c2 {};
+      c2 = cref;
+      CHECK(c2["children"].at(1)["age"].get<int>() == 8);
   }
 }

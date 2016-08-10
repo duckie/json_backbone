@@ -45,7 +45,8 @@ void demo1() {
                                                        "name"_a = "Jesabelle",  //
                                                        "age"_a = 8              //
                                                    })}),
-                        "grades"_a = make_array<json_container>({1, true, "Ole"})});
+                        "grades"_a = make_array<json_container>({1, true, "Ole"}),
+                        "null"_a = nullptr});
 
   // Play with it
   auto s1 = get<std::string>(c["name"]);  // is a string

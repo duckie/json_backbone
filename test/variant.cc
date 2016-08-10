@@ -244,6 +244,17 @@ struct binary_op {
 };
 }
 
+TEST_CASE("Variant - bad accesses", "[variant][runtime]") {
+  json_container c{1};
+  REQUIRE_THROWS_AS(c.get<bool>(), bad_variant_access);
+  REQUIRE_THROWS_AS(c.get<typename json_container::object_type>(), bad_variant_access);
+ 
+  // Same with const
+  json_container const& c2 = c;
+  REQUIRE_THROWS_AS(c2.get<bool>(), bad_variant_access);
+  REQUIRE_THROWS_AS(c2.get<typename json_container::object_type>(), bad_variant_access);
+}
+
 TEST_CASE("Variant - Automatic recursion", "[variant][construct][runtime][recursion]") {
   expression exp1{1};
   expression exp2{2};

@@ -33,14 +33,12 @@ TEST_CASE("View - converter", "[view][converter]") {
 }
 
 TEST_CASE("View - access", "[view][access][runtime]") {
-  json_container c{
-      json_container::object_type{{{"name", "Roger"},     //
-                                   {"size", 1.92},        //
-                                   {"subscribed", true},  //
-                                   {
-                                       "children",                                        //
-                                       json_container::array_type{"Martha", "Jesabelle"}  //
-                                   }}}};
+  auto c = make_object({
+      "name"_a = "Roger",                                               //
+      "size"_a = 1.92,                                                  //
+      "subscribed"_a = true,                                            //
+      "children"_a = json_container::array_type{"Martha", "Jesabelle"}  //
+  });
 
   auto v = make_view(c);
   SECTION("operators []") {
@@ -63,6 +61,14 @@ TEST_CASE("View - access", "[view][access][runtime]") {
     auto v5 = v4[1];
     REQUIRE(v5.is<std::string>());
     REQUIRE(std::string(v5) == "Jesabelle");
+
+    auto v6 = v5[0];
+    CHECK(v6.empty());
+
+    // Access to empty view
+    CHECK_THROWS_AS(v6.get<std::string>(), bad_view_access);
+    int i1 = v6.as<int>();
+    CHECK(i1 == 0);
   }
 
   SECTION("conversion") {
@@ -113,12 +119,20 @@ TEST_CASE("View - access", "[view][access][runtime]") {
       REQUIRE(it1 != v2.end());
     }
 
-    ++it1;
+    it1++;
     REQUIRE(it1 != v2.begin());
     REQUIRE(it1 == v2.end());
 
     std::ostringstream output;
     for (auto& value : v2) { output << value.get<std::string>(); }
     REQUIRE(output.str() == "MarthaJesabelle");
+  }
+
+  SECTION("iterator over not object nor array") {
+    auto v2 = v["size"];
+    auto begin = v2.begin();
+    auto end = v2.end();
+    CHECK(begin == end);
+    CHECK(begin == view_iterator<view<json_container>>());
   }
 }
