@@ -7,6 +7,7 @@
 #include <limits>
 #include <array>
 #include <initializer_list>
+#include <tuple>
 
 namespace json_backbone {
 //
@@ -35,7 +36,7 @@ struct is_complete {
 
 // Recursive helper - any incomplete type is considered recursive (broken on Clang)
 template <class T>
-struct recursive_wrapper;
+struct recursive_wrapper {};  // Instantiated to make noexcept rules to compile with the tuple trick
 template <class T>
 struct is_recursive : std::integral_constant<bool, !is_complete<T>::value> {};
 template <class T>
@@ -434,6 +435,9 @@ class variant {
     using on_stack_type = store_on_stack<type, memory_size>;
   };
 
+  using default_type = typename target_type_list_t::template type_at<
+      bounded_traits_t::select_default::index_value>::type;
+
   template <class T, class Return>
   using enable_if_stack_t = std::enable_if_t<resolve_type<T>::on_stack_type::value, Return>;
   template <class T, class Return>
@@ -495,19 +499,17 @@ class variant {
   // Template resolution must work event with incomplete types here
   template <bool HasDefault = (bounded_traits_t::select_default::index_value < sizeof...(Value)),
             class Enabler = std::enable_if_t<HasDefault, void>>
-  variant() {
-    using target_type = typename target_type_list_t::template type_at<
-        bounded_traits_t::select_default::index_value>::type;
-    create(nullptr);
+  variant() noexcept(std::is_nothrow_default_constructible<default_type>()) {
+    create(default_type());
   }
 
-  variant(variant const& other) {
+  variant(variant const& other) noexcept(std::is_nothrow_copy_constructible<std::tuple<Value...>>()) {
     static std::array<void (*)(variant&, variant const&), sizeof...(Value)> ctors = {
         copy_ctor_fp<Value>...};
     ctors[other.type_](*this, other);
   }
 
-  variant(variant&& other) {
+  variant(variant&& other) noexcept(std::is_nothrow_move_constructible<std::tuple<Value...>>()) {
     static std::array<void (*)(variant&, variant&&), sizeof...(Value)> ctors = {
         move_ctor_fp<Value>...};
     ctors[other.type_](*this, std::move(other));
@@ -533,7 +535,7 @@ class variant {
   ~variant() { clear(); }
 
   // Assign from other variant
-  variant& operator=(variant const& other) {
+  variant& operator=(variant const& other) noexcept(std::is_nothrow_copy_assignable<std::tuple<Value...>>()) {
     static std::array<void (*)(variant&, variant const&), sizeof...(Value)> stores = {
         copy_assign_fp<Value>...};
 
@@ -549,7 +551,7 @@ class variant {
     return *this;
   }
 
-  variant& operator=(variant&& other) {
+  variant& operator=(variant&& other) noexcept(std::is_nothrow_move_assignable<std::tuple<Value...>>()) {
     static std::array<void (*)(variant&, variant&&), sizeof...(Value)> stores = {
         move_assign_fp<Value>...};
 
