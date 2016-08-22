@@ -7,7 +7,6 @@
 #include <limits>
 #include <array>
 #include <initializer_list>
-#include <tuple>
 
 namespace json_backbone {
 //
@@ -503,13 +502,15 @@ class variant {
     create(default_type());
   }
 
-  variant(variant const& other) noexcept(std::is_nothrow_copy_constructible<std::tuple<Value...>>()) {
+  variant(variant const& other) noexcept(arithmetics::all_equals<bool, sizeof...(Value)>(
+      {std::is_nothrow_copy_constructible<Value>()...}, true)) {
     static std::array<void (*)(variant&, variant const&), sizeof...(Value)> ctors = {
         copy_ctor_fp<Value>...};
     ctors[other.type_](*this, other);
   }
 
-  variant(variant&& other) noexcept(std::is_nothrow_move_constructible<std::tuple<Value...>>()) {
+  variant(variant&& other) noexcept(arithmetics::all_equals<bool, sizeof...(Value)>(
+      {std::is_nothrow_move_constructible<Value>()...}, true)) {
     static std::array<void (*)(variant&, variant&&), sizeof...(Value)> ctors = {
         move_ctor_fp<Value>...};
     ctors[other.type_](*this, std::move(other));
@@ -520,7 +521,10 @@ class variant {
       class Arg, class... Args,
       class Enabler = std::enable_if_t<
           !(std::is_base_of<variant, std::decay_t<Arg>>::value && 0 == sizeof...(Args)), void>>
-  variant(Arg&& arg, Args&&... args) {
+  variant(Arg&& arg, Args&&... args) noexcept(
+      std::is_nothrow_constructible<typename target_type_list_t::template select_constructible<
+                                        memory_size, Arg, Args...>::type,
+                                    Arg, Args...>()) {
     static_assert(
         target_type_list_t::template select_constructible<memory_size, Arg, Args...>::index_value <
             sizeof...(Value),
@@ -535,7 +539,8 @@ class variant {
   ~variant() { clear(); }
 
   // Assign from other variant
-  variant& operator=(variant const& other) noexcept(std::is_nothrow_copy_assignable<std::tuple<Value...>>()) {
+  variant& operator=(variant const& other) noexcept(arithmetics::all_equals<bool, sizeof...(Value)>(
+      {std::is_nothrow_copy_assignable<Value>()...}, true)) {
     static std::array<void (*)(variant&, variant const&), sizeof...(Value)> stores = {
         copy_assign_fp<Value>...};
 
@@ -551,7 +556,8 @@ class variant {
     return *this;
   }
 
-  variant& operator=(variant&& other) noexcept(std::is_nothrow_move_assignable<std::tuple<Value...>>()) {
+  variant& operator=(variant&& other) noexcept(arithmetics::all_equals<bool, sizeof...(Value)>(
+      {std::is_nothrow_move_assignable<Value>()...}, true)) {
     static std::array<void (*)(variant&, variant&&), sizeof...(Value)> stores = {
         move_assign_fp<Value>...};
 
