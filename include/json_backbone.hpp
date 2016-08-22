@@ -498,19 +498,19 @@ class variant {
   // Template resolution must work event with incomplete types here
   template <bool HasDefault = (bounded_traits_t::select_default::index_value < sizeof...(Value)),
             class Enabler = std::enable_if_t<HasDefault, void>>
-  variant() noexcept(std::is_nothrow_default_constructible<default_type>()) {
+  variant() noexcept(std::is_nothrow_default_constructible<default_type>::value) {
     create(default_type());
   }
 
   variant(variant const& other) noexcept(arithmetics::all_equals<bool, sizeof...(Value)>(
-      {std::is_nothrow_copy_constructible<Value>()...}, true)) {
+      {std::is_nothrow_copy_constructible<Value>::value...}, true)) {
     static std::array<void (*)(variant&, variant const&), sizeof...(Value)> ctors = {
         copy_ctor_fp<Value>...};
     ctors[other.type_](*this, other);
   }
 
   variant(variant&& other) noexcept(arithmetics::all_equals<bool, sizeof...(Value)>(
-      {std::is_nothrow_move_constructible<Value>()...}, true)) {
+      {std::is_nothrow_move_constructible<Value>::value...}, true)) {
     static std::array<void (*)(variant&, variant&&), sizeof...(Value)> ctors = {
         move_ctor_fp<Value>...};
     ctors[other.type_](*this, std::move(other));
@@ -524,7 +524,7 @@ class variant {
   variant(Arg&& arg, Args&&... args) noexcept(
       std::is_nothrow_constructible<typename target_type_list_t::template select_constructible<
                                         memory_size, Arg, Args...>::type,
-                                    Arg, Args...>()) {
+                                    Arg, Args...>::value) {
     static_assert(
         target_type_list_t::template select_constructible<memory_size, Arg, Args...>::index_value <
             sizeof...(Value),
@@ -540,7 +540,7 @@ class variant {
 
   // Assign from other variant
   variant& operator=(variant const& other) noexcept(arithmetics::all_equals<bool, sizeof...(Value)>(
-      {std::is_nothrow_copy_assignable<Value>()...}, true)) {
+      {std::is_nothrow_copy_assignable<Value>::value...}, true)) {
     static std::array<void (*)(variant&, variant const&), sizeof...(Value)> stores = {
         copy_assign_fp<Value>...};
 
@@ -557,7 +557,7 @@ class variant {
   }
 
   variant& operator=(variant&& other) noexcept(arithmetics::all_equals<bool, sizeof...(Value)>(
-      {std::is_nothrow_move_assignable<Value>()...}, true)) {
+      {std::is_nothrow_move_assignable<Value>::value...}, true)) {
     static std::array<void (*)(variant&, variant&&), sizeof...(Value)> stores = {
         move_assign_fp<Value>...};
 
